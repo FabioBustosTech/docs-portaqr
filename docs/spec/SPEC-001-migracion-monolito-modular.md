@@ -1,15 +1,38 @@
-# SPEC-001: Migración de 3 microservicios a Monolito Modular (`backend/`)
+---
+title: "SPEC-001: Migración de 3 microservicios a Monolito Modular"
+date: 2026-08-06
+tags:
+  - spec
+  - arquitectura
+  - backend
+  - nestjs
+  - migracion
+  - monolito-modular
+  - ddd
+status: borrador
+aliases:
+  - SPEC-001
+  - Migración Monolito Modular
+  - backend-portaqr
+---
 
-**Estado:** Borrador
-**Fecha:** 2026-08-06
-**Autor:** Equipo Plataforma QR
-**Decisión clave:** Crear un **nuevo componente `backend/`** que unifica `bff-service` + `user-service` + `qr-service` en un solo proceso NestJS modular. La unificación deja el código listo para una siguiente fase de refactor hacia **DDD + arquitectura hexagonal** (no incluida en este spec).
+# SPEC-001: Migración de 3 microservicios a Monolito Modular (`backend-portaqr/`)
+
+> [!abstract] Decisión clave
+> Crear un **nuevo componente `backend-portaqr/`** que unifica `bff-service` + `user-service` + `qr-service` en un solo proceso NestJS modular. La unificación deja el código listo para una siguiente fase de refactor hacia **DDD + arquitectura hexagonal** (no incluida en este spec).
+
+> [!info] Metadatos
+> - **Estado:** Borrador
+> - **Fecha:** 2026-08-06
+> - **Autor:** Equipo Plataforma QR
+> - **Componente destino:** `backend-portaqr/` (puerto 3001)
+> - **Relacionado:** [[SPEC-002]] (Fase 2, DDD/hexagonal — a definir)
 
 ---
 
 ## 1. Objetivo
 
-Construir un nuevo componente `backend/` (NestJS, puerto 3001) que contenga toda la lógica que hoy está repartida en tres servicios, eliminando:
+Construir un nuevo componente `backend-portaqr/` (NestJS, puerto 3001) que contenga toda la lógica que hoy está repartida en tres servicios, eliminando:
 
 - La **duplicación** de código entre `bff-service` y `qr-service` para `pet-tag`, `plan`, `scan`, `statistics`, `webpay`, `mail`, `qr-activate` y `qr-free-generation`.
 - El borde HTTP interno (`@nestjs/axios` + `firstValueFrom` + `AxiosResponse<any>`) que rompe el tipado en runtime.
@@ -24,7 +47,7 @@ Manteniendo:
 
 | Beneficio                                                         | Estado actual | Tras SPEC-001 |
 | ---------------------------------------------------------------- | ------------- | ------------- |
-| Deploy único en Railway                                           | 3 servicios   | 1 (`backend`) |
+| Deploy único en Railway                                           | 3 servicios   | 1 (`backend-portaqr`) |
 | Tipado de extremo a extremo entre módulos                         | No (HTTP `any`) | Sí (inyección directa) |
 | Lógica de negocio duplicada                                       | ~40%          | 0%            |
 | Latencia de llamada interna (`bff → user` / `bff → qr`)           | +20-60ms      | 0ms           |
@@ -37,7 +60,7 @@ Manteniendo:
 
 ### 2.1 Requisitos funcionales (RF)
 
-- **RF-1**. Un único proceso NestJS en el puerto **3001**, exponiendo las rutas que hoy consume el frontend desde `bff-service` (ver §7 API pública).
+- **RF-1**. Un único proceso NestJS en el puerto **3001**, exponiendo las rutas que hoy consume el frontend desde `bff-service` (ver [[#7. API pública resultante (contrato del mono)|§7 API pública]]).
 - **RF-2**. Los módulos de dominio de `qr-service` (qr, scan, plan, pet-tag, webpay, qr-activate, qr-free-generation, statistics, mail) y de `user-service` (users, auth) se importan como **módulos NestJS en-proceso**, sin puerto propio.
 - **RF-3**. Se elimina toda comunicación HTTP entre componentes internos. Prohibido en `src/`:
   - `@nestjs/axios`, `HttpService`, `firstValueFrom`, `AxiosResponse`
@@ -45,9 +68,9 @@ Manteniendo:
 - **RF-4**. Conexión única a MongoDB (`MongooseModule.forRootAsync`) a la BD `sistema`. **No hay migración de datos**: hoy `user-service` y `qr-service` ya apuntan a la misma BD física (`mongo:27017/sistema`).
 - **RF-5**. Autenticación global con `JwtAuthGuard` (APP_GUARD) aplicada en el mono, con el mismo `JWT_SECRET` que ya comparten user/qr. Se descarta la doble validación (qr-service valida JWT sin tocar BD; user-service lo genera): ahora auth y dominios viven en el mismo proceso y el guard usa `JwtService` contra el mismo `JWT_SECRET`.
 - **RF-6**. Superficie pública: ver §7. Como regla general, los **controllers de `user-service` y `qr-service` ganan** como base —ya tienen validaciones de autorización de recurso (ForbiddenException si el usuario no es propietario/admin) que los proxies del bff **no** tienen—. Los del bff se usan como referencia del contrato y se descartan como proxies. Ver §6 para las rutas donde el bff tiene rutas no presentes en qr-service (mail, qr-free-generation) que se deben portar con nueva lógica.
-- **RF-7**. Se eliminan las entities y DTOs **espejo** del bff (ver §3.3). Quedan las entities real anotadas con `@Schema` de user/qr-service como única fuente de verdad. El bff no tiene `@nestjs/mongoose`; el mono sí (heredado de user/qr-service).
-- **RF-8**. Un `Dockerfile` en `backend/Dockerfile` y `docker-compose.yml` actualizado con: `mongo` + `mongo-express` + `backend` (3001:3001) + `qr-app` (3000:3000). Se eliminan los servicios `bff-service`, `user-service`, `qr-service`.
-- **RF-9**. **Estructura preparada para DDD/hexagonal** (sin применения todavía): cada módulo de dominio se aísla en su carpeta sin imports cruzados hacia otro dominio. Las dependencias entre dominios (si existen) se resuelven con interfaces en `shared/` (introducidas en fase 2, no en este spec).
+- **RF-7**. Se eliminan las entities y DTOs **espejo** del bff (ver §3.3). Quedan las entities reales anotadas con `@Schema` de user/qr-service como única fuente de verdad. El bff no tiene `@nestjs/mongoose`; el mono sí (heredado de user/qr-service).
+- **RF-8**. Un `Dockerfile` en `backend-portaqr/Dockerfile` y `docker-compose.yml` actualizado con: `mongo` + `mongo-express` + `backend-portaqr` (3001:3001) + `qr-app` (3000:3000). Se eliminan los servicios `bff-service`, `user-service`, `qr-service`.
+- **RF-9**. **Estructura preparada para DDD/hexagonal** (sin aplicarla todavía): cada módulo de dominio se aísla en su carpeta sin imports cruzados hacia otro dominio. Las dependencias entre dominios (si existen) se resuelven con interfaces en `shared/` (introducidas en fase 2, no en este spec).
 - **RF-10**. Se expone `GET /auth/profile` que ya existe en `user-service` pero el bff no exponía —mejora mínima y alinea el contrato publicado en §7.
 
 ### 2.2 Criterios de aceptación (CA)
@@ -56,12 +79,12 @@ Manteniendo:
 - **CA-02**. Flujo `POST /auth/login`, `POST /auth/refresh`, `GET /auth/profile` y una ruta autenticada de `/users` funcionan contra el mono.
 - **CA-03**. CRUD de `/qr`, `/scan`, `/pet-tag` y `/plan` funcionan contra el mono, **incluyendo las validaciones de autorización** (`ForbiddenException` cuando un usuario no admin intenta acceder a un QR/scan ajeno).
 - **CA-04**. No hay ninguna ruta pública del bff con método/status/payload distinto en el mono (validación con `postman_collection.json` y `postman_collection_qr_free.json`). Se documenta expresamente en §8 toda diferencia intencional.
-- **CA-05**. `npm run build` y `npm run test` pasan en `backend/` con los `.spec.ts` portados de user-service y qr-service (ajustando imports).
+- **CA-05**. `npm run build` y `npm run test` pasan en `backend-portaqr/` con los `.spec.ts` portados de user-service y qr-service (ajustando imports).
 - **CA-06**. El frontend `qr-app` apuntando a `http://localhost:3001` recorre sin errores: login, dashboard, listado QR, detalle QR, pet-tags, planes, webpay.
-- **CA-07**. Cero ocurrencias de `@nestjs/axios`, `HttpService`, `firstValueFrom`, `AxiosResponse` en `backend/src/`. Cero ocurrencias de `USER_SERVICE_URL` o `QR_SERVICE_URL` en `backend/.env.example` o `backend/src/`.
-- **CA-08**. `docker-compose.yml` levanta solo `mongo` + `mongo-express` + `backend` + `qr-app`. `docker compose up` arranca limpio desde `npm run build` del mono.
-- **CA-09**. Railway queda operativo con un solo servicio backend (`backend`) + `qr-app` + Mongo.
-- **CA-10**. La carpeta `backend/src/` queda estructurada por módulos NestJS autónomos; ningún módulo de dominio importa símbolos de otro módulo de dominio (excepto vía `shared/`). Ver §6 para la única excepción documentada (`auth → users`).
+- **CA-07**. Cero ocurrencias en `backend-portaqr/src/` de `@nestjs/axios`, `HttpService`, `firstValueFrom`, `AxiosResponse`, ni `import ... from 'axios'`. `axios` solo puede aparecer como dependencia transitiva de `transbank-sdk` en `package-lock.json`. Cero ocurrencias de `USER_SERVICE_URL` o `QR_SERVICE_URL` en `backend-portaqr/.env.example` o `backend-portaqr/src/`.
+- **CA-08**. `docker-compose.yml` levanta solo `mongo` + `mongo-express` + `backend-portaqr` + `qr-app`. `docker compose up` arranca limpio desde `npm run build` del mono.
+- **CA-09**. Railway queda operativo con un solo servicio backend (`backend-portaqr`) + `qr-app` + Mongo.
+- **CA-10**. La carpeta `backend-portaqr/src/` queda estructurada por módulos NestJS autónomos; ningún módulo de dominio importa símbolos de otro módulo de dominio (excepto vía `shared/`). Ver §6 para la única excepción documentada (`auth → users`).
 - **CA-11**. Se preservan `TrackingIdMiddleware` y `RequestLoggerEntryMiddleware` y `ResponseLoggerInterceptor` con su comportamiento actual.
 
 ### 2.3 Reglas de negocio (R)
@@ -79,10 +102,10 @@ Manteniendo:
 
 ### 3.1 Estructura de los 3 servicios
 
-```
+```text
 plataforma_qr_cursor/
 ├─ bff-service/      (NestJS, puerto 3001, proxies HTTP hacia user/qr)
-│   ├─ N Mongoose NO → entities/ son clases planas o vacías (espejo)
+│   ├─ Mongoose NO → entities/ son clases planas o vacías (espejo)
 │   ├─ Controllers: SÍ expuestos al frontend (12 archivos .controller.ts)
 │   ├─ Services: SÍ usan HttpService → user-service / qr-service
 │   └─ Sin @nestjs/mongoose configurado en app.module.ts
@@ -104,7 +127,8 @@ plataforma_qr_cursor/
     └─ Controllers duplicados con el bff (qr, scan, plan, pet-tag, webpay, qr-activate, qr-free-generation, statistics, mail)
 ```
 
-> **Observación crítica:** los `auth/guards/jwt-auth.guard.ts` existen en los 3 servicios (bff, user, qr) con contenido ligeramente distinto. Los `decorators/` (`public`, `roles`, `user`) son virtualmente idénticos. La `JwtStrategy` de user-service consulta la BD; la de qr-service valida sin BD (solo firma). Ver §6.1 para la resolución.
+> [!warning] Observación crítica
+> Los `auth/guards/jwt-auth.guard.ts` existen en los 3 servicios (bff, user, qr) con contenido ligeramente distinto. Los `decorators/` (`public`, `roles`, `user`) son virtualmente idénticos. La `JwtStrategy` de user-service consulta la BD; la de qr-service valida sin BD (solo firma). Ver [[#6.1 Auth — Resolver conflicto JwtStrategy|§6.1]] para la resolución.
 
 ### 3.2 Inventario de archivos por servicio
 
@@ -117,7 +141,7 @@ plataforma_qr_cursor/
 | `health/`                       | `health.controller.ts`, `health.module.ts`                                   | Sin check de BD                                 |
 | `mail/`                         | `mail.controller.ts`, `mail.service.ts`, `mail.module.ts`, `dto/contact-form.dto.ts` | Ruta `POST /mail/contact`                       |
 | `pet-tag/`                      | `pet-tag.controller.ts`, `pet-tag.service.ts`, `pet-tag.module.ts`<br>`dto/`: `activate-pet-tag`, `create-pet-tag`, `generate-pet-tags`, `pet-tag`, `query-reserved-tags`, `update-pet-tag`<br>`enums/commercial-status.enum.ts`<br>`*.controller.spec.ts`, `*.service.spec.ts` | Controller expone `/admin/generate`, `/admin/reserved`, `/public/status/:idQr`, `/update/:petTagId`, `/activate` |
-| `plan/`                         | `plan.controller.ts`, `plan.service.ts`, `plan.module.ts`<br>`dto/create-plan.dto.ts`, `dto/update-plan.dto.ts`<br>`entities/plan.entity.ts` (clase plana, sin @Schema, ** espejo muerto**)<br>`*.spec.ts` | 5 rutas: POST, GET, GET /active, GET /:id, PATCH /:id, DELETE /:id |
+| `plan/`                         | `plan.controller.ts`, `plan.service.ts`, `plan.module.ts`<br>`dto/create-plan.dto.ts`, `dto/update-plan.dto.ts`<br>`entities/plan.entity.ts` (clase plana, sin `@Schema`, **espejo muerto**)<br>`*.spec.ts` | 5 rutas: POST, GET, GET /active, GET /:id, PATCH /:id, DELETE /:id |
 | `qr/`                           | `qr.controller.ts`, `qr.service.ts`, `qr.module.ts`<br>`dto/create-qr.dto.ts`, `dto/qr-seo.dto.ts`, `dto/update-qr.dto.ts`<br>`entities/qr.entity.ts` → `export class Qr {}` (**vacío, muerto**) | Controller expone 9 rutas                       |
 | `qr-activate/`                  | `qr-activate.controller.ts`, `qr-activate.service.ts`, `qr-activate.module.ts`<br>`dto/create-qr-activate.dto.ts`, `dto/update-qr-activate.dto.ts`<br>`entities/qr-activate.entity.ts` (**muerto**)<br>`*.spec.ts` | Tiene ruta `PATCH /webpay/:token_ws`            |
 | `qr-free-generation/`           | `qr-free-generation.controller.ts`, `qr-free-generation.service.ts`, `*.module.ts`<br>`dto/create-qr-free-generation.dto.ts` | Sin entity, sin spec (diferente a qr-service)  |
@@ -130,7 +154,7 @@ plataforma_qr_cursor/
 #### `user-service/src/` (24 archivos .ts)
 
 | Ruta                                       | Archivos                                                          | Notas                                  |
-| ------------------------------------------ | ----------------------------------------------------------------- | -------------------------------------- |
+| :----------------------------------------- | :---------------------------------------------------------------- | :------------------------------------- |
 | `/`                                        | `app.module.ts`, `main.ts`                                        | `main.ts` ya tiene CORS + pipes        |
 | `auth/`                                    | `auth.controller.ts`, `auth.service.ts`, `auth.module.ts`<br>`dto/login.dto.ts`, `dto/token.dto.ts`<br>`decorators/`: `public`, `roles`, `user`<br>`guards/`: `jwt-auth`, `roles`<br>`strategies/jwt.strategy.ts` | **Lógica real de login + refresh + profile** |
 | `config/mongodb.config.ts`                 |                                                                   |                                        |
@@ -142,53 +166,53 @@ plataforma_qr_cursor/
 
 #### `qr-service/src/` (41 archivos .ts)
 
-| Ruta                                       | Archivos                                                                                                                                                                       | Notas                                                 |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `/`                                        | `app.module.ts`, `main.ts`                                                                                                                                                     |                                                       |
-| `auth/`                                    | `auth.module.ts` (**sin controller ni service**), `config.validation.ts`<br>`decorators/`: `public`, `roles`, `user`<br>`guards/`: `jwt-auth`, `roles`<br>`strategies/jwt.strategy.ts` | Solo valida JWT, sin BD                          |
-| `health/`, `interceptors/`, `middleware/`  | Idénticos                                                                                                                                                                       |                                                       |
-| `mail/`                                    | `mail.controller.ts`, `mail.service.ts`, `mail.module.ts`, `dto/contact-form.dto.ts`                                                                                          | Duplicado con bff                                    |
-| `pet-tag/`                                 | `pet-tag.controller.ts`, `pet-tag.service.ts`, `*.module.ts`<br>`dto/`: `activate-pet-tag`, `create-pet-tag`, `generate-pet-tags`, `pet-tag`, `query-reserved-tags`, `update-pet-tag`<br>`entities/pet-tag.entity.ts` (con @Schema)<br>`enums/commercial-status.enum.ts`<br>`*.spec.ts` | **Entity real + service con toda la lógica**          |
-| `plan/`                                    | `plan.controller.ts`, `plan.service.ts`, `*.module.ts`<br>`dto/`: `create-plan.dto.ts`, `update-plan.dto.ts`<br>`entities/plan.entity.ts` (con @Schema)<br>`*.spec.ts`           |                                                       |
-| `qr/`                                      | `qr.controller.ts`, `qr.service.ts`, `*.module.ts`<br>`dto/`: `create-qr.dto.ts`, `qr-seo.dto.ts`, `update-qr.dto.ts`, `url-item.dto.ts`<br>`entities/`: `qr.entity.ts` (con @Schema), `vacrd.entity.ts`<br>`interfaces/dashboard-item.interface.ts`<br>`*.spec.ts` | **Controller con validaciones de autorización que el bff NO tiene** |
-| `qr-activate/`                             | `qr-activate.controller.ts`, `qr-activate.service.ts`, `*.module.ts`<br>`dto/`: `create-qr-activate.dto.ts`, `qr-activate-response.dto.ts`, `update-qr-activate.dto.ts`<br>`entities/qr-activate.entity.ts` (con @Schema)<br>`*.spec.ts` |                                                       |
-| `qr-free-generation/`                      | `qr-free-generation.controller.ts`, `qr-activate.service.ts`, `*.module.ts`<br>`dto/`: `create-qr-free-generation.dto.ts`, `update-qr-free-generation.dto.ts`<br>`entities/qr-free-generation.entity.ts` (con @Schema)<br>`*.spec.ts` | **No está como entity en el bff**                     |
-| `scan/`                                    | `scan.controller.ts`, `scan.service.ts`, `scan.module.ts`<br>`dto/`: `create-scan.dto.ts`, `update-scan.dto.ts`<br>`entities/scan.entity.ts` (con @Schema)                     |                                                       |
-| `statistics/`                              | `statistics.controller.ts`, `statistics.service.ts`, `statistics.module.ts`                                                                                                   |                                                       |
-| `user/`                                    | `entities/user.entity.ts` (sin @Schema, **lightweight**), `interface/usuario.type.ts`                                                                                          | Solo tipo/interface para uso interno de qr-service    |
-| `webpay/`                                  | `webpay.controller.ts`, `webpay.service.ts`, `webpay.module.ts`<br>`dto/`: `create-transaction.dto.ts`, `create-webpay.dto.ts`, `refund-transaction.dto.ts`, `update-webpay.dto.ts`<br>`entities/`: `atransaction.entity.ts`, `webpay.entity.ts`<br>`interfaces/transaction-result.interface.ts`<br>`webpay.config.ts` |                                                       |
-| `utils/logger.util.ts`                     |                                                                                                                                                                                 |                                                       |
+| Ruta | Archivos | Nota |
+| :--- | :------- | :--- |
+| `/` | `app.module.ts`, `main.ts` | |
+| `auth/` | `auth.module.ts` (**sin controller ni service**), `config.validation.ts`<br>`decorators/`: `public`, `roles`, `user`<br>`guards/`: `jwt-auth`, `roles`<br>`strategies/jwt.strategy.ts` | Solo valida JWT, sin BD |
+| `health/`, `interceptors/`, `middleware/` | Idénticos | |
+| `mail/` | `mail.controller.ts`, `mail.service.ts`, `mail.module.ts`, `dto/contact-form.dto.ts` | Duplicado con bff |
+| `pet-tag/` | `pet-tag.controller.ts`, `pet-tag.service.ts`, `*.module.ts`<br>`dto/`: `activate-pet-tag`, `create-pet-tag`, `generate-pet-tags`, `pet-tag`, `query-reserved-tags`, `update-pet-tag`<br>`entities/pet-tag.entity.ts` (con @Schema)<br>`enums/commercial-status.enum.ts`<br>`*.spec.ts` | **Entity real + service con toda la lógica** |
+| `plan/` | `plan.controller.ts`, `plan.service.ts`, `*.module.ts`<br>`dto/`: `create-plan.dto.ts`, `update-plan.dto.ts`<br>`entities/plan.entity.ts` (con @Schema)<br>`*.spec.ts` | |
+| `qr/` | `qr.controller.ts`, `qr.service.ts`, `*.module.ts`<br>`dto/`: `create-qr.dto.ts`, `qr-seo.dto.ts`, `update-qr.dto.ts`, `url-item.dto.ts`<br>`entities/`: `qr.entity.ts` (con @Schema), `vacrd.entity.ts`<br>`interfaces/dashboard-item.interface.ts`<br>`*.spec.ts` | **Controller con validaciones de autorización que el bff NO tiene** |
+| `qr-activate/` | `qr-activate.controller.ts`, `qr-activate.service.ts`, `*.module.ts`<br>`dto/`: `create-qr-activate.dto.ts`, `qr-activate-response.dto.ts`, `update-qr-activate.dto.ts`<br>`entities/qr-activate.entity.ts` (con @Schema)<br>`*.spec.ts` | |
+| `qr-free-generation/` | `qr-free-generation.controller.ts`, `qr-activate.service.ts`, `*.module.ts`<br>`dto/`: `create-qr-free-generation.dto.ts`, `update-qr-free-generation.dto.ts`<br>`entities/qr-free-generation.entity.ts` (con @Schema)<br>`*.spec.ts` | **No está como entity en el bff** |
+| `scan/` | `scan.controller.ts`, `scan.service.ts`, `scan.module.ts`<br>`dto/`: `create-scan.dto.ts`, `update-scan.dto.ts`<br>`entities/scan.entity.ts` (con @Schema) | |
+| `statistics/` | `statistics.controller.ts`, `statistics.service.ts`, `statistics.module.ts` | |
+| `user/` | `entities/user.entity.ts` (sin @Schema, **lightweight**), `interface/usuario.type.ts` | Solo tipo/interface para uso interno de qr-service |
+| `webpay/` | `webpay.controller.ts`, `webpay.service.ts`, `webpay.module.ts`<br>`dto/`: `create-transaction.dto.ts`, `create-webpay.dto.ts`, `refund-transaction.dto.ts`, `update-webpay.dto.ts`<br>`entities/`: `atransaction.entity.ts`, `webpay.entity.ts`<br>`interfaces/transaction-result.interface.ts`<br>`webpay.config.ts` | |
+| `utils/logger.util.ts` | | |
 
 ### 3.3 Inventario de duplicación / muertos detectados
 
-| Elemento                                | En bff-service                           | En user-service | En qr-service                      | Resolución       |
-| ---------------------------------------- | ----------------------------------------- | --------------- | ----------------------------------- | ---------------- |
-| `auth/guards/jwt-auth.guard.ts`          | ✓                                         | ✓               | ✓                                   | Conservar versión user-service (consulta BD) |
-| `auth/strategies/jwt.strategy.ts`        | ✓                                         | ✓ (con BD)     | ✓ (sin BD)                          | Conservar user-service |
-| `auth/decorators/*`                      | ✓                                         | ✓               | ✓ (idénticos)                       | Conservar uno; borrar duplicados |
-| `auth/guards/roles.guard.ts`             | ✓                                         | ✓               | ✓                                   | Conservar uno    |
-| `auth/auth.service.ts`                   | Proxy HTTP a `/auth/login` y `/auth/refresh` | **REAL** (bcrypt + JWT) | —                         | Conservar user-service; borrar proxy del bff |
-| `auth/auth.controller.ts`                | 2 rutas (login, refresh)                  | 3 rutas (login, refresh, profile) | —                          | Conservar user-service (añade `/profile`)    |
-| `users/users.service.ts`                 | Proxy HTTP a `/users/*`                   | **REAL CRUD**   | —                                   | Conservar user-service; borrar proxy del bff |
-| `qr/qr.service.ts`                       | Proxy HTTP a `/qr/*`                      | —               | **REAL con validaciones de authz**  | Conservar qr-service; borrar proxy del bff |
-| `qr/qr.controller.ts`                    | 9 rutas, **sin validación de propietario**| —               | 9 rutas + 1 (`user/:userId`), **con ForbiddenException** | Conservar qr-service |
-| `entities/plan.entity.ts` (bff)          | Clase plana, sin `@Schema`                | —               | `@Schema` real                     | Borrar bff; usar qr-service |
-| `entities/qr.entity.ts` (bff)            | `export class Qr {}` (**vacío**)          | —               | `@Schema` real (285 líneas)         | Borrar bff; usar qr-service |
-| `entities/user.entity.ts` (bff)          | Clase plana, sin `@Schema`                | `@Schema` con índices | —                       | Borrar bff; usar user-service |
-| `entities/scan.entity.ts` (bff)          | Sin `@Schema`                             | —               | `@Schema` real                      | Borrar bff; usar qr-service |
-| `entities/qr-activate.entity.ts` (bff)   | Sin `@Schema`                             | —               | `@Schema` real                      | Borrar bff; usar qr-service |
-| `mail/`, dto                             | ✓ (lite)                                 | —               | ✓ (con entity implícita)            | Conservar qr-service (incluye service real) |
-| `pet-tag/`, dto, enums                  | ✓ (**sin entity**)                         | —               | ✓ con `entities/pet-tag.entity.ts`  | Conservar qr-service (entity + lógica real) |
-| `qr-free-generation/`                    | ✓ (sin entity, sin spec)                  | —               | ✓ con `entities/qr-free-generation.entity.ts`, spec, dto/update | Conservar qr-service |
-| `webpay/` dto + interfaces               | 1 dto                                     | —               | 4 dto + entities + iface + config  | Conservar qr-service |
-| `middleware/tracking-id.middleware.ts`   | ✓                                         | ✓               | ✓                                   | Conservar uno; borrar duplicados |
-| `interceptors/response-logger.interceptor.ts` | ✓                                    | ✓               | ✓                                   | Conservar uno; borrar duplicados |
-| `utils/logger.util.ts`                  | ✓                                         | ✓               | ✓                                   | Conservar uno; borrar duplicados |
-| `tasks/scripts/create-admin.ts`         | —                                         | ✓               | —                                   | Portar a `backend/src/scripts/` |
-| `templateEmail/` (assets)               | —                                         | ✓               | —                                   | Portar a `backend/src/templateEmail/` |
-| `config/mongodb.config.ts`              | —                                         | ✓               | —                                   | Portar a `backend/src/config/mongodb.config.ts` |
-| `auth/dto/login.dto.ts`, `token.dto.ts` | —                                         | ✓               | —                                   | Portar al `auth/` fusionado |
-| `utils/email.service.ts`, `email.module.ts` | —                                      | ✓               | —                                   | Portar al `shared/email/` (fase inicial `users/` o `mail/`) |
+| Elemento | En bff-service | En user-service | En qr-service | Resolución |
+| :------- | :------------- | :-------------- | :------------ | :--------- |
+| `auth/guards/jwt-auth.guard.ts` | ✓ | ✓ | ✓ | Conservar versión user-service (consulta BD) |
+| `auth/strategies/jwt.strategy.ts` | ✓ | ✓ (con BD) | ✓ (sin BD) | Conservar user-service |
+| `auth/decorators/*` | ✓ | ✓ | ✓ (idénticos) | Conservar uno; borrar duplicados |
+| `auth/guards/roles.guard.ts` | ✓ | ✓ | ✓ | Conservar uno |
+| `auth/auth.service.ts` | Proxy HTTP a `/auth/login` y `/auth/refresh` | **REAL** (bcrypt + JWT) | — | Conservar user-service; borrar proxy del bff |
+| `auth/auth.controller.ts` | 2 rutas (login, refresh) | 3 rutas (login, refresh, profile) | — | Conservar user-service (añade `/profile`) |
+| `users/users.service.ts` | Proxy HTTP a `/users/*` | **REAL CRUD** | — | Conservar user-service; borrar proxy del bff |
+| `qr/qr.service.ts` | Proxy HTTP a `/qr/*` | — | **REAL con validaciones de authz** | Conservar qr-service; borrar proxy del bff |
+| `qr/qr.controller.ts` | 9 rutas, **sin validación de propietario** | — | 9 rutas + 1 (`user/:userId`), **con ForbiddenException** | Conservar qr-service |
+| `entities/plan.entity.ts` (bff) | Clase plana, sin `@Schema` | — | `@Schema` real | Borrar bff; usar qr-service |
+| `entities/qr.entity.ts` (bff) | `export class Qr {}` (**vacío**) | — | `@Schema` real (285 líneas) | Borrar bff; usar qr-service |
+| `entities/user.entity.ts` (bff) | Clase plana, sin `@Schema` | `@Schema` con índices | — | Borrar bff; usar user-service |
+| `entities/scan.entity.ts` (bff) | Sin `@Schema` | — | `@Schema` real | Borrar bff; usar qr-service |
+| `entities/qr-activate.entity.ts` (bff) | Sin `@Schema` | — | `@Schema` real | Borrar bff; usar qr-service |
+| `mail/`, dto | ✓ (lite) | — | ✓ (con entity implícita) | Conservar qr-service (incluye service real) |
+| `pet-tag/`, dto, enums | ✓ (**sin entity**) | — | ✓ con `entities/pet-tag.entity.ts` | Conservar qr-service (entity + lógica real) |
+| `qr-free-generation/` | ✓ (sin entity, sin spec) | — | ✓ con `entities/qr-free-generation.entity.ts`, spec, dto/update | Conservar qr-service |
+| `webpay/` dto + interfaces | 1 dto | — | 4 dto + entities + iface + config | Conservar qr-service |
+| `middleware/tracking-id.middleware.ts` | ✓ | ✓ | ✓ | Conservar uno; borrar duplicados |
+| `interceptors/response-logger.interceptor.ts` | ✓ | ✓ | ✓ | Conservar uno; borrar duplicados |
+| `utils/logger.util.ts` | ✓ | ✓ | ✓ | Conservar uno; borrar duplicados |
+| `tasks/scripts/create-admin.ts` | — | ✓ | — | Portar a `backend-portaqr/src/scripts/` |
+| `templateEmail/` (assets) | — | ✓ | — | Portar a `backend-portaqr/src/templateEmail/` |
+| `config/mongodb.config.ts` | — | ✓ | — | Portar a `backend-portaqr/src/config/mongodb.config.ts` |
+| `auth/dto/login.dto.ts`, `token.dto.ts` | — | ✓ | — | Portar al `auth/` fusionado |
+| `utils/email.service.ts`, `email.module.ts` | — | ✓ | — | Portar al `shared/email/` (fase inicial `users/` o `mail/`) |
 
 ---
 
@@ -196,46 +220,56 @@ plataforma_qr_cursor/
 
 ### 4.1 Diagrama de contexto
 
-```
-qr-app (Next.js, 3000)
-        │  HTTPS con Authorization: Bearer <jwt>
-        ▼
-─────────────────────────────────────────────────────────
-   backend (NestJS, 3001)   ← NUEVO componente mono modular
-─────────────────────────────────────────────────────────
-   ├─ ConfigModule (global)
-   ├─ MongooseModule.forRootAsync(MONGODB_URI → "sistema")
-   │
-   ├─ [Infraestructura cross-cutting]
-   │   ├─ TrackingIdMiddleware
-   │   ├─ RequestLoggerEntryMiddleware
-   │   ├─ ResponseLoggerInterceptor
-   │   └─ AuthModule
-   │        ├─ JwtAuthGuard (APP_GUARD global, con BD)
-   │        ├─ RolesGuard, @Public(), @Roles(), @GetUser()
-   │        └─ JwtStrategy (con BD, versión user-service)
-   │
-   ├─ [Dominio] AuthModule        (controller login/refresh/profile)
-   ├─ [Dominio] UsersModule       (controller + service + entity @Schema)
-   ├─ [Dominio] QrModule           (controller + service + entity + dto)
-   ├─ [Dominio] ScanModule
-   ├─ [Dominio] PlanModule
-   ├─ [Dominio] PetTagModule
-   ├─ [Dominio] WebpayModule       (transbank-sdk)
-   ├─ [Dominio] QrActivateModule
-   ├─ [Dominio] QrFreeGenerationModule
-   ├─ [Dominio] StatisticsModule
-   ├─ [Dominio] MailModule         (nodemailer)
-   ├─ [Soporte shared] EmailService (heredado de user-service)
-   └─ HealthModule
-        ▼
-        MongoDB (sistema)
+```mermaid
+flowchart TD
+    subgraph Frontend
+        APP["qr-app (Next.js, :3000)"]
+    end
+
+    subgraph MONO["backend-portaqr (NestJS, :3001) — NUEVO monolito modular"]
+        CFG["ConfigModule (global)"]
+        MONGO["MongooseModule.forRootAsync<br/>MONGODB_URI → BD 'sistema'"]
+
+        subgraph CROSS["Infraestructura cross-cutting"]
+            MID1["TrackingIdMiddleware"]
+            MID2["RequestLoggerEntryMiddleware"]
+            INT1["ResponseLoggerInterceptor"]
+            AUTH["AuthModule"]
+            AUTH --> GUARD["JwtAuthGuard (APP_GUARD global, con BD)"]
+            AUTH --> ROLES["RolesGuard, @Public(), @Roles(), @GetUser()"]
+            AUTH --> STRAT["JwtStrategy (con BD, versión user-service)"]
+        end
+
+        subgraph DOM["Módulos de dominio"]
+            M_AUTH["AuthModule<br/>(login / refresh / profile)"]
+            M_USERS["UsersModule"]
+            M_QR["QrModule"]
+            M_SCAN["ScanModule"]
+            M_PLAN["PlanModule"]
+            M_PET["PetTagModule"]
+            M_WEB["WebpayModule (transbank-sdk)"]
+            M_QA["QrActivateModule"]
+            M_QFG["QrFreeGenerationModule"]
+            M_STAT["StatisticsModule"]
+            M_MAIL["MailModule (nodemailer)"]
+        end
+
+        SHARED["shared/ EmailService (heredado de user-service)"]
+        HEALTH["HealthModule"]
+    end
+
+    DB[("MongoDB<br/>BD 'sistema'")]
+
+    APP -->|"HTTPS + Authorization: Bearer jwt"| MONO
+    MONGO --> DB
+    M_AUTH --> SHARED
+    M_MAIL --> SHARED
 ```
 
-### 4.2 Estructura de `backend/src/`
+### 4.2 Estructura de `backend-portaqr/src/`
 
-```
-backend/
+```text
+backend-portaqr/
 ├─ src/
 │   ├─ main.ts                      (puerto 3001, CORS, ValidationPipe, interceptors)
 │   ├─ app.module.ts                (unión de todos los módulos + MongooseModule)
@@ -299,15 +333,16 @@ backend/
 └─ .gitignore
 ```
 
-> **Sujeto a fase 2 (DDD/hexagonal):** las carpetas actuales (sin `domain/`, `application/`, `infrastructure/`) se mantienen por **R-01** para no romper lógica. La fase 2 moverá cada módulo a esa estructura hexagonal y extraerá agregados.
+> [!note] Sujeto a fase 2 (DDD/hexagonal)
+> Las carpetas actuales (sin `domain/`, `application/`, `infrastructure/`) se mantienen por **R-01** para no romper lógica. La fase 2 moverá cada módulo a esa estructura hexagonal y extraerá agregados.
 
 ### 4.3 Roadmap hacia DDD/hexagonal (post-SPEC-001)
 
-Este spec **solo contiene** la fusión. La evolución posterior queda fuera de scope pero se drivers con esta estructura:
+Este spec **solo contiene** la fusión. La evolución posterior queda fuera de scope pero se dirige con esta estructura:
 
 - **Fase 1** — SPEC-001 (este documento): monolito modular con módulos NestJS autónomos. Sin cambios de lógica.
-- **Fase 2** — SPEC-002 (a definir): introducción de carpetas `domain/`, `application/`, `infrastructure/` por bounded context; agregados (`User`, `Qr`, `Scan`, `Plan`, `PetTag`, `Transaction`); value objects (`Email`, `Url`, `QrType`); puertos de salida (`UserRepository`, `QrRepository`, `EmailSender`, `PaymentGateway`). Los módulos de infraestructura cruzada (`shared/`) maduran a interfaces.
-- **Fase 3** — SPEC-003 (a definir): uso compartido entre contextos exclusivamente vía interfaces y Application Services. No se permite imports transversales entre carpetas de dominio. Preparación para eventuel extracción de servicios si la escala lo justifica.
+- **Fase 2** — [[SPEC-002]] (a definir): introducción de carpetas `domain/`, `application/`, `infrastructure/` por bounded context; agregados (`User`, `Qr`, `Scan`, `Plan`, `PetTag`, `Transaction`); value objects (`Email`, `Url`, `QrType`); puertos de salida (`UserRepository`, `QrRepository`, `EmailSender`, `PaymentGateway`). Los módulos de infraestructura cruzada (`shared/`) maduran a interfaces.
+- **Fase 3** — [[SPEC-003]] (a definir): uso compartido entre contextos exclusivamente vía interfaces y Application Services. No se permite imports transversales entre carpetas de dominio. Preparación para eventual extracción de servicios si la escala lo justifica.
 
 ---
 
@@ -315,16 +350,17 @@ Este spec **solo contiene** la fusión. La evolución posterior queda fuera de s
 
 ### 5.1 Principio rector
 
+> [!quote] Principio rector
 > **"Los controllers y services de `user-service` y `qr-service` son la fuente de verdad. Los del `bff-service` son proxies que se descartan, salvo donde exponen rutas que user/qr-service no tienen (lo cual, tras el análisis, no ocurre para el dominio QR: el bff solo replica subconjuntos)."**
 
-Ver §6 para la matriz de fusión decisión por decisión.
+Ver [[#6. Matriz de fusión (decisión por módulo)|§6]] para la matriz de fusión decisión por decisión.
 
 ### 5.2 Plan por fases (PR-by-PR)
 
 11 PRs ordenados con verificación en cada uno. Tras cada PR la app debe compilar y pasar tests.
 
-#### PR-01 — Scaffold (`backend/`)
-- Crear carpeta `backend/` con `nest new` o copia estructurada.
+#### PR-01 — Scaffold (`backend-portaqr/`)
+- Crear carpeta `backend-portaqr/` con `nest new` o copia estructurada.
 - `package.json` mergeado (ver §8.1).
 - `tsconfig.json`, `tsconfig.build.json`, `nest-cli.json`, `.eslintrc.js`, `.prettierrc` copiados de qr-service (versión más reciente).
 - `Dockerfile` basado en el de bff-service pero con `EXPOSE 3001` y `SERVER_PORT=3001` por defecto en CMD.
@@ -336,7 +372,7 @@ Ver §6 para la matriz de fusión decisión por decisión.
 #### PR-02 — Cross-cutting: middleware, interceptors, utils, shared/email
 - Copiar **una sola vez** (desde user-service cuando existan):
   - `src/middleware/tracking-id.middleware.ts`
-  - - `src/middleware/request-logger-entry.middleware.ts`
+  - `src/middleware/request-logger-entry.middleware.ts`
   - `src/interceptors/response-logger.interceptor.ts`
   - `src/shared/utils/logger.util.ts`
   - `src/shared/email/email.service.ts` + `email.module.ts`
@@ -391,20 +427,20 @@ Ver §6 para la matriz de fusión decisión por decisión.
 - **Verificación:** `grep -r "HttpService\|firstValueFrom\|@nestjs/axios" src/` retorna vacío.
 
 #### PR-09 — Tests portados
-- Portar todos los `*.spec.ts` de user-service y qr-service a `backend/test/` o mantenerlos junto a su fuente `backend/src/<module>/`.
-- Ajustar mocks e imports. Donde spec mockaba `HttpService`, eliminar ese mock y mockear el service real subyacente.
+- Portar todos los `*.spec.ts` de user-service y qr-service a `backend-portaqr/test/` o mantenerlos junto a su fuente `backend-portaqr/src/<module>/`.
+- Ajustar mocks e imports. Donde spec mockeaba `HttpService`, eliminar ese mock y mockear el service real subyacente.
 - **Verificación:** `npm run test` pasa. Reportar cobertura.
 
 #### PR-10 — Docker y compose
-- `backend/Dockerfile` final (multi-stage: builder + development + production).
-- Actualizar `docker-compose.yml` raíz: reemplazar servicios `bff-service`, `user-service`, `qr-service` por `backend` (3001:3001). Cambiar `NEXT_PUBLIC_BFF_URL=http://bff-service:3001` por `NEXT_PUBLIC_BFF_URL=http://backend:3001` en el servicio `qr-app` (la variable se llama BFF por compatibilidad del frontend; no se renombra en esta fase).
+- `backend-portaqr/Dockerfile` final (multi-stage: builder + development + production).
+- Actualizar `docker-compose.yml` raíz: reemplazar servicios `bff-service`, `user-service`, `qr-service` por `backend-portaqr` (3001:3001). Cambiar `NEXT_PUBLIC_BFF_URL=http://bff-service:3001` por `NEXT_PUBLIC_BFF_URL=http://backend-portaqr:3001` en el servicio `qr-app` (la variable se llama BFF por compatibilidad del frontend; no se renombra en esta fase).
 - Eliminar `USER_SERVICE_URL` y `QR_SERVICE_URL` del compose y de env files.
-- **Verificación:** CA-08. `docker compose up` levanta mongo + mongo-express + backend + qr-app.
+- **Verificación:** CA-08. `docker compose up` levanta mongo + mongo-express + backend-portaqr + qr-app.
 
 #### PR-11 — Validación end-to-end y Railway
-- Correr coleccion Postman `postman_collection.json` y `postman_collection_qr_free.json` contra `localhost:3001`.
+- Correr colección Postman `postman_collection.json` y `postman_collection_qr_free.json` contra `localhost:3001`.
 - Correr smoke test del frontend contra `localhost:3000` con `NEXT_PUBLIC_BFF_URL=http://localhost:3001`.
-- Deploy a Railway: crear nuevo servicio `backend`, eliminar los 2 servicios viejos `user-service` y `qr-service` y/o `bff-service`.
+- Deploy a Railway: crear nuevo servicio `backend-portaqr`, eliminar los 2 servicios viejos `user-service` y `qr-service` y/o `bff-service`.
 - **Verificación:** CA-04, CA-06, CA-09.
 
 ### 5.3 Orden de eliminación de los servicios viejos
@@ -419,56 +455,58 @@ Tras PR-11 (CA-09 confirmado):
 
 ## 6. Matriz de fusión (decisión por módulo)
 
-> **Leyenda:** "✓" presente. "—" ausente. "✓*" presente pero generado en el propio módulo.
+> [!info] Leyenda
+> "✓" presente. "—" ausente. "✓*" presente pero generado en el propio módulo.
 
 ### 6.1 Auth — Resolver conflicto `JwtStrategy`
 
-| Aspecto                             | bff-service                  | user-service                              | qr-service                                | Decisión SPEC-001 |
-| ----------------------------------- | ----------------------------- | ----------------------------------------- | ----------------------------------------- | ----------------- |
-| `auth.service.ts`                   | Proxy HTTP a `:3002/auth/*` `| bcrypt + jwtService → tokens    | —                                          | **user-service** (elimina proxy bff) |
-| `auth.controller.ts`                | `POST /auth/login`, `POST /auth/refresh` | **+ `GET /auth/profile`**                 | —                                         | **user-service** (añade `/profile` → RF-10) |
-| `JwtStrategy` (validación de token) | Sí                               | Con BD: valida `user.sub` contra `UsersService` | Sin BD: solo verifica la firma del JWT      | **user-service** (la BD ya está disponible en el mono) |
-| `JwtAuthGuard`                      | Sí                               | Sí                                         | Sí                                         | **user-service** (consistencia con strategy)|
-| `RolesGuard`, `@Public`, `@Roles`, `@GetUser` | Idénticos              | Idénticos                                 | Idénticos                                 | Conservar uno (de user-service) |
-| `dto/login.dto.ts`, `dto/token.dto.ts` | —                          | Sí                                         | —                                         | **user-service** (los proxies del bff usan `any`) |
+| Aspecto | bff-service | user-service | qr-service | Decisión SPEC-001 |
+| :------ | :---------- | :----------- | :--------- | :---------------- |
+| `auth.service.ts` | Proxy HTTP a `:3002/auth/*` | bcrypt + jwtService → tokens | — | **user-service** (elimina proxy bff) |
+| `auth.controller.ts` | `POST /auth/login`, `POST /auth/refresh` | **+ `GET /auth/profile`** | — | **user-service** (añade `/profile` → RF-10) |
+| `JwtStrategy` (validación de token) | Sí | Con BD: valida `user.sub` contra `UsersService` | Sin BD: solo verifica la firma del JWT | **user-service** (la BD ya está disponible en el mono) |
+| `JwtAuthGuard` | Sí | Sí | Sí | **user-service** (consistencia con strategy) |
+| `RolesGuard`, `@Public`, `@Roles`, `@GetUser` | Idénticos | Idénticos | Idénticos | Conservar uno (de user-service) |
+| `dto/login.dto.ts`, `dto/token.dto.ts` | — | Sí | — | **user-service** (los proxies del bff usan `any`) |
 
-> **Consecuencia importante:** las validaciones que `qr-service` añadía **sin BD** (solo leyendo claims del JWT) se mantienen idénticas —ya que los claims los sigue generando el `auth.service` de user-service fusionado—, pero ahora `JwtStrategy` puede además hidratar el `req.user` completo desde BD. Las `ForbiddenException` que el controller de qr-service añade (`isAdmin`, `isOwner`) se conservan tal cual del lado del controller de qr-service.
+> [!warning] Consecuencia importante
+> Las validaciones que `qr-service` añadía **sin BD** (solo leyendo claims del JWT) se mantienen idénticas —ya que los claims los sigue generando el `auth.service` de user-service fusionado—, pero ahora `JwtStrategy` puede además hidratar el `req.user` completo desde BD. Las `ForbiddenException` que el controller de qr-service añade (`isAdmin`, `isOwner`) se conservan tal cual del lado del controller de qr-service.
 
 ### 6.2 Qr — Conservar controller de qr-service
 
-| Ruta pública                   | En bff-service                  | En qr-service                                            | Novedad |
-| ------------------------------- | ------------------------------- | ---------------------------------------------------------|---------|
-| `POST /qr`                      | Sin authz; pasa el `userId` por `DTO` | Con `ForbiddenException` si `user.id !== userId` && !admin | ✓ validación real |
-| `GET /qr`                       | Sin paginación                   | Con `page`, `limit`, `search` (`findAllWithSearch`)        | Diferencia de contrato |
-| `GET /qr/:id`                   | Sin verificar propietario       | Si `!admin && qr.userId !== user.id` → 403                 | ✓ validación real |
-| `GET /qr/user/:userId`          | NO existe                       | Existe                                                     | Ruta nueva (sí la usa el front? → revisar §8) |
-| `GET /qr/user/favorites`         | Sí, con `userId` query           | Sí, con `@GetUser()` y paging                             | Diferencia de firma |
-| `GET /qr/user/:userId/paginated`| Sí                               | Sí                                                        | idéntica |
-| `GET /qr/seo-idqr`               | Sí                               | Sí (transforma a `{id, updatedAt}`)                        | idéntica |
-| `PATCH /qr/:id`                  | Sin verificar propietario       | Verifica `userId` no se cambia si no admin, propietario    | ✓ validación |
-| `DELETE /qr/:id`                 | Sin verificar propietario       | Verifica propietario/admin                                 | ✓ validación |
-| `GET /qr/public/:id`             | Sí, devuelve `qrService.getPublicQr` | Sí, devuelve `{data, name, id, description}` localmente   | Mapeo respuesta |
+| Ruta pública | En bff-service | En qr-service | Novedad |
+| :----------- | :--------------------------- | :---------------------------------------------------------- | :------ |
+| `POST /qr` | Sin authz; pasa el `userId` por `DTO` | Con `ForbiddenException` si `user.id !== userId` && !admin | ✓ validación real |
+| `GET /qr` | Sin paginación | Con `page`, `limit`, `search` (`findAllWithSearch`) | Diferencia de contrato |
+| `GET /qr/:id` | Sin verificar propietario | Si `!admin && qr.userId !== user.id` → 403 | ✓ validación real |
+| `GET /qr/user/:userId` | NO existe | Existe | Ruta nueva (¿la usa el front? → revisar §8) |
+| `GET /qr/user/favorites` | Sí, con `userId` query | Sí, con `@GetUser()` y paging | Diferencia de firma |
+| `GET /qr/user/:userId/paginated` | Sí | Sí | idéntica |
+| `GET /qr/seo-idqr` | Sí | Sí (transforma a `{id, updatedAt}`) | idéntica |
+| `PATCH /qr/:id` | Sin verificar propietario | Verifica `userId` no se cambia si no admin, propietario | ✓ validación |
+| `DELETE /qr/:id` | Sin verificar propietario | Verifica propietario/admin | ✓ validación |
+| `GET /qr/public/:id` | Sí, devuelve `qrService.getPublicQr` | Sí, devuelve `{data, name, id, description}` localmente | Mapeo respuesta |
 
 **Decisión:** conservar controller de **qr-service**. La diferencia clave para Postman:
 - `GET /qr` en bff no soporta query params (`page`, `limit`, `search`); en qr-service sí. El front hoy no los envía (porque sabe que el bff no los soporta). No rompe compatibilidad.
-- `GET /qr/user/favorites`: en bff recibe `userId` por query; en qr-service usa `@GetUser()`. Para mantener compatibilidad con el front que envía `userId` por query, modificar el controller de qr-service para que **accepte ambos** (query o `req.user.id`).
+- `GET /qr/user/favorites`: en bff recibe `userId` por query; en qr-service usa `@GetUser()`. Para mantener compatibilidad con el front que envía `userId` por query, modificar el controller de qr-service para que **acepte ambos** (query o `req.user.id`).
 
 ### 6.3 Otros módulos (resumen)
 
-| Módulo              | Decisión origen                 | Justificación                                            |
-| -------------------- | -------------------------------| ---------------------------------------------------------|
-| `users`              | user-service                    | Service real con CRUD + verificación email + reset       |
-| `qr`                | qr-service                      | Service real + validaciones de propietario                |
-| `scan`               | qr-service                      | Service real                                              |
-| `plan`               | qr-service                      | Service real (`@Schema` real)                            |
-| `pet-tag`            | qr-service                      | Service real + entity real + enums                       |
-| `qr-activate`        | qr-service                      | Service real + entity real + dto más completo            |
-| `qr-free-generation` | qr-service                      | Service real + entity real + spec                         |
-| `statistics`         | qr-service                      | Service real                                              |
-| `mail`               | qr-service                      | Service real con contenido más completo (786 bytes dto)  |
-| `webpay`             | qr-service                      | 4 dto + entities + iface + config; bff solo tiene 1 dto  |
-| `auth`               | user-service + `/profile`       | Service real de generación de tokens + bcrypt            |
-| `health`             | qr-service/user-service (fusión)| Usar `@nestjs/terminus` con MongooseHealthIndicator      |
+| Módulo | Decisión origen | Justificación |
+| :------------------- | :-------------- | :---------------------------------------------------------- |
+| `users` | user-service | Service real con CRUD + verificación email + reset |
+| `qr` | qr-service | Service real + validaciones de propietario |
+| `scan` | qr-service | Service real |
+| `plan` | qr-service | Service real (`@Schema` real) |
+| `pet-tag` | qr-service | Service real + entity real + enums |
+| `qr-activate` | qr-service | Service real + entity real + dto más completo |
+| `qr-free-generation` | qr-service | Service real + entity real + spec |
+| `statistics` | qr-service | Service real |
+| `mail` | qr-service | Service real con contenido más completo (786 bytes dto) |
+| `webpay` | qr-service | 4 dto + entities + iface + config; bff solo tiene 1 dto |
+| `auth` | user-service + `/profile` | Service real de generación de tokens + bcrypt |
+| `health` | qr-service/user-service (fusión) | Usar `@nestjs/terminus` con MongooseHealthIndicator |
 
 ### 6.4 Excepciones a la estrategia base (DOCUMENTADAS en §8)
 
@@ -482,27 +520,27 @@ Tras PR-11 (CA-09 confirmado):
 
 ### 7.1 Mapa de rutas
 
-| Módulo              | Ruta base              | Endpoints heredados                                                              |
-| -------------------- | ----------------------| ----------------------------------------------------------------------------------|
-| auth                 | /auth                  | `POST /login`, `POST /refresh`, **`GET /profile`** (nuevo)                       |
-| users                | /users                 | `POST`, `GET`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `GET /search`, `GET /paginated`, `GET /check-username/:userName`, `GET /check-email/:email`, `POST /:id/verify-email`, `POST /:id/resend-verification`, `POST /forgot-password`, `POST /reset-password`, `PATCH /:id/change-password` |
-| qr                   | /qr                    | `POST`, `GET`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `GET /seo-idqr`, `GET /public/:id`, `GET /user/favorites`, `GET /user/:userId`, `GET /user/:userId/paginated` |
-| scan                 | /scan                  | `POST /stats`, `GET /:id/stats`, `GET /:id/recent`, `GET /:id/daily`, `GET /:id/locations`, `GET /:id/devices` |
-| plan                 | /plan                  | `POST`, `GET`, `GET /active`, `GET /:id`, `PATCH /:id`, `DELETE /:id`            |
-| pet-tag              | /pet-tag               | `POST /admin/generate`, `GET /admin/reserved`, `GET /public/status/:idQr`, `PATCH /update/:petTagId`, `PATCH /activate` |
-| webpay               | /webpay                | `POST /create`, `GET /return`, `POST /refund`, `GET /status`, `GET /transaction/:token` |
-| qr-activate          | /qr-activate           | `POST`, `GET`, `GET /:id`, `PATCH /webpay/:token_ws`, `PATCH /:id`, `DELETE /:id` |
-| qr-free-generation   | /qr-free-generation    | `POST`, `GET`, `GET /:id`                                                         |
-| statistics           | /statistics            | `GET /user/:userId`, `GET /system`                                                |
-| mail                 | /mail                  | `POST /contact`                                                                   |
-| health               | /health                | `GET`                                                                             |
+| Módulo | Ruta base | Endpoints heredados |
+| :---------------- | :------------------ | :------------------------------------------------------------------------------------------------ |
+| auth | /auth | `POST /login`, `POST /refresh`, **`GET /profile`** (nuevo) |
+| users | /users | `POST`, `GET`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `GET /search`, `GET /paginated`, `GET /check-username/:userName`, `GET /check-email/:email`, `POST /:id/verify-email`, `POST /:id/resend-verification`, `POST /forgot-password`, `POST /reset-password`, `PATCH /:id/change-password` |
+| qr | /qr | `POST`, `GET`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `GET /seo-idqr`, `GET /public/:id`, `GET /user/favorites`, `GET /user/:userId`, `GET /user/:userId/paginated` |
+| scan | /scan | `POST /stats`, `GET /:id/stats`, `GET /:id/recent`, `GET /:id/daily`, `GET /:id/locations`, `GET /:id/devices` |
+| plan | /plan | `POST`, `GET`, `GET /active`, `GET /:id`, `PATCH /:id`, `DELETE /:id` |
+| pet-tag | /pet-tag | `POST /admin/generate`, `GET /admin/reserved`, `GET /public/status/:idQr`, `PATCH /update/:petTagId`, `PATCH /activate` |
+| webpay | /webpay | `POST /create`, `GET /return`, `POST /refund`, `GET /status`, `GET /transaction/:token` |
+| qr-activate | /qr-activate | `POST`, `GET`, `GET /:id`, `PATCH /webpay/:token_ws`, `PATCH /:id`, `DELETE /:id` |
+| qr-free-generation | /qr-free-generation | `POST`, `GET`, `GET /:id` |
+| statistics | /statistics | `GET /user/:userId`, `GET /system` |
+| mail | /mail | `POST /contact` |
+| health | /health | `GET` |
 
 ### 7.2 Validación de contrato
 
 La colección Postman `postman_collection.json` y `postman_collection_qr_free.json` se corre contra `http://localhost:3001` y debe pasar con las dos siguientes excepciones documentadas (añadir tests a la colección):
 
 - Nueva ruta `GET /auth/profile` — assertions: 200 con `Authorization: Bearer <token válido>`.
-- `GET /qr` ahora responde `{ data, pagination }` en lugar de un array. **Aktion antes de cerrar SPEC-001:** comparar la colección actual; si algún request envía `page/limit/search`, ya estaban siendo ignorados. Si la colección asume array, bifurcar la colección y actualizar. **Decisión:** actualizar la colección al contrato del qr-service (más expresivo) y reflejarlo en el front si fuera necesario (en un PR frontend separado).
+- `GET /qr` ahora responde `{ data, pagination }` en lugar de un array. **Acción antes de cerrar SPEC-001:** comparar la colección actual; si algún request envía `page/limit/search`, ya estaban siendo ignorados. Si la colección asume array, bifurcar la colección y actualizar. **Decisión:** actualizar la colección al contrato del qr-service (más expresivo) y reflejarlo en el front si fuera necesario (en un PR frontend separado).
 
 ---
 
@@ -510,9 +548,9 @@ La colección Postman `postman_collection.json` y `postman_collection_qr_free.js
 
 ### 8.1 Merge `package.json`
 
-**Dependencias a conservar en `backend/package.json`:**
+**Dependencias a conservar en `backend-portaqr/package.json`:**
 
-```
+```text
 @nestjs/common           ^10.0.0
 @nestjs/config           ^3.3.0
 @nestjs/core             ^10.0.0
@@ -535,15 +573,18 @@ passport                 ^0.7.0
 passport-jwt             ^4.0.1
 reflect-metadata         ^0.2.0
 rxjs                     ^7.8.1
-transbank-sdk            ^5.0.0     (de qr-service)
+transbank-sdk            ^5.0.0     (de qr-service; trae axios ^1.6.5 como dependencia transitiva, NO se lista directa)
 uuid                     ^11.0.5
 ```
 
+> [!note] Nota sobre `axios`
+> No se declara como dependencia directa en `backend-portaqr/package.json`. `transbank-sdk` la requiere internamente para llamar a la API de Webpay, y queda como **dependencia transitiva** en `package-lock.json`. Ningún archivo `.ts` del mono debe importar `axios` directamente (CA-07). Lo mismo aplica a `@nestjs/axios` y `firstValueFrom`: prohibidos en `src/`.
+
 **Dependencias que se ELIMINAN:**
 
-```
+```text
 @nestjs/axios            (del bff)          ← CA-07
-axios                    (del bff)          ← CA-07
+axios (directa)          (del bff)          ← CA-07; queda solo como transitiva de transbank-sdk
 npm                      ^11.0.0            (paquete espurio en user-service)
 install                  ^0.13.0            (paquete espurio en user-service)
 body-parser              (del bff, conflict)
@@ -571,9 +612,9 @@ body-parser              (del bff, conflict)
 
 `scripts/copy-assets.js` copia `src/templateEmail/` a `dist/templateEmail/` en el build (lo que hoy hace `cp -r` en user-service; al ser Windows-friendly se prefiere un script node).
 
-### 8.2 Variables de entorno consolidadas (`backend/.env.example`)
+### 8.2 Variables de entorno consolidadas (`backend-portaqr/.env.example`)
 
-```
+```text
 # ───────── Configuración del servidor ─────────
 NODE_ENV=development
 SERVER_PORT=3001
@@ -622,7 +663,7 @@ ENABLE_SWAGGER=true
 
 ### 8.3 Riesgo de desincronía entre `qr-app` y el mono
 
-El frontend `qr-app` usa `NEXT_PUBLIC_BFF_URL` como variable de entorno (`docker-compose.yml` línea 126: `NEXT_PUBLIC_BFF_URL=http://bff-service:3001`). En el nuevo compose se cambia a `http://backend:3001` pero **el nombre de la variable se mantiene** (`NEXT_PUBLIC_BFF_URL`) para no requerir cambios en el código del frontend. 
+El frontend `qr-app` usa `NEXT_PUBLIC_BFF_URL` como variable de entorno (`docker-compose.yml` línea 126: `NEXT_PUBLIC_BFF_URL=http://bff-service:3001`). En el nuevo compose se cambia a `http://backend-portaqr:3001` pero **el nombre de la variable se mantiene** (`NEXT_PUBLIC_BFF_URL`) para no requerir cambios en el código del frontend.
 
 ---
 
@@ -641,11 +682,11 @@ El frontend `qr-app` usa `NEXT_PUBLIC_BFF_URL` como variable de entorno (`docker
 
 ### 10.1 Specs existentes a portar
 
-| Origen                                   | `.spec.ts`                                           | Acción |
-| ----------------------------------------| ------------------------------------------------------| -------|
-| bff-service                              | `pet-tag.controller.spec.ts`, `*.service.spec.ts`     | Descartar (specs de proxies HTTP, sin valor para el mono) |
-| user-service                             | `users.controller.spec.ts`, `users.service.spec.ts`   | Portar a `backend/src/users/`; ajustar mocks (`HttpService` no existe). Mockear el `UsersService` real interno. |
-| qr-service                               | `qr.controller.spec.ts`, `qr.service.spec.ts`, `pet-tag.*.spec.ts`, `plan.*.spec.ts`, `qr-activate.*.spec.ts`, `qr-free-generation.*.spec.ts` | Portar a `backend/src/<module>/`; ajustar mocks. |
+| Origen | `.spec.ts` | Acción |
+| :---------------- | :----------------------------------------------------- | :---------------------------------------------------------- |
+| bff-service | `pet-tag.controller.spec.ts`, `*.service.spec.ts` | Descartar (specs de proxies HTTP, sin valor para el mono) |
+| user-service | `users.controller.spec.ts`, `users.service.spec.ts` | Portar a `backend-portaqr/src/users/`; ajustar mocks (`HttpService` no existe). Mockear el `UsersService` real interno. |
+| qr-service | `qr.controller.spec.ts`, `qr.service.spec.ts`, `pet-tag.*.spec.ts`, `plan.*.spec.ts`, `qr-activate.*.spec.ts`, `qr-free-generation.*.spec.ts` | Portar a `backend-portaqr/src/<module>/`; ajustar mocks. |
 
 ### 10.2 Tests mínimos a crear en el mono
 
@@ -660,12 +701,12 @@ El frontend `qr-app` usa `NEXT_PUBLIC_BFF_URL` como variable de entorno (`docker
 
 ### 10.4 Comandos
 
-| Comando                              | Propósito |
-| -----------------------------------| ----------|
-| `npm run build`                     | Compilación TS (CA-05) |
-| `npm run test`                      | Jest con specs (CA-05) |
-| `npm run lint`                      | ESLint + Prettier (reglas de qr-service) |
-| `docker compose up --build`         | CA-08 (mongo + backend + qr-app) |
+| Comando | Propósito |
+| :---------------- | :---------- |
+| `npm run build` | Compilación TS (CA-05) |
+| `npm run test` | Jest con specs (CA-05) |
+| `npm run lint` | ESLint + Prettier (reglas de qr-service) |
+| `docker compose up --build` | CA-08 (mongo + backend-portaqr + qr-app) |
 | `newman run postman_collection.json --env-var url=http://localhost:3001` | CA-04 |
 
 ---
@@ -691,20 +732,20 @@ El frontend `qr-app` usa `NEXT_PUBLIC_BFF_URL` como variable de entorno (`docker
 
 5. **Monolito modular con controllers de user/qr-service como base (DECISIÓN).**
    - Pro: conserva límites de módulo (extracción futura hacia hexagonal/DDD factible), elimina duplicación y HTTP, gana validaciones de autorización que el bff no tenía.
-   - Con: requiere alinear el frontend con dos pequenas diferencias de contrato (ver §6.4, §7.2). Mitigación documentada.
+   - Con: requiere alinear el frontend con dos pequeñas diferencias de contrato (ver §6.4, §7.2). Mitigación documentada.
 
 ### 11.2 Riesgos y mitigación
 
-| Riesgo                                                              | Probabilidad | Impacto | Mitigación |
-| ------------------------------------------------------------------ | ------------ | ------- | ----------|
-| Conflicto en `JwtStrategy` y `AuthModule` con tres variantes       | Alta         | Alto    | §6.1: usar user-service como único source; el guard protege todo el proceso; el token se verifica contra BD. Pasar `.spec.ts` de auth. |
-| Regresión de rutas públicas (CA-04)                                 | Media        | Alto    | Postman + Newman en CI; Mapeo de §7 con la excepción de `GET /qr` documentada. |
-| Monstruo `app.module` si se importan mal los módulos             | Baja         | Medio   | Cada dominio en su módulo NestJS autónomo; CA-10. |
-| `GET /qr` cambia de forma (array → `{data, pagination}`) frente al front | Alta         | Medio   | PR frontend paralelo que actualice el cliente; o, si prioridad es cero cambio en el front, bifurcar `/qr` a `/qr/all` para no romper (ver §6.4). Decidir antes de PR-11. |
-| `@nestjs/axios` o `firstValueFrom` residual                         | Media        | Alto    | CA-07 con grep en CI. PR-08 dedicado. |
-| `docker-compose` local se rompe por cambio de URL del frontend    | Baja         | Bajo    | CA-08 — solo se cambia `NEXT_PUBLIC_BFF_URL` de servicios `bff-service:3001` a `backend:3001`. |
-| MongoDB connectionString con `?authSource=admin` distinto en prod | Media        | Medio  | Conserver exacta la `MONGODB_URI` que Railway tiene; no reescribir la variable. |
-| Pérdida de scripts CLI de admin                                    | Baja         | Bajo    | Portar `scripts/create-admin.ts` y exponer `npm run create:admin`. |
+| Riesgo | Probabilidad | Impacto | Mitigación |
+| :---------------- | :----------- | :------ | :--------- |
+| Conflicto en `JwtStrategy` y `AuthModule` con tres variantes | Alta | Alto | §6.1: usar user-service como único source; el guard protege todo el proceso; el token se verifica contra BD. Pasar `.spec.ts` de auth. |
+| Regresión de rutas públicas (CA-04) | Media | Alto | Postman + Newman en CI; Mapeo de §7 con la excepción de `GET /qr` documentada. |
+| Monstruo `app.module` si se importan mal los módulos | Baja | Medio | Cada dominio en su módulo NestJS autónomo; CA-10. |
+| `GET /qr` cambia de forma (array → `{data, pagination}`) frente al front | Alta | Medio | PR frontend paralelo que actualice el cliente; o, si prioridad es cero cambio en el front, bifurcar `/qr` a `/qr/all` para no romper (ver §6.4). Decidir antes de PR-11. |
+| `@nestjs/axios` o `firstValueFrom` residual | Media | Alto | CA-07 con grep en CI. PR-08 dedicado. |
+| `docker-compose` local se rompe por cambio de URL del frontend | Baja | Bajo | CA-08 — solo se cambia `NEXT_PUBLIC_BFF_URL` de servicios `bff-service:3001` a `backend-portaqr:3001`. |
+| MongoDB connectionString con `?authSource=admin` distinto en prod | Media | Media | Conservar exacta la `MONGODB_URI` que Railway tiene; no reescribir la variable. |
+| Pérdida de scripts CLI de admin | Baja | Bajo | Portar `scripts/create-admin.ts` y exponer `npm run create:admin`. |
 
 ### 11.3 Plan de rollback
 
@@ -719,7 +760,7 @@ Si tras PR-11 el mono falla en producción:
 
 ## 12. Out of scope (explícito)
 
-- Refactor DDD / arquitectura hexagonal (Fase 2, SPEC-002).
+- Refactor DDD / arquitectura hexagonal (Fase 2, [[SPEC-002]]).
 - Migración de colecciones en MongoDB (no se requiere; RF-4).
 - Cambio de framework de Email o de Webpay.
 - Renombrado de la variable `NEXT_PUBLIC_BFF_URL` en el frontend.
@@ -731,7 +772,18 @@ Si tras PR-11 el mono falla en producción:
 
 ## 13. Historial de cambios
 
-| Fecha       | Autor      | Cambio |
-| ----------| ---------- | --------- |
-| 2026-08-06 | Equipo  | Borrador inicial |
-| 2026-08-06 | Equipo  | Reescritura: estrategia "nuevo componente `backend/`", inventario exacto por archivo, matriz de fusión por módulo, roadmap DDD/hexagonal post-spec, CA-10 y RF-09 añadidos, `/auth/profile` expuesta, §8.1 merge package.json, §8.2 .env consolidado, §10 testing detallado, §11.3 rollback |
+| Fecha | Autor | Cambio |
+| :---------- | :----- | :---------- |
+| 2026-08-06 | Equipo | Borrador inicial |
+| 2026-08-06 | Equipo | Reescritura: estrategia "nuevo componente `backend-portaqr/`", inventario exacto por archivo, matriz de fusión por módulo, roadmap DDD/hexagonal post-spec, CA-10 y RF-09 añadidos, `/auth/profile` expuesta, §8.1 merge package.json, §8.2 .env consolidado, §10 testing detallado, §11.3 rollback |
+
+---
+
+## Notas relacionadas
+
+- [[SPEC-002]] — Fase 2: DDD + arquitectura hexagonal (a definir)
+- [[SPEC-003]] — Fase 3: uso compartido entre contextos vía interfaces (a definir)
+- [[bff-service]] — Servicio actual (proxies HTTP, se descarta)
+- [[user-service]] — Servicio actual (dueño de users + auth)
+- [[qr-service]] — Servicio actual (dueño del dominio QR)
+- [[qr-app]] — Frontend Next.js (contrato público)
