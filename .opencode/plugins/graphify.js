@@ -1,11 +1,13 @@
-// graphify OpenCode plugin - Configuración del proyecto ventasEntrasdasV2
+// graphify OpenCode plugin - Configuración del proyecto plataforma_qr_cursor
 // Inyecta recordatorio del grafo de conocimiento antes de llamadas bash.
 //
 // Directorios del proyecto:
-//   desarrollo/venta-entradas-v2-backend  (NestJS, puerto 7001)
-//   desarrollo/venta-entradas-v2-frontend  (Next.js, puerto 7000)
-//   doc/spect/, doc/tareas/, doc/prd.txt  (docs indexados)
-//   doc/wiki/, doc/.obsidian/             (EXCLUIDOS)
+//   desarrollo-qr/bff-service  (NestJS, puerto 3001)
+//   desarrollo-qr/qr-app       (Next.js, puerto 3000)
+//   desarrollo-qr/user-service (NestJS, puerto 3002)
+//   desarrollo-qr/qr-service   (NestJS, puerto 3003)
+//   docs/spec/, docs/tarea/    (docs indexados)
+//   docs/backup-db/, miselanios/ (EXCLUIDOS)
 //
 // IMPORTANTE: mantener el string libre de backticks y $(...) constructs.
 import { existsSync } from "fs";
@@ -25,8 +27,8 @@ export const GraphifyPlugin = async ({ directory }) => {
           "  VISIÓN MACRO -> graphify explain|path (relaciones, comunidades)",
           "  PRECISIÓN     -> codebase-memory-mcp (search_graph, trace_path, get_code_snippet)",
           "  VERIFICACIÓN  -> grep/read (strings exactos, config, tests)",
-          "  Directorios indexados: desarrollo/venta-entradas-v2-backend, desarrollo/venta-entradas-v2-frontend",
-          "  NO incluye: doc/wiki/, doc/.obsidian/, my-video/, desarrollo2/, desarrollo3/",
+          "  Directorios indexados: desarrollo-qr/bff-service, desarrollo-qr/qr-app, desarrollo-qr/user-service, desarrollo-qr/qr-service",
+          "  NO incluye: docs/backup-db/, miselanios/",
         ].join(" | ");
 
         // ';' no '&&' — Windows PowerShell 5.1 rechaza '&&' como separador

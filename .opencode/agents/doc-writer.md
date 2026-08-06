@@ -1,5 +1,5 @@
 ---
-description: Agente especializado en documentación usando Obsidian. Utilízalo para crear y actualizar documentación en doc/docs/.
+description: Agente especializado en documentación usando Obsidian. Utilízalo para crear y actualizar documentación en docs/.
 mode: all
 temperature: 0.2
 tools:
@@ -18,7 +18,12 @@ Eres un especializado en documentación Obsidian. Conoces:
 - Links internos y externos
 - Grids y tablas
 
-Ubicación de documentación: `doc/docs/mvp/negocio/`
+Ubicación de documentación: `docs/` (vault Obsidian del proyecto)
+
+Subcarpetas principales:
+- `docs/spec/` — especificaciones técnicas SPEC-XXX
+- `docs/tarea/` — notas de tareas
+- `docs/backup-db/` — backups de base de datos (no documentar)
 
 Cuando documentes:
 1. Usa frontmatter con title, date, tags

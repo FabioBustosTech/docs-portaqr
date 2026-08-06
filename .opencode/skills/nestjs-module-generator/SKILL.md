@@ -26,19 +26,17 @@ o
 - El usuario proporciona solo un nombre: `producto`, `cliente`, `orden`
 - Se genera un módulo con campos por defecto: `nombre`, `descripcion`, `activa`
 
-> **Regla de aislamiento**: Ejecuta este script SOLO en el entorno de desarrollo que se te indique (desarrollo/, desarrollo2/ o desarrollo3/). No ejecutes el script en otro entorno.
+> **Regla de aislamiento**: Ejecuta este script SOLO en el entorno de desarrollo `desarrollo-qr/`. No ejecutes el script en otro entorno.
 
 **Opción B: Módulo con schema JSON**
 - El usuario proporciona un archivo: `producto.json`
 - Requiere que exista `schemas/<nombre>.json` en el backend
 
-**IMPORTANTE**: Antes de ejecutar, identifica el entorno de desarrollo activo. Usa la ruta correspondiente:
+**IMPORTANTE**: El entorno de desarrollo activo es `desarrollo-qr/`. Usa la ruta correspondiente:
 
 | Entorno | Ruta del backend |
 |---------|-----------------|
-| `desarrollo/` | `desarrollo/venta-entradas-v2-backend` |
-| `desarrollo2/` | `desarrollo2/proyecto-venta-entrandas-v2-backend` |
-| `desarrollo3/` | `desarrollo3/backend` |
+| `desarrollo-qr/` | `desarrollo-qr/bff-service` |
 
 ### Paso 2: Ejecutar el script
 
@@ -158,4 +156,5 @@ src/modules/<nombre>/
 - El script agrega automáticamente el módulo a `app.module.ts`
 - Si el módulo ya existe, no lo duplica
 - Los archivos de test son básicos y pueden requerir ampliarlos
-- El script está en `scripts/generate-module.js` del backend (ruta según el entorno activo)
+- El script está en `desarrollo-qr/bff-service/scripts/generate-module.js`
+- Si el script no existe en el backend, crearlo siguiendo el patrón de la estructura generada de esta skill, o generar el módulo manualmente con `nest g resource` y adaptarlo a la arquitectura del proyecto

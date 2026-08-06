@@ -3,26 +3,22 @@ description: Construye y despliega usando Docker Compose siguiendo las configura
 agent: general
 ---
 
-Construye y despliega usando Docker Compose para el proyecto de venta de entradas.
+Construye y despliega usando Docker Compose para el proyecto Plataforma QR.
 
 Contexto: $ARGUMENTS
 
-Primero, determina el entorno de desarrollo activo:
-- Si el usuario especificó "desarrollo", "desarrollo2" o "desarrollo3", usa ese.
-- Si no lo especificó, pregunta en qué entorno trabajar.
+El entorno de desarrollo activo es `desarrollo-qr/` (único ambiente del proyecto).
 
-Pasos según el entorno:
+Pasos:
 
-### Entorno: desarrollo
-1. **Build**: `docker compose build` en `desarrollo/`
+1. **Build**: `docker compose build` en `desarrollo-qr/`
 2. **Deploy**: `docker compose up -d`
 3. **Verifica**: Comprueba que los servicios respondan:
-   - Frontend: http://localhost:7000
-   - Backend: http://localhost:7001
-   - MongoDB: puerto 7002
-
-### Entorno: desarrollo2 / desarrollo3
-- Estos entornos no tienen `docker-compose.yml` configurado.
-- Informa al usuario que solo el entorno `desarrollo/` tiene Docker configurado.
+   - Frontend (qr-app): http://localhost:3000
+   - Backend (bff-service): http://localhost:3001
+   - user-service: http://localhost:3002
+   - qr-service: http://localhost:3003
+   - mongo-express: http://localhost:8081
+   - MongoDB: localhost:27017
 
 Si hay errores, usa `@skill deploy-docker` o `@skill docker-patterns` para resolverlos.

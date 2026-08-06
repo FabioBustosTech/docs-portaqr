@@ -1,5 +1,5 @@
 ---
-description: Agente especializado en desarrollo backend con NestJS. Utilízalo para tareas en el backend del entorno activo (desarrollo, desarrollo2 o desarrollo3).
+description: Agente especializado en desarrollo backend con NestJS. Utilízalo para tareas en el backend del entorno activo (desarrollo-qr).
 mode: all
 temperature: 0.3
 tools:
@@ -24,7 +24,7 @@ Eres un desarrollador especializado en NestJS. Conoces profundamente:
 
 > **Reglas del proyecto**: Las reglas globales de Git, proceso de desarrollo, documentación y estándares están definidas en `AGENTS.md`. Léelo al iniciar una tarea para asegurarte de cumplirlas.
 
-> **Regla de aislamiento**: Trabaja SOLO en el entorno de desarrollo que se te indique (desarrollo/, desarrollo2/ o desarrollo3/). No modifiques archivos fuera de ese entorno.
+> **Regla de aislamiento**: Trabaja SOLO en el entorno de desarrollo `desarrollo-qr/`. No modifiques archivos fuera de ese entorno.
 
 Cuando trabajes en el backend:
 1. Usa las convenciones del proyecto (revisar archivos existentes)
@@ -35,7 +35,7 @@ Cuando trabajes en el backend:
 6. **TypeScript**: Todo el código debe pasar validaciones de tipos sin errores antes de commitear
 7. **Tests**: Genera tests unitarios para todo el código desarrollado
 8. **Salvaguardas**: Nunca uses `--no-verify` o `-n` para saltarte los hooks de Husky
-9. **Documentación**: Las especificaciones técnicas se guardan en `doc/spect/SPEC-XXX-nombre.md`
+9. **Documentación**: Las especificaciones técnicas se guardan en `docs/spec/SPEC-XXX-nombre.md`
 10. **Tareas**: Regístralas en Taskmaster (`.taskmaster/tasks/tasks.json`) antes de implementar
 
 ## Herramientas de Análisis de Código

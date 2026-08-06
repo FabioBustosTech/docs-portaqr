@@ -1,9 +1,9 @@
-# codebase-memory-mcp - Comandos del Proyecto
+﻿# codebase-memory-mcp - Comandos del Proyecto
 
 ## Configuración
 
 - **Binario**: `~/.local/bin/codebase-memory-mcp.exe`
-- **Proyecto**: `C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2`
+- **Proyecto**: `C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor`
 - **Base de datos**: `~/.cache/codebase-memory-mcp/`
 - **Exclusiones**: `.cbmignore` + `.gitignore`
 
@@ -50,63 +50,63 @@ Solo necesarios si las herramientas MCP nativas no cubren el caso:
 codebase-memory-mcp cli index_repository '{"repo_path": "ruta"}'
 
 # Buscar nodo por nombre
-codebase-memory-mcp cli search_graph '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "name_pattern": ".*AuthService.*"}'
+codebase-memory-mcp cli search_graph '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "name_pattern": ".*AuthService.*"}'
 
 # Buscar código
-codebase-memory-mcp cli search_code '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "query": "login"}'
+codebase-memory-mcp cli search_code '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "query": "login"}'
 
 # Trazar camino
-codebase-memory-mcp cli trace_path '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "function_name": "AuthService", "direction": "inbound"}'
+codebase-memory-mcp cli trace_path '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "function_name": "AuthService", "direction": "inbound"}'
 
 # Arquitectura
-codebase-memory-mcp cli get_architecture '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "aspects": ["all"]}'
+codebase-memory-mcp cli get_architecture '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "aspects": ["all"]}'
 
 # Impacto de cambios
-codebase-memory-mcp cli detect_changes '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2"}'
+codebase-memory-mcp cli detect_changes '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor"}'
 
 # Código muerto
-codebase-memory-mcp cli dead_code '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2"}'
+codebase-memory-mcp cli dead_code '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor"}'
 
 # Rutas HTTP
-codebase-memory-mcp cli http_routes '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2"}'
+codebase-memory-mcp cli http_routes '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor"}'
 
 # Consulta Cypher
-codebase-memory-mcp cli cypher_query '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "query": "MATCH (f:Function)-[:CALLS]->(g) WHERE f.name = '\''login'\'' RETURN g.name"}'
+codebase-memory-mcp cli cypher_query '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "query": "MATCH (f:Function)-[:CALLS]->(g) WHERE f.name = '\''login'\'' RETURN g.name"}'
 ```
 
 ## Ejemplos para Este Proyecto
 
 ### Buscar servicios de auth
 ```bash
-codebase-memory-mcp cli search_graph '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "name_pattern": ".*Auth.*Service.*"}'
+codebase-memory-mcp cli search_graph '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "name_pattern": ".*Auth.*Service.*"}'
 ```
 
 ### Trazar flujo de login (quién llama a AuthService)
 ```bash
-codebase-memory-mcp cli trace_path '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "function_name": "AuthService", "direction": "inbound"}'
+codebase-memory-mcp cli trace_path '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "function_name": "AuthService", "direction": "inbound"}'
 ```
 
 ### Ver rutas del backend
 ```bash
-codebase-memory-mcp cli http_routes '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2"}'
+codebase-memory-mcp cli http_routes '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor"}'
 ```
 
 ### Encontrar qué archivos importan un módulo específico
 ```bash
-codebase-memory-mcp cli search_graph '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "name_pattern": ".*Event.*Module.*"}'
+codebase-memory-mcp cli search_graph '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "name_pattern": ".*Event.*Module.*"}'
 ```
 
 ### Hotspots del proyecto (alto acoplamiento)
 ```bash
-codebase-memory-mcp cli get_architecture '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "aspects": ["hotspots", "clusters"]}'
+codebase-memory-mcp cli get_architecture '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "aspects": ["hotspots", "clusters"]}'
 ```
 
 ### Leer código de un handler específico
 ```bash
 # Primero encontrar el handler
-codebase-memory-mcp cli search_graph '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "name_pattern": ".*EventHandler.*"}'
+codebase-memory-mcp cli search_graph '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "name_pattern": ".*EventHandler.*"}'
 # Luego leer el snippet (el qualified_name viene del resultado anterior)
-codebase-memory-mcp cli get_code_snippet '{"project": "C-Users-Admin-OneDrive-Escritorio-ventasEntrasdasV2", "qualified_name": "src/events/event.handler.ts/EventHandler"}'
+codebase-memory-mcp cli get_code_snippet '{"project": "C-Users-Admin-OneDrive-Escritorio-plataforma_qr_cursor", "qualified_name": "src/events/event.handler.ts/EventHandler"}'
 ```
 
 ## Lecciones Aprendidas

@@ -29,7 +29,7 @@ Eres un desarrollador especializado en React Native y Expo. Conoces profundament
 
 > **Reglas del proyecto**: Las reglas globales de Git, proceso de desarrollo, documentación y estándares están definidas en `AGENTS.md` y en los archivos de `rules/`. Léelos al iniciar una tarea para asegurarte de cumplirlas.
 >
-> **Regla de aislamiento**: Trabaja SOLO en el entorno de desarrollo que se te indique (desarrollo/, desarrollo2/ o desarrollo3/). No modifiques archivos fuera de ese entorno.
+> **Regla de aislamiento**: Trabaja SOLO en el entorno de desarrollo `desarrollo-qr/`. No modifiques archivos fuera de ese entorno.
  
 Cuando trabajes en React Native:
 1. Usa las convenciones del proyecto (revisar archivos existentes)
@@ -43,7 +43,7 @@ Cuando trabajes en React Native:
 9. **Tests**: Genera tests unitarios con @testing-library/react-native
 10. **Salvaguardas**: Nunca uses `--no-verify` o `-n` para saltarte los hooks de Husky
 11. **Sin console.log** en producción. Usar logger que se stripee en build
-12. **Documentación**: Las especificaciones técnicas se guardan en `doc/spect/SPEC-XXX-nombre.md`
+12. **Documentación**: Las especificaciones técnicas se guardan en `docs/spec/SPEC-XXX-nombre.md`
 13. **Tareas**: Regístralas en Taskmaster (`.taskmaster/tasks/tasks.json`) antes de implementar
 
 Puedes invocar a otros subagentes cuando sea necesario:

@@ -1,6 +1,6 @@
 ---
 name: graphify
-description: "Grafo de conocimiento del proyecto ventasEntrasdasV2. Usar para preguntas sobre arquitectura, relaciones entre archivos, o estructura del codebase. Si existe graphify-out/graph.json, consultar el grafo primero."
+description: "Grafo de conocimiento del proyecto plataforma_qr_cursor. Usar para preguntas sobre arquitectura, relaciones entre archivos, o estructura del codebase. Si existe graphify-out/graph.json, consultar el grafo primero."
 ---
 
 # /graphify - Grafo de Conocimiento del Proyecto
@@ -13,33 +13,26 @@ description: "Grafo de conocimiento del proyecto ventasEntrasdasV2. Usar para pr
 ### Estructura de Directorios
 
 ```
-ventasEntrasdasV2/
-├── desarrollo/                    ← Entorno primario (Docker)
-│   ├── venta-entradas-v2-backend/    Backend NestJS (puerto 7001)
-│   ├── venta-entradas-v2-frontend/   Frontend Next.js (puerto 7000)
-│   └── docker-compose.yml            MongoDB en puerto 7002
-├── desarrollo2/                   ← Entorno secundario (puertos 5000/5001)
-├── desarrollo3/                   ← Entorno tercero
-├── doc/
-│   ├── spect/                    Specs del proyecto (12 specs)
-│   ├── tareas/                   Tasks (backend, frontend, general, storybook)
-│   ├── prd.txt                   PRD
-│   ├── graphs/                   Grafos individuales versionados
-│   │   ├── backend/              Grafo del backend (copiado automáticamente)
-│   │   └── frontend/             Grafo del frontend (copiado automáticamente)
-│   └── wiki/                     ❌ EXCLUIDO (.graphifyignore)
-├── rules/                        Reglas del proyecto
-├── scripts/
-│   └── update-graphs.ps1         Script para actualizar grafos y copiarlos a doc/graphs/
-└── graphify-out/                 Grafo combinado (backend + frontend)
+plataforma_qr_cursor/
+├── desarrollo-qr/                ← Entorno de desarrollo (Docker)
+│   ├── bff-service/               Backend NestJS (puerto 3001)
+│   ├── qr-app/                    Frontend Next.js (puerto 3000)
+│   ├── user-service/              Microservicio usuarios (puerto 3002)
+│   ├── qr-service/                Microservicio QR (puerto 3003)
+│   └── docker-compose.yml         MongoDB en puerto 27017
+├── docs/
+│   ├── spec/                      Specs del proyecto (SPEC-XXX)
+│   ├── tarea/                     Notas de tareas
+│   └── backup-db/                 Backups de base de datos (no versionar)
+├── rules/                         Reglas del proyecto
+├── miselanios/                    ❌ EXCLUIDO (archivos misceláneos)
+└── graphify-out/                  Grafo combinado (backend + frontend)
 ```
 
 ### Directorios Excluidos (`.graphifyignore`)
 
-- `doc/wiki/` y `doc/.obsidian/` — Vault Obsidian
-- `desarrollo/my-video/` — Proyecto Remotion independiente
-- `desarrollo2/`, `desarrollo3/`, `desarrolloMain/` — Copias de entornos
-- `backups/`, `mockups/`, `screenshots/`
+- `docs/backup-db/` — Backups de base de datos
+- `miselanios/` — Archivos misceláneos
 - `node_modules/`, `dist/`, `.next/`, `build/`
 
 ---
@@ -53,13 +46,13 @@ ventasEntrasdasV2/
 /graphify .
 
 # Construir de una ruta específica
-/graphify ./desarrollo/venta-entradas-v2-backend
+/graphify ./desarrollo-qr/bff-service
 
 # Modo profundo (extrae más relaciones, usa LLM)
 /graphify . --mode deep
 
 # Solo código (sin docs, sin costo LLM) ← RECOMENDADO para este proyecto
-graphify extract ./desarrollo/venta-entradas-v2-backend ./desarrollo/venta-entradas-v2-frontend --code-only --out .
+graphify extract ./desarrollo-qr/bff-service ./desarrollo-qr/qr-app --code-only --out .
 
 # Extraer con backend específico
 graphify extract . --backend gemini
@@ -86,22 +79,24 @@ graphify cluster-only . --resolution 1.5    # comunidades más pequeñas
 graphify cluster-only . --exclude-hubs 99   # excluir nodos hub del ranking
 ```
 
-### Actualizar y copiar a doc/graphs/ (recomendado)
+### Actualizar y copiar a docs/graphs/ (opcional)
 
-Actualiza los grafos individuales de backend y frontend y los copia automáticamente a `doc/graphs/` para versionarlos en el repo principal:
+Actualiza los grafos individuales de backend y frontend y los copia automáticamente a `docs/graphs/` para versionarlos en el repo principal:
 
 ```bash
-# Script que actualiza backend + frontend y copia a doc/graphs/
+# Script que actualiza backend + frontend y copia a docs/graphs/
 powershell -File scripts/update-graphs.ps1
 
 # Luego commitear los grafos en el repo principal
-git add doc/graphs/
+git add docs/graphs/
 git commit -m "docs: actualizar grafos"
 ```
 
+> [!note] Si `scripts/update-graphs.ps1` no existe en este proyecto, crear los grafos individuales manualmente con `graphify extract` y copiarlos a `docs/graphs/`.
+
 Los grafos quedan en:
-- `doc/graphs/backend/` — Grafo individual del backend
-- `doc/graphs/frontend/` — Grafo individual del frontend
+- `docs/graphs/backend/` — Grafo individual del backend
+- `docs/graphs/frontend/` — Grafo individual del frontend
 - `graphify-out/` — Grafo combinado (backend + frontend)
 
 ### Consultar el Grafo
@@ -234,14 +229,14 @@ graphify --version
 ### SIEMPRE hacer
 
 1. **Usar `--code-only`** para extracción inicial (sin costo LLM)
-2. **Excluir** `doc/wiki/`, `doc/.obsidian/`, `my-video/`
-3. **Indexar SOLO** `desarrollo/venta-entradas-v2-backend/` y `desarrollo/venta-entradas-v2-frontend/`
-4. **Fuente canónica**: `desarrollo/` es el entorno principal
+2. **Excluir** `docs/backup-db/`, `miselanios/`
+3. **Indexar SOLO** `desarrollo-qr/bff-service/`, `desarrollo-qr/qr-app/`, `desarrollo-qr/user-service/` y `desarrollo-qr/qr-service/`
+4. **Fuente canónica**: `desarrollo-qr/` es el entorno principal
 
 ### NUNCA hacer
 
-1. No indexar `doc/wiki/` (~190 artículos Obsidian)
-2. No indexar `desarrollo2/`, `desarrollo3/`, `desarrolloMain/` (copias)
+1. No indexar `docs/backup-db/` (backups binarios)
+2. No indexar `miselanios/` (archivos misceláneos)
 3. No usar `--mode deep` sin necesidad (costa tokens)
 4. No generar HTML si grafo > 5000 nodos
 
@@ -249,7 +244,7 @@ graphify --version
 
 ```bash
 # 1. Extracción inicial (una vez)
-graphify extract ./desarrollo/venta-entradas-v2-backend ./desarrollo/venta-entradas-v2-frontend --code-only --out .
+graphify extract ./desarrollo-qr/bff-service ./desarrollo-qr/qr-app --code-only --out .
 
 # 2. Clustering y nombres
 graphify label . --backend gemini
@@ -262,11 +257,11 @@ graphify explain "Node"
 # 4. Actualización después de cambios en código (grafo combinado)
 graphify update .
 
-# 5. Actualizar grafos individuales y copiar a doc/graphs/ (recomendado)
+# 5. Actualizar grafos individuales y copiar a docs/graphs/ (opcional)
 powershell -File scripts/update-graphs.ps1
 
 # 6. Commitear los grafos versionados
-git add doc/graphs/
+git add docs/graphs/
 git commit -m "docs: actualizar grafos"
 
 # 7. Actualización si cambiaron docs (necesita LLM)
@@ -292,13 +287,16 @@ graphify extract . --backend gemini
 
 ---
 
-## Puertos por Entorno
+## Puertos por Servicio
 
-| Entorno | Frontend | Backend | MongoDB | Docker |
-|---------|----------|---------|---------|--------|
-| `desarrollo/` | :7000 | :7001 | :7002 | Sí |
-| `desarrollo2/` | :5000 | :5001 | — | No |
-| `desarrollo3/` | (por definir) | (por definir) | — | No |
+| Servicio | Puertos | Docker |
+|----------|---------|--------|
+| `qr-app` (Next.js) | :3000 | Sí |
+| `bff-service` (NestJS) | :3001 | Sí |
+| `user-service` (NestJS) | :3002 | Sí |
+| `qr-service` (NestJS) | :3003 | Sí |
+| `mongo-express` | :8081 | Sí |
+| `mongo` | :27017 | Sí |
 
 ---
 
@@ -315,7 +313,7 @@ graphify extract . --backend gemini
 
 ## Lecciones Aprendidas (Evaluación en Proyecto Real)
 
-Basado en el uso extensivo de Graphify en el proyecto ventasEntrasdasV2:
+Basado en el uso extensivo de Graphify en el proyecto plataforma_qr_cursor:
 
 ### ✅ Lo que funciona bien
 

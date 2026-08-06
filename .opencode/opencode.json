@@ -10,7 +10,7 @@
         "C:/Users/Admin/.local/bin/codebase-memory-mcp.exe"
       ],
       "env": {
-        "CBM_CACHE_DIR": "C:/Users/Admin/OneDrive/Escritorio/ventasEntrasdasV2/.cbm-cache"
+        "CBM_CACHE_DIR": "C:/Users/Admin/OneDrive/Escritorio/plataforma_qr_cursor/.cbm-cache"
       },
       "enabled": true
     },

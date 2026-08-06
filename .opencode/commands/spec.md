@@ -1,9 +1,9 @@
 ---
-description: Genera una plantilla SPEC en doc/spect/ siguiendo el formato del proyecto.
+description: Genera una plantilla SPEC en docs/spec/ siguiendo el formato del proyecto.
 agent: architect
 ---
 
-Crea una especificación técnica en `doc/spect/` para el siguiente requerimiento.
+Crea una especificación técnica en `docs/spec/` para el siguiente requerimiento.
 
 Sigue esta estructura:
 
@@ -35,4 +35,4 @@ YYYY-MM-DD
 
 Requerimiento: $ARGUMENTS
 
-Asigna el número correlativo al último en `doc/spect/`. Usa `@doc-writer` para dar formato final si es necesario.
+Asigna el número correlativo al último en `docs/spec/`. Usa `@doc-writer` para dar formato final si es necesario.
