@@ -1,0 +1,29 @@
+# Directorios de trabajo movidos / temporales
+miselanios/
+desarrollo-qr/
+
+# Dependencias
+node_modules/
+
+# Entornos
+.env
+.env.*
+!.env.example
+
+# Builds
+dist/
+build/
+.next/
+out/
+
+# Base de datos
+docs/backup-db/
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+*.log
+
+# Sensible
+*.pem
+*.p12

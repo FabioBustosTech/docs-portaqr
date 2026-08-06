@@ -1,0 +1,34 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    ".opencode/plugins/graphify.js"
+  ],
+  "mcp": {
+    "codebase-memory-mcp": {
+      "type": "local",
+      "command": [
+        "C:/Users/Admin/.local/bin/codebase-memory-mcp.exe"
+      ],
+      "env": {
+        "CBM_CACHE_DIR": "C:/Users/Admin/OneDrive/Escritorio/ventasEntrasdasV2/.cbm-cache"
+      },
+      "enabled": true
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "chrome-devtools-mcp@0.6.1"
+      ],
+      "enabled": true
+    },
+    "playwright": {
+      "type": "local",
+      "command": [
+        "playwright-mcp"
+      ],
+      "enabled": true
+    }
+  }
+}
