@@ -70,10 +70,10 @@ flowchart LR
 | Servicio        | Tecnología           | Puerto | Descripción                                    |
 | --------------- | -------------------- | ------ | ---------------------------------------------- |
 | `qr-app`        | Next.js 14           | 3000   | Frontend de la plataforma                      |
-| `bff-service`   | NestJS               | 3001   | BFF (proxies hacia user/qr-service)            |
-| `user-service`  | NestJS               | 3002   | Usuarios, auth (JWT), email                    |
-| `qr-service`    | NestJS               | 3003   | Dominio QR: qr, scan, plan, pet-tag, webpay…   |
 | `backend-portaqr` | NestJS            | 3004   | Monolito modular (fusión de los 3 servicios)   |
+| `bff-service`   | NestJS               | 3001   | BFF (proxies hacia user/qr-service) — ⚠️ deprecado |
+| `user-service`  | NestJS               | 3002   | Usuarios, auth (JWT), email — ⚠️ deprecado     |
+| `qr-service`    | NestJS               | 3003   | Dominio QR: qr, scan, plan, pet-tag, webpay… — ⚠️ deprecado |
 | `mongo`         | MongoDB              | 27017  | Base de datos `sistema`                        |
 | `mongo-express` | mongo-express        | 8081   | UI de administración de MongoDB                |
 
@@ -126,17 +126,43 @@ plataforma_qr_cursor/
 ├── desarrollo-qr/          # Ambiente de desarrollo (código fuente, NO versionado salvo compose)
 │   ├── docker-compose.yml  # Orquestación local (versionado)
 │   ├── mongo-init.js       # Inicialización de MongoDB
-│   ├── backend-portaqr/    # Monolito modular NestJS (en migración)
-│   ├── bff-service/        # BFF NestJS
-│   ├── qr-app/             # Frontend Next.js
-│   ├── user-service/       # Microservicio usuarios
-│   └── qr-service/         # Microservicio QR
+│   ├── backend-portaqr/    # Monolito modular NestJS (activo)
+│   ├── qr-app/             # Frontend Next.js (activo)
+│   ├── e2e-tests-portaqr/  # Tests E2E (activo)
+│   ├── bff-service/        # BFF NestJS (deprecado → backend-portaqr)
+│   ├── user-service/       # Microservicio usuarios (deprecado → backend-portaqr)
+│   └── qr-service/         # Microservicio QR (deprecado → backend-portaqr)
 ├── docs/                   # Documentación (vault Obsidian)
 │   ├── spec/               # Especificaciones técnicas (SPEC-XXX)
 │   ├── adr/                # Decisiones de arquitectura (ADR-XXX)
 │   └── backup-db/          # Backups de base de datos (no versionar)
 └── .opencode/              # Configuración de agentes y skills
 ```
+
+---
+
+## 🔗 Repositorios
+
+Cada componente del entorno se versiona en un repositorio remoto independiente:
+
+### Activos
+
+| Componente | Repositorio | Descripción |
+| ---------- | ----------- | ----------- |
+| `qr-app` | [FabioBustosTech/qr-app](https://github.com/FabioBustosTech/qr-app) | Frontend Next.js de la plataforma |
+| `backend-portaqr` | [FabioBustosTech/backend-portaqr](https://github.com/FabioBustosTech/backend-portaqr) | Monolito modular NestJS (fusión de los 3 servicios) |
+| `e2e-tests-portaqr` | [FabioBustosTech/e2e-tests-portaqr](https://github.com/FabioBustosTech/e2e-tests-portaqr) | Suite de tests E2E de la plataforma |
+
+### Deprecados
+
+> [!WARNING] Servicios deprecados
+> Los siguientes repositorios fueron **unificados en `backend-portaqr`** como parte de la migración [SPEC-001](docs/spec/SPEC-001-migracion-monolito-modular.md). **No reciben desarrollo activo** y se conservan solo como referencia histórica (rollback y lectura).
+
+| Componente | Repositorio | Estado |
+| ---------- | ----------- | ------ |
+| `bff-service` | [FabioBustosTech/bff-service](https://github.com/FabioBustosTech/bff-service) | ⚠️ Deprecado — fusionado en `backend-portaqr` |
+| `user-service` | [FabioBustosTech/user-service](https://github.com/FabioBustosTech/user-service) | ⚠️ Deprecado — fusionado en `backend-portaqr` |
+| `qr-service` | [FabioBustosTech/qr-service](https://github.com/FabioBustosTech/qr-service) | ⚠️ Deprecado — fusionado en `backend-portaqr` |
 
 ---
 
