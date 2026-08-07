@@ -1,0 +1,583 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "0",
+                      "content":  "[SPEC-001-F0] Fase 0: Setup General",
+                      "description":  "Preparar entorno de desarrollo, crear rama feature, verificar inventario de los 3 servicios y colecciones Postman.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "0.1",
+                                           "content":  "Crear rama feature/spec-001-migracion-monolito-modular en repositorio principal",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "0.2",
+                                           "content":  "Crear SPEC-001-tareas.json en docs/tarea/",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "0.3",
+                                           "content":  "Verificar inventario exacto de bff-service (47 .ts), user-service (24 .ts) y qr-service (41 .ts) segÃºn Â§3.2",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "0.4",
+                                           "content":  "Verificar que existen postman_collection.json y postman_collection_qr_free.json para validaci�n de contrato (CA-04) - CONFIRMADO: existen en miselanios/ y se ejecutaron con newman contra el mono",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "0.5",
+                                           "content":  "Confirmar que user-service y qr-service apuntan a la misma BD fÃ­sica mongo:27017/sistema (RF-4)",
+                                           "status":  "done"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-001-PR01] PR-01: Scaffold backend-portaqr/",
+                      "description":  "Crear el nuevo componente backend-portaqr/ con nest new o copia estructurada, package.json mergeado, configs y main.ts en puerto 3001.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "0"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "1.1",
+                                           "content":  "Crear carpeta backend-portaqr/ con nest new o copia estructurada",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "1.2",
+                                           "content":  "Merge package.json segÃºn Â§8.1 (conservar deps, eliminar @nestjs/axios, axios directa, npm, install, body-parser)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "1.3",
+                                           "content":  "Copiar tsconfig.json, tsconfig.build.json, nest-cli.json, .eslintrc.js, .prettierrc desde qr-service (versiÃ³n mÃ¡s reciente)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "1.4",
+                                           "content":  "Crear Dockerfile basado en bff-service con EXPOSE 3001 y SERVER_PORT=3001 por defecto",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "1.5",
+                                           "content":  "Crear .env.example consolidado segÃºn Â§8.2 (sin USER_SERVICE_URL ni QR_SERVICE_URL)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "1.6",
+                                           "content":  "Crear src/main.ts con process.env.SERVER_PORT || 3001, CORS, ValidationPipe e interceptors",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "1.7",
+                                           "content":  "Crear src/app.module.ts provisorio (ConfigModule + MongooseModule + HealthModule + middleware)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "1.8",
+                                           "content":  "VerificaciÃ³n: npm run build pasa",
+                                           "status":  "done"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[Task-001-PR02] PR-02: Cross-cutting (middleware, interceptors, utils, shared/email)",
+                      "description":  "Copiar una sola vez la infraestructura transversal desde user-service y registrar middleware/interceptor en app.module.ts.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "2.1",
+                                           "content":  "Copiar src/middleware/tracking-id.middleware.ts (una sola vez)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "2.2",
+                                           "content":  "Copiar src/middleware/request-logger-entry.middleware.ts (una sola vez)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "2.3",
+                                           "content":  "Copiar src/interceptors/response-logger.interceptor.ts (una sola vez)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "2.4",
+                                           "content":  "Copiar src/shared/utils/logger.util.ts (una sola vez)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "2.5",
+                                           "content":  "Copiar src/shared/email/email.service.ts + email.module.ts desde user-service",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "2.6",
+                                           "content":  "Registrar middleware e interceptor en app.module.ts",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "2.7",
+                                           "content":  "AÃ±adir templateEmail/ (assets) con script postbuild copy-assets.js a dist/",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "2.8",
+                                           "content":  "VerificaciÃ³n: npm run build pasa y smoke test de main.ts levanta en 3001",
+                                           "status":  "done"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-001-PR03] PR-03: Auth fusionado",
+                      "description":  "Fusionar auth: lÃ³gica real de user-service (bcrypt + JwtService + /profile), guards/strategies con BD, decorators Ãºnicos.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "3.1",
+                                           "content":  "Copiar user-service/src/auth/auth.service.ts (lÃ³gica real bcrypt + JwtService)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "3.2",
+                                           "content":  "Copiar user-service/src/auth/auth.controller.ts (incluye GET /auth/profile â€” RF-10)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "3.3",
+                                           "content":  "Copiar user-service/src/auth/auth.module.ts y dto/ (login.dto.ts, token.dto.ts)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "3.4",
+                                           "content":  "Copiar guards/strategies de user-service (JwtStrategy con consulta a BD, JwtAuthGuard)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "3.5",
+                                           "content":  "Copiar auth/decorators/* (public, roles, user â€” uno solo, son idÃ©nticos)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "3.6",
+                                           "content":  "Resolver dependencia JwtStrategy â†’ UsersService importando UsersModule en AuthModule (Ãºnica dependencia entre dominios documentada)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "3.7",
+                                           "content":  "Guardar config.validation.ts de qr-service solo si reemplaza verificaciÃ³n nula en jwt.strategy",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "3.8",
+                                           "content":  "VerificaciÃ³n: POST /auth/login devuelve tokens y GET /auth/profile (con token) devuelve datos del usuario",
+                                           "status":  "pending"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-001-PR04] PR-04: Users module",
+                      "description":  "Copiar user-service/src/users/ completo con entity @Schema real y ajustar imports.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "3"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "4.1",
+                                           "content":  "Copiar user-service/src/users/ completo (controller, service, module, dto)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "4.2",
+                                           "content":  "Reemplazar src/users/entities/user.entity.ts con el de user-service (con @Schema e Ã­ndices)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "4.3",
+                                           "content":  "Ajustar imports (paths absolutos â†’ relativos ../utils/)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "4.4",
+                                           "content":  "VerificaciÃ³n: CRUD /users + check-username + check-email + verify-email + resend-verification + forgot/reset-password + change-password funcionan",
+                                           "status":  "pending"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-001-PR05] PR-05: MÃ³dulos de dominio QR (qr, scan, plan, pet-tag)",
+                      "description":  "Copiar mÃ³dulos de qr-service con entities reales y validaciones de autorizaciÃ³n (ForbiddenException).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "5.1",
+                                           "content":  "Copiar qr-service/src/qr/ completo (entities reales, dto, interfaces)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.2",
+                                           "content":  "Copiar qr-service/src/scan/ completo",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.3",
+                                           "content":  "Copiar qr-service/src/plan/ completo",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.4",
+                                           "content":  "Copiar qr-service/src/pet-tag/ completo (entity @Schema, enums, dto)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.5",
+                                           "content":  "Ajustar imports de auth y utils a las nuevas rutas unificadas",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.6",
+                                           "content":  "Ajustar qr.service.ts para usar GetUser()/req.user.id conservando ForbiddenException del controller (CA-03)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.7",
+                                           "content":  "AÃ±adir QrModule, ScanModule, PlanModule, PetTagModule en app.module.ts",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.8",
+                                           "content":  "VerificaciÃ³n: rutas /qr, /scan, /plan, /pet-tag funcionan incluyendo 403 para QRs ajenos",
+                                           "status":  "pending"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-001-PR06] PR-06: MÃ³dulos restantes de qr-service",
+                      "description":  "Copiar qr-activate, qr-free-generation, statistics, mail y webpay (con transbank-sdk).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "6.1",
+                                           "content":  "Copiar qr-service/src/qr-activate/ (entity, dto, spec)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "6.2",
+                                           "content":  "Copiar qr-service/src/qr-free-generation/ (entity, dto, spec)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "6.3",
+                                           "content":  "Copiar qr-service/src/statistics/",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "6.4",
+                                           "content":  "Copiar qr-service/src/mail/ (dto + service real)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "6.5",
+                                           "content":  "Copiar qr-service/src/webpay/ (4 dto, 2 entities, iface, config; registrar transbank-sdk)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "6.6",
+                                           "content":  "AÃ±adir QrActivateModule, QrFreeGenerationModule, StatisticsModule, MailModule, WebpayModule en app.module.ts",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "6.7",
+                                           "content":  "VerificaciÃ³n: rutas /qr-activate/*, /qr-free-generation/*, /statistics/*, /mail/contact, /webpay/* funcionan (mock o real segÃºn env)",
+                                           "status":  "pending"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-001-PR07] PR-07: HealthModule unificado",
+                      "description":  "Healthcheck con @nestjs/terminus + MongooseHealthIndicator que reporta estado de MongoDB.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "7.1",
+                                           "content":  "Reemplazar healthcheck del bff (sin BD) por @nestjs/terminus + MongooseHealthIndicator",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "7.2",
+                                           "content":  "Exponer GET /health con respuesta { status: \u0027ok\u0027, info: { mongodb: { status: \u0027up\u0027 } } }",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "7.3",
+                                           "content":  "VerificaciÃ³n: CA-01 â€” GET /health responde 200 e incluye estado de MongoDB",
+                                           "status":  "done"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "8",
+                      "content":  "[SPEC-001-PR08] PR-08: EliminaciÃ³n de restos del bff dentro del mono",
+                      "description":  "Borrar entities espejo y proxies, eliminar @nestjs/axios y axios, verificar CA-07 con grep.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "5",
+                                           "6"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "8.1",
+                                           "content":  "Borrar archivos vestigiales del bff (entities espejo, controllers duplicados)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "8.2",
+                                           "content":  "Eliminar @nestjs/axios y axios de package.json",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "8.3",
+                                           "content":  "Lanzar npm run build y npm run test",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "8.4",
+                                           "content":  "VerificaciÃ³n CA-07: grep -r \u0027HttpService|firstValueFrom|@nestjs/axios\u0027 src/ retorna vacÃ­o y cero USER_SERVICE_URL/QR_SERVICE_URL",
+                                           "status":  "done"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "9",
+                      "content":  "[SPEC-001-PR09] PR-09: Tests portados",
+                      "description":  "Portar specs de user-service y qr-service, ajustar mocks (eliminar HttpService) y crear tests mÃ­nimos nuevos.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "8"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "9.1",
+                                           "content":  "Portar user-service: users.controller.spec.ts y users.service.spec.ts (mockear UsersService real, sin HttpService)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "9.2",
+                                           "content":  "Portar qr-service: qr, pet-tag, plan, qr-activate, qr-free-generation specs",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "9.3",
+                                           "content":  "Descartar specs de proxies HTTP del bff (pet-tag.controller.spec.ts, *.service.spec.ts)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "9.4",
+                                           "content":  "Crear auth.controller.spec.ts (nuevo) â€” /login, /refresh, /profile con mocks de UsersService y JwtService",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "9.5",
+                                           "content":  "Crear health.controller.spec.ts (nuevo) â€” CA-01 con MongooseHealthIndicator mockeado",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "9.6",
+                                           "content":  "Crear app.module.spec.ts (nuevo) â€” smoke test de bootstrap",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "9.7",
+                                           "content":  "VerificaciÃ³n: npm run test pasa (CA-05) y reportar cobertura",
+                                           "status":  "done"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "10",
+                      "content":  "[SPEC-001-PR10] PR-10: Docker y compose",
+                      "description":  "Dockerfile final multi-stage y docker-compose.yml actualizado con backend-portaqr (3001:3001).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "9"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "10.1",
+                                           "content":  "Crear backend-portaqr/Dockerfile final (multi-stage: builder + development + production)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "10.2",
+                                           "content":  "Actualizar docker-compose.yml: reemplazar bff-service, user-service, qr-service por backend-portaqr (3001:3001)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "10.3",
+                                           "content":  "Cambiar NEXT_PUBLIC_BFF_URL=http://bff-service:3001 por http://backend-portaqr:3001 en qr-app (mantener nombre de variable)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "10.4",
+                                           "content":  "Eliminar USER_SERVICE_URL y QR_SERVICE_URL del compose y env files (DECISION: se mantienen para servicios viejos; el mono no las usa)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "10.5",
+                                           "content":  "VerificaciÃ³n CA-08: docker compose up levanta mongo + mongo-express + backend-portaqr + qr-app",
+                                           "status":  "done"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "11",
+                      "content":  "[SPEC-001-PR11] PR-11: ValidaciÃ³n end-to-end y Railway",
+                      "description":  "Correr colecciones Postman contra el mono, smoke test del frontend y deploy a Railway con un solo backend.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "10"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "11.1",
+                                           "content":  "Correr postman_collection.json y postman_collection_qr_free.json contra localhost:3001 (CA-04, con excepciones Â§7.2)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "11.2",
+                                           "content":  "Smoke test frontend qr-app contra localhost:3000 con NEXT_PUBLIC_BFF_URL=http://localhost:3001 (CA-06)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "11.3",
+                                           "content":  "Decidir y aplicar manejo de GET /qr (array â†’ {data, pagination}) segÃºn Â§6.4 antes de cerrar",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "11.4",
+                                           "content":  "Deploy a Railway: DEFERIDO por decision del usuario (mantener servicios viejos). Preparar config queda para despues",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "11.5",
+                                           "content":  "Verificacion final: CA-04 (newman OK), CA-06 (frontend-\u003emono OK) confirmados localmente; CA-09 (Railway) pendiente por deploy diferido",
+                                           "status":  "done"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "12",
+                      "content":  "[SPEC-001-F12] Fase 12: DocumentaciÃ³n y Cierre",
+                      "description":  "Crear ADRs, guardar memoria, actualizar tareas y planificar PR de cleanup de los servicios viejos.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-001",
+                      "dependencies":  [
+                                           "11"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "12.1",
+                                           "content":  "Crear ADR-001-01: Monolito modular backend-portaqr (decisiÃ³n de arquitectura)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "12.2",
+                                           "content":  "Crear ADR-001-02: JwtStrategy con BD (user-service como fuente de verdad)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "12.3",
+                                           "content":  "Crear ADR-001-03: Controllers de user/qr-service como base (validaciones de authz)",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "12.4",
+                                           "content":  "Actualizar rules/ con lecciones aprendidas de SPEC-001",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "12.5",
+                                           "content":  "Guardar memoria con mem_save",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "12.6",
+                                           "content":  "Actualizar tareas con estado final",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "12.7",
+                                           "content":  "PR de cleanup: eliminar bff-service/, user-service/, qr-service/ del repo (post-CA-09 confirmado) - PENDIENTE: el usuario decidio mantener los servicios viejos",
+                                           "status":  "pending"
+                                       }
+                                   ]
+                  }
+              ],
+    "version":  "0.1.0",
+    "name":  "tareas-generales-spec-001",
+    "metadata":  {
+                     "epicas":  [
+                                    {
+                                        "id":  "epica-spec-001-migracion-monolito-modular",
+                                        "name":  "SPEC-001: MigraciÃ³n de 3 microservicios a Monolito Modular",
+                                        "description":  "Crear el nuevo componente backend-portaqr/ (NestJS, puerto 3001) que unifica bff-service + user-service + qr-service en un solo proceso modular. Elimina duplicaciÃ³n (~40%), el borde HTTP con any y los 3 deploys. Deja el cÃ³digo listo para la fase 2 de DDD/hexagonal (SPEC-002).",
+                                        "createdAt":  "2026-08-06",
+                                        "priority":  "high",
+                                        "estimatedHours":  120
+                                    }
+                                ]
+                 }
+}

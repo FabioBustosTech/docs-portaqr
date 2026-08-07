@@ -4,22 +4,6 @@
     "type": "split",
     "children": [
       {
-        "id": "b3d9675a8152bce4",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "b92129ba1494eb10",
-            "type": "leaf",
-            "state": {
-              "type": "empty",
-              "state": {},
-              "icon": "lucide-file",
-              "title": "Nueva pestaña"
-            }
-          }
-        ]
-      },
-      {
         "id": "861264b58b83b762",
         "type": "tabs",
         "children": [
@@ -27,10 +11,14 @@
             "id": "473455847b7f0c0b",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Vista gráfica"
+              "type": "markdown",
+              "state": {
+                "file": "docs/spec/SPEC-001-migracion-monolito-modular.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "SPEC-001-migracion-monolito-modular"
             }
           }
         ]
@@ -199,6 +187,51 @@
   },
   "active": "473455847b7f0c0b",
   "lastOpenFiles": [
-    "Bienvenido.md"
+    "desarrollo-qr/backend-portaqr/dist/qr/dto/update-qr.dto.js.map",
+    "desarrollo-qr/backend-portaqr/dist/main.js.map",
+    "desarrollo-qr/backend-portaqr/dist/interceptors/response-logger.interceptor.d.ts",
+    "desarrollo-qr/backend-portaqr/dist/interceptors/response-logger.interceptor.js",
+    "desarrollo-qr/backend-portaqr/dist/interceptors/response-logger.interceptor.js.map",
+    "desarrollo-qr/backend-portaqr/dist/auth/auth.service.d.ts",
+    "desarrollo-qr/backend-portaqr/dist/auth/auth.service.js",
+    "desarrollo-qr/backend-portaqr/dist/auth/auth.service.js.map",
+    "desarrollo-qr/backend-portaqr/dist/tsconfig.build.tsbuildinfo",
+    "desarrollo-qr/backend-portaqr/dist/qr/dto/url-item.dto.js",
+    "desarrollo-qr/backend-portaqr/dist/pet-tag/dto/pet-tag.dto.js",
+    "desarrollo-qr/backend-portaqr/node_modules/dotenv/SECURITY.md",
+    "desarrollo-qr/backend-portaqr/node_modules/dotenv/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/dotenv/README-es.md",
+    "desarrollo-qr/backend-portaqr/node_modules/dotenv/CHANGELOG.md",
+    "desarrollo-qr/backend-portaqr/node_modules/pirates/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/@nestjs/mapped-types/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/passport-jwt/docs/migrating.md",
+    "desarrollo-qr/backend-portaqr/node_modules/passport-jwt/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/nodemailer/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/nodemailer/CODE_OF_CONDUCT.md",
+    "desarrollo-qr/backend-portaqr/node_modules/nodemailer/CHANGELOG.md",
+    "desarrollo-qr/backend-portaqr/node_modules/nanoid/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/@nestjs/passport/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/typescript/SECURITY.md",
+    "desarrollo-qr/backend-portaqr/node_modules/typescript/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/merge-stream/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/get-stream/readme.md",
+    "desarrollo-qr/backend-portaqr/node_modules/is-stream/readme.md",
+    "desarrollo-qr/backend-portaqr/node_modules/onetime/readme.md",
+    "desarrollo-qr/backend-portaqr/node_modules/npm-run-path/readme.md",
+    "desarrollo-qr/backend-portaqr/node_modules/strip-final-newline/readme.md",
+    "desarrollo-qr/backend-portaqr/node_modules/shebang-regex/readme.md",
+    "desarrollo-qr/backend-portaqr/node_modules/shebang-command/readme.md",
+    "desarrollo-qr/backend-portaqr/node_modules/path-key/readme.md",
+    "desarrollo-qr/backend-portaqr/node_modules/isexe/README.md",
+    "desarrollo-qr/backend-portaqr/node_modules/tsconfig-paths-webpack-plugin/coverage/lcov-report/sort-arrow-sprite.png",
+    "desarrollo-qr/backend-portaqr/node_modules/tsconfig-paths-webpack-plugin/coverage/lcov-report/favicon.png",
+    "desarrollo-qr/backend-portaqr/node_modules/istanbul-reports/lib/html-spa/assets/sort-arrow-sprite.png",
+    "desarrollo-qr/backend-portaqr/node_modules/istanbul-reports/lib/html/assets/sort-arrow-sprite.png",
+    "desarrollo-qr/backend-portaqr/node_modules/istanbul-reports/lib/html/assets/favicon.png",
+    "desarrollo-qr/backend-portaqr/node_modules/swagger-ui-dist/favicon-32x32.png",
+    "desarrollo-qr/backend-portaqr/node_modules/swagger-ui-dist/favicon-16x16.png",
+    "desarrollo-qr/backend-portaqr/node_modules/@nestjs/terminus/coverage/lcov-report/sort-arrow-sprite.png",
+    "desarrollo-qr/backend-portaqr/node_modules/@nestjs/terminus/coverage/lcov-report/favicon.png",
+    "desarrollo-qr/backend-portaqr/node_modules/webpack/lib/html/favicon.svg"
   ]
 }
