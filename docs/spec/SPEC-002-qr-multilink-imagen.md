@@ -150,7 +150,7 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga **una sola imagen de
   > [!success] Por qué multipart vía backend y NO presigned URL directa (decisión confirmada 2026-08-07)
   > Si el browser subiera directo a R2, el backend nunca vería el binario y **no podría sanitizar ni re-encodear a WebP** (el requisito central de este spec: eliminar EXIF/scripts embebidos y garantizar salida WebP ≤512px). El backend **debe** recibir el binario para procesarlo con `sharp`. Trade-off aceptado: el backend consume memoria/banda durante la subida; se mitiga con `memoryStorage` + `limits.fileSize: 5MB` + `fileFilter`. El ADR-002.2 (§3.2) fue revisado en consecuencia (la decisión original de presigned quedó obsoleta).
 
-- **RF-13**. La URL pública `listImageUrl` se compone de `R2_PUBLIC_BASE_URL` + key (ver RF-11).
+- **RF-13**. La URL pública `listImageUrl` se compone de `CLOUDFLARE_R2_PUBLIC_URL` + key (ver RF-11).
 - **RF-14**. Eliminación de imagen: al hacer `PATCH /api/qr?id={idQr}` (frontend) → `PATCH /qr/{idQr}` (backend) con `data.listImageUrl: null`, el backend:
   - **Borra el objeto R2 anterior** (si había URL no nula) vía `DeleteObjectCommand` — la imagen se elimina también del storage, no solo de MongoDB.
   - Persiste `null` en `data.listImageUrl` en MongoDB.
@@ -240,16 +240,16 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga **una sola imagen de
 ### 3.3 ADR-002.3 — SDK y contrato S3-compatible de R2
 
 > [!info] Cloudflare R2
-> R2 expone API compatible con S3 en `https://<account_id>.r2.cloudflarestorage.com`. Se usa `@aws-sdk/client-s3` configurado con `region: 'auto'` y `endpoint: <R2 endpoint>`. Las credenciales son `R2_ACCESS_KEY_ID` + `R2_SECRET_ACCESS_KEY` (token de API de R2, no IAM de AWS).
+> R2 expone API compatible con S3. Se usa `@aws-sdk/client-s3` configurado con `region: 'auto'` y `endpoint: <CLOUDFLARE_R2_ENDPOINT>`. Las credenciales son `CLOUDFLARE_R2_ACCESS_KEY_ID` + `CLOUDFLARE_R2_SECRET_ACCESS_KEY` (token de API de R2, no IAM de AWS).
 
 > [!success] Configuración
 > ```ts
 > const r2 = new S3Client({
 >   region: 'auto',
->   endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+>   endpoint: process.env.CLOUDFLARE_R2_ENDPOINT, // https://<account_id>.r2.cloudflarestorage.com
 >   credentials: {
->     accessKeyId: process.env.R2_ACCESS_KEY_ID!,
->     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+>     accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
+>     secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
 >   },
 > });
 > ```
@@ -341,9 +341,9 @@ async deleteObject(publicUrl: string): Promise<void>
 
 Lógica:
 - `key`: `qr-multilink/${idQr}.webp` — mismo patrón de RF-11 (carpeta `qr-multilink/` + UUID único por QR, sin userId ni timestamps; al cambiar la imagen se **sobrescribe el mismo objeto**).
-- `publicUrl`: `${R2_PUBLIC_BASE_URL}/${key}` — se sirve por el dominio público configurado en el bucket (ej. `https://images.portaqr.cl/` o el subdominio de R2).
+- `publicUrl`: `${CLOUDFLARE_R2_PUBLIC_URL}/${key}` — se sirve por el dominio público configurado en el bucket (ej. `https://images.portaqr.cl/` o el subdominio de R2).
 - `PutObjectCommand` con `ContentType: 'image/webp'` y `Body: buffer`.
-- `deleteObject`: extrae el `key` del `publicUrl` (restando `R2_PUBLIC_BASE_URL`) y llama a `DeleteObjectCommand`.
+- `deleteObject`: extrae el `key` del `publicUrl` (restando `CLOUDFLARE_R2_PUBLIC_URL`) y llama a `DeleteObjectCommand`.
 
 #### 4.1.5 Controller — endpoint multipart
 
@@ -587,16 +587,17 @@ export interface QrRedirectData {
 ```env
 # ───────── Cloudflare R2 ─────────
 # Token de API R2 ( crear en Cloudflare Dashboard › R2 › Manage R2 API tokens)
-R2_ACCOUNT_ID=your_account_id
-R2_ACCESS_KEY_ID=your_access_key
-R2_SECRET_ACCESS_KEY=your_secret_key
+CLOUDFLARE_R2_ACCESS_KEY_ID=your_access_key
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=your_secret_key
+# Endpoint S3 del bucket: https://<account_id>.r2.cloudflarestorage.com
+CLOUDFLARE_R2_ENDPOINT=https://your_account_id.r2.cloudflarestorage.com
 # Nombre del bucket creado en R2
-R2_BUCKET_NAME=portaqr-assets
+CLOUDFLARE_R2_BUCKET_NAME=portaqr-assets
 # URL pública vinculada al bucket (dominio custom o *.r2.dev provisto por CF)
 # Ej prod: https://images.portaqr.cl  |  Ej dev: https://pub-xxxx.r2.dev
-R2_PUBLIC_BASE_URL=https://images.portaqr.cl
-# Límite de tamaño del archivo de entrada (bytes). Default 5MB
-R2_MAX_UPLOAD_SIZE=5242880
+CLOUDFLARE_R2_PUBLIC_URL=https://images.portaqr.cl
+# Límite de tamaño del archivo de entrada en bytes (opcional, default 5MB)
+CLOUDFLARE_R2_MAX_UPLOAD_SIZE=5242880
 ```
 
 Actualizar `backend-portaqr/.env.example` con estas mismas claves (valores placeholder). **Nunca commitear `.env` real**.
@@ -616,19 +617,19 @@ No requiere nuevas variables. El flujo es:
 
 ### 5.3 Docker Compose `desarrollo-qr/docker-compose.yml`
 
-El servicio `backend-portaqr` (puerto 3004) ya carga sus variables vía `env_file: ./backend-portaqr/backendPortaqr.env` (archivo ignorado por git). Por tanto **no se modifica el docker-compose**: basta añadir las claves `R2_*` a `backendPortaqr.env`:
+El servicio `backend-portaqr` (puerto 3004) ya carga sus variables vía `env_file: ./backend-portaqr/backendPortaqr.env` (archivo ignorado por git). Por tanto **no se modifica el docker-compose**: basta añadir las claves `CLOUDFLARE_R2_*` a `backendPortaqr.env`:
 
 ```env
-R2_ACCOUNT_ID=your_account_id
-R2_ACCESS_KEY_ID=your_access_key
-R2_SECRET_ACCESS_KEY=your_secret_key
-R2_BUCKET_NAME=portaqr-assets
-R2_PUBLIC_BASE_URL=https://images.portaqr.cl
-R2_MAX_UPLOAD_SIZE=5242880
+CLOUDFLARE_R2_ACCESS_KEY_ID=your_access_key
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=your_secret_key
+CLOUDFLARE_R2_ENDPOINT=https://your_account_id.r2.cloudflarestorage.com
+CLOUDFLARE_R2_BUCKET_NAME=portaqr-assets
+CLOUDFLARE_R2_PUBLIC_URL=https://images.portaqr.cl
+CLOUDFLARE_R2_MAX_UPLOAD_SIZE=5242880
 ```
 
 > [!note] En producción (Railway)
-> Añadir las mismas `R2_*` como variables de entorno del servicio en Railway (secrets).
+> Añadir las mismas `CLOUDFLARE_R2_*` como variables de entorno del servicio en Railway (secrets).
 
 ---
 
