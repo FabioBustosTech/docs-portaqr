@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "desarrollo-qr/backend-portaqr"
+		},
+		{
+			"path": "desarrollo-qr/qr-app"
+		},
+		{
+			"path": "desarrollo-qr/e2e-tests-portaqr"
+		}
+	],
+	"settings": {}
+}
