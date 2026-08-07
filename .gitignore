@@ -1,6 +1,7 @@
 # Directorios de trabajo movidos / temporales
 miselanios/
-desarrollo-qr/
+desarrollo-qr/*
+!desarrollo-qr/docker-compose.yml
 
 # Dependencias
 node_modules/

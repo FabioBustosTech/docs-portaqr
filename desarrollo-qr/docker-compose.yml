@@ -1,0 +1,218 @@
+name: plataforma_qr_cursor
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: 'mongo_qr'
+    volumes:
+      - mongodb_data_container:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    environment:
+      - MONGO_INITDB_DATABASE=sistema
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    healthcheck:
+      test: mongosh --quiet --eval 'db.runCommand("ping").ok' --port 27017 -u "root" -p "example" --authenticationDatabase "admin"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    ports:
+      - "27017:27017"
+    networks:
+      - webnet
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express_qr
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=example
+      - ME_CONFIG_MONGODB_SERVER=mongo_qr
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin
+      - ME_CONFIG_MONGODB_RETRY_CONNECTIONS=true
+      - ME_CONFIG_MONGODB_RETRY_CONNECTIONS_COUNT=10
+      - ME_CONFIG_MONGODB_RETRY_CONNECTIONS_INTERVAL=5000
+    depends_on:
+      - mongo
+    networks:
+      - webnet
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8081 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend-portaqr:
+    build:
+      context: ./backend-portaqr
+      target: development
+      dockerfile: Dockerfile
+    container_name: backend-portaqr
+    restart: always
+    ports:
+      - "3004:3004"
+    env_file:
+      - ./backend-portaqr/backendPortaqr.env
+    environment:
+      - SERVER_PORT=3004
+    volumes:
+      - ./backend-portaqr:/app
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - webnet
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: npm run dev
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:3004/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  user-service:
+    build:
+      context: ./user-service
+      target: development
+      dockerfile: Dockerfile
+    container_name: user-service
+    restart: always
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./user-service/userService.env
+    volumes:
+      - ./user-service:/app
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - webnet
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: npm run dev
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:3002/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    environment:
+      - SERVER_PORT=3002
+
+  bff-service:
+    build:
+      context: ./bff-service
+      target: development
+      dockerfile: Dockerfile
+    container_name: bff-service
+    restart: always
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./bff-service/bffService.env
+    environment:
+      - SERVER_PORT=3001
+      - USER_SERVICE_URL=http://user-service:3002
+    volumes:
+      - ./bff-service:/app
+      - /app/node_modules
+    depends_on:
+      user-service:
+        condition: service_healthy
+    networks:
+      - webnet
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: npm run dev
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  qr-app:
+    build:
+      context: ./qr-app
+      target: development
+      dockerfile: Dockerfile
+    container_name: qr-app
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./qr-app/qrApp.env
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_BFF_URL=http://backend-portaqr:3004
+      - NEXTAUTH_URL=http://localhost:3000
+    volumes:
+      - ./qr-app:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      bff-service:
+        condition: service_healthy
+    networks:
+      - webnet
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: sh -c "npm install && npm run dev"
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  qr-service:
+    build:
+      context: ./qr-service
+      target: development
+      dockerfile: Dockerfile
+    container_name: qr-service
+    restart: always
+    ports:
+      - "3003:3003"
+    env_file:
+      - ./qr-service/qrService.env
+    environment:
+      - SERVER_PORT=3003
+      - USER_SERVICE_URL=http://user-service:3002
+    volumes:
+      - ./qr-service:/app
+      - /app/node_modules
+    depends_on:
+      user-service:
+        condition: service_healthy
+    networks:
+      - webnet
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: npm run dev
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:3003/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  webnet:
+    driver: bridge
+
+volumes:
+  mongodb_data_container:
+    name: plataforma_qr_cursor_mongodb_data_container
+    external: true
