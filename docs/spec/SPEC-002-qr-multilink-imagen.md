@@ -509,10 +509,10 @@ Renderiza:
 #### 4.2.3 Creación de QR — `CreateQrForm.tsx` + `ListUrlForm.tsx`
 
 > [!warning] Secuencia en creación
-> En el flujo de **crear nuevo QR**, el `idQr` se genera en el cliente (UUID v4 — ver `CreateQrForm.tsx` con `uuidv4()` y `CreateQrDto.idQr`) ANTES de llamar a `POST /qr`. Por tanto, **sí** está disponible para subir la imagen **antes** de crear el QR. Flujo:
-> 1. `handleSubmit`: si hay imagen, llamar `uploadListImage(idQr, file, onProgress)` (vía `/api/qr/list-image` → backend).
-> 2. `createQr({ ..., data: { ..., listImageUrl: publicUrl, typeQr: 'list' } })`.
-> 3. Si falla la subida pero el `POST /qr` ya está listo → continuar `createQr` sin imagen y log + toast de warning.
+> En el flujo de **crear nuevo QR**, el `idQr` se genera en el cliente (UUID v4 — ver `CreateQrForm.tsx` con `uuidv4()` y `CreateQrDto.idQr`). **El QR se crea PRIMERO y la imagen se sube DESPUÉS** (el endpoint `POST /qr/list-image` valida que el QR exista y sea del usuario — no puede validarse un QR inexistente). Flujo:
+> 1. `handleSubmit`: `createQr({ ..., data: { ..., listImageUrl: null, typeQr: 'list' } })`.
+> 2. Si hay imagen pendiente → `uploadListImage(idQr, file, onProgress)` (vía `/api/qr/list-image` → backend) → el endpoint persiste la URL.
+> 3. Si falla la subida → el QR queda creado sin imagen y se muestra toast de warning (se puede agregar después desde editar).
 
 `ListUrlForm.tsx` recibe una nueva prop `listImageUrl` + `onListImageUrlChange` y renderiza `<ListImageUploader />` arriba del bloque de filas de URLs.
 
