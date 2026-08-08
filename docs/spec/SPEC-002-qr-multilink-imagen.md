@@ -165,7 +165,7 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga **una sola imagen de
   - Eliminar la selección (queda sin imagen).
   - El `name` textual sigue siendo opcional; uno no reemplaza al otro.
 - **RF-17**. **Editar QR multilink** (`/dashboard/qr/edit/[id]`): mismo bloque, pero muestra la imagen WebP actualmente persistida. Permite cambiarla o quitarla (vía `PATCH /api/qr?id=` → `PATCH /qr/{id}` con `listImageUrl: null`).
-- **RF-19**. **Página pública** (`https://portaqr.cl/qr/{idQr}` → `UrlList.tsx`): si `qrData.listImageUrl` existe, renderizar `<img>` responsiva entre el `nameData` y la lista de enlaces, centrada. Dimensiones: `max-h-[205px]` (205px — decisión 2026-08-07: 80% de 256px; el backend procesa hasta 512px), `w-auto`, `h-auto`, `rounded-lg`. No reemplaza el `nameData`.
+- **RF-19**. **Página pública** (`https://portaqr.cl/qr/{idQr}` → `UrlList.tsx`): si `qrData.listImageUrl` existe, renderizar `<img>` centrada entre el `nameData` y la lista de enlaces. Dimensiones: **`w-[80%]` del ancho del contenedor** (decisión 2026-08-07: imagen ≠ ancho del botón, centrada, ocupando el 80% de su padre), `h-auto` (alto proporcional), `rounded-lg`. No reemplaza el `nameData`.
   - > [!note] Optimización móvil
   > El `srcset` y `sizes` no se usan en esta iteración (una sola variante WebP de ≤512px). Para móviles típicos (DPR 2, viewport 375–430px) una imagen ≤80 KB carga bien en 3G. Futura mejora en §11.6.
 - **RF-20**. La página pública debe cargar la imagen con `loading="lazy"`, `decoding="async"`, y placeholder gris. **Si la imagen NO carga por cualquier motivo (404/403, error de red, formato corrupto), se oculta por completo sin fallback ni icono de archivo roto**: el bloque `<img>` y su contenedor se desmontan (estado `imageError` en `onError`), sin alt visible ni espacio reservado — la página queda **visualmente idéntica a un QR sin imagen configurada**. No se muestra ninguna imagen de reemplazo.
@@ -547,7 +547,7 @@ const [imageError, setImageError] = useState(false);
     <img
       src={listImageUrl}
       alt={nameData ?? 'Imagen del QR'}
-      className="max-h-[205px] w-auto h-auto rounded-lg"
+      className="w-[80%] h-auto rounded-lg"
       loading="lazy"
       decoding="async"
       onError={() => setImageError(true)}   // oculta TODO el bloque, sin fallback ni icono roto
