@@ -1,0 +1,74 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-012] Rama feat/spec-012-fix-documenttype-webpay en qr-app",
+                      "description":  "Crear rama feature en desarrollo-qr/qr-app desde main (merge de SPEC-004-B ya incluido).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-012",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-012] Fix: unificar documentType en qr/pay page.tsx",
+                      "description":  "Eliminar selectedDocumentType (estado duplicado que nunca se conectaba con el render/validaciÃ³n). documentType inicia undefined; el CustomSelect lo actualiza directo. Gating del botÃ³n pasa a !documentType. PayInvoiceFields y validateInvoiceData ya leen documentType (sin cambios).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-012",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-012] Validacion: tsc, lint, build + navegador (CA-01..04)",
+                      "description":  "tsc --noEmit, lint, build. Navegador en /dashboard/qr/pay con item en carrito: Factura muestra campos; campos vacios bloquean boton + toast; completos habilitan + payload con invoiceData; Boleta sin campos y sin invoiceData.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-012",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-012] E2E activate-webpay + doctor sin regresiones",
+                      "description":  "npx playwright test tests/qr/activate-webpay.spec.ts (verde). npm run doctor sin regresiones (88/100, 3 issues).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-012",
+                      "dependencies":  [
+                                           "3"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-012] Cierre: spec implementado + changelog + Taskmaster + merge a main",
+                      "description":  "Actualizar SPEC-012 a status implementado, changelog, tareas done, ADR-004-04 Bug 3 -\u003e corregido. Commit qr-app + merge a main (ff). Commit docs.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-012",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}

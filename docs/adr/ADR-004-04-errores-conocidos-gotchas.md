@@ -34,11 +34,12 @@ Durante la auditoría con react-doctor y los refactors de SPEC-004 + SPEC-004-B 
 - **Fix**: `<Select className="w-full md:w-[200px] md:shrink-0">` + contenedor input `flex w-full flex-1 gap-2`.
 - **Referencia**: commit `95201c0`, SPEC-004-B §5.3 warning.
 
-### Bug 3: `documentType` y `selectedDocumentType` desconectados en qr/pay — NO CORREGIDO (deuda)
+### Bug 3: `documentType` y `selectedDocumentType` desconectados en qr/pay — CORREGIDO (SPEC-012)
 - **Síntoma**: al elegir "Factura" en el checkout no aparecen los campos RUT/Razón Social/Dirección/Giro y el botón "Proceder al Pago" se habilita sin validar la factura.
 - **Causa**: el render y `validateInvoiceData` usan `documentType` (useState default `BOLETA`, **nunca se actualiza**); el select setea `selectedDocumentType` (estado separado).
-- **Impacto**: la facturación por Webpay nunca pide datos de factura; la validación siempre pasa. Riesgo funcional si el backend exige `invoiceData` con FACTURA.
-- **Estado**: documentado en SPEC-004-B §4.7 C08-B-03 — **pendiente de corrección** (separar o unificar los dos estados).
+- **Impacto**: la facturación por Webpay nunca pide datos de factura; la validación siempre pasa.
+- **Fix (SPEC-012, commit `97212f2`)**: estados unificados — un solo `documentType` (inicial `undefined`) que el select actualiza directo; guard de tipo en `handlePayment`; `PayInvoiceFields` acepta `undefined`. **E2E 4/4 verde** (`facturacion-webpay.spec.ts`, CA-01..04).
+- **Estado**: ✅ corregido y verificado 2026-08-09.
 
 ### Bug 4: Preview de edición con wrapper `bg-white` fijo — CORREGIDO
 - **Síntoma**: en modo oscuro, la preview del QR en `/dashboard/qr/edit/[id]` mostraba un bloque blanco.
@@ -66,14 +67,14 @@ Resolver con formatters deterministas module-scope: `Intl.NumberFormat('es-CL')`
 ## Consecuencias
 
 ### Positivas
-- 3 de 4 bugs corregidos y verificados; el bug 3 documentado con causa raíz y ruta de corrección.
+- 4 de 4 bugs corregidos y verificados (E2E 4/4 del fix + suite 41 passed).
 - Gotchas guardados en memoria persistente (Engram) para futuras sesiones.
 
 ### Negativas
-- El Bug 3 (facturación Webpay) permanece como deuda funcional — **priorizar su corrección** antes de producción si se usan facturas.
+- Ninguna pendiente accionable — el Bug 3 se resolvió con [[SPEC-012-fix-facturacion-webpay-documenttype]].
 
 ### Riesgos
-- Bug 3: si el backend valida `invoiceData` obligatorio con `documentType === FACTURA`, el pago podría fallar en backend o persistir activaciones sin datos de factura. Mitigación: corregir unificando `documentType`/`selectedDocumentType`.
+- Ninguno pendiente. (El flujo de pago quedó validado por E2E; la suite completa tiene 1 test flaky preexistente: scan-stats.)
 
 ## Referencias
 
