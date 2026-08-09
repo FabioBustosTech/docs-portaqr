@@ -84,7 +84,7 @@ Reducir los 8 componentes gigantes de `qr-app/` (todos >300 líneas) a un tamañ
 | C-02 | `src/components/qr/forms/ListUrlForm.tsx` | 489 → **236** | Núcleo QR multilink (producto principal) | 🔴 Alta | ✅ done |
 | C-03 | `src/components/qr/QrGrid.tsx` | 490 → **260** | Listado principal dashboard | 🔴 Alta | ✅ done |
 | C-04 | `src/app/dashboard/admin/qr/activate/send/page.tsx` | 475 → **283** | Envío masivo admin | 🟠 Media | ✅ done |
-| C-05 | `src/components/PlanForm.tsx` | 429 | Formulario de planes | 🟠 Media | pendiente |
+| C-05 | `src/components/PlanForm.tsx` | 470 → **239** | Formulario de planes | 🟠 Media | ✅ done |
 | C-06 | `src/components/home/HomePageClient.tsx` | 413 | Home del sitio | 🟠 Media | pendiente |
 | C-07 | `src/app/dashboard/qr/edit/[id]/page.tsx` | 362 | Edición de QR | 🟡 Baja | pendiente |
 | C-08 | `src/app/dashboard/qr/pay/page.tsx` | 324 | Checkout Webpay | 🟡 Baja | pendiente |
@@ -251,6 +251,36 @@ Pasos por componente (por cada C-XX):
 - **Timing a preservar**: validación en vivo de RUT (onChange), gating del botón, guards de permisos, toasts, `isMounted` en useEffect, console.logs de debug (parte del flujo documentado).
 - **⚠️ Detalle**: hay `setIsActivation(true)` duplicado (líneas 186 y 191) — NO se toca (comportamiento actual). `calculateTotal` no aplica impuesto en UI (pero sí en payload `TotalTax`) — comportamiento actual.
 
+### 4.5 Baseline C-05 — `PlanForm` (2026-08-09, PRE-refactor)
+
+> [!important] Datos del componente
+> **Archivo:** `src/components/PlanForm.tsx` (470 líneas reales; doctor reporta 429). **Consumidores (2):** `src/app/dashboard/plan/page.tsx` (`<PlanForm onSuccess={handlePlanCreated} />` — create) y `src/app/dashboard/plan/edit/[id]/page.tsx` (edit con `initialData`). **Props:** `{ onSuccess?, onCancel?, initialData?, mode?: 'create' | 'edit' }`. **Servicios:** `PlanService.createPlan/updatePlan`. **Verificado en navegador:** `localhost:3000/dashboard/plan` (modo create).
+
+#### Estados y flujos (verificados en navegador)
+
+| ID | Comportamiento (PRE-refactor) | Evidencia |
+| --- | --- | --- |
+| C05-B-01 | **Render create**: Card "Crear Nuevo Plan" con grid 2-col (Nombre, Descripción, Precio 0, Fecha Fin datetime-local, Tiempo duración select "Meses", Duración 1), Tipo de QR select ("QR Dinámica"), checkboxes Activo/Popular/Gratuito, Detalles del Plan (1 fila vacía + "Agregar Detalle"), botones Cancelar/Crear Plan | snapshot |
+| C05-B-02 | **Validación en submit** (`validateForm` en handleSubmit, timing submit-only): vacíos → "El nombre es requerido", "La descripción es requerida", "El precio debe ser mayor a 0", "Todos los detalles son requeridos" (border-red-500 en campos + `<p text-red-500>`) | snapshot post-submit |
+| C05-B-03 | **Checkboxes**: Activo checked por default (defaultPlan.active=true), Popular/Gratuito false (populier/free) — `handleInputChange` con `type === 'checkbox'` | snapshot |
+| C05-B-04 | **Detalles dinámicos**: `addDetail` (id `detail-N` vía `genDetailId` module-scope), `removeDetail` por id (keys estables), `handleDetailChange` por id | código |
+| C05-B-05 | **Tipo QR**: `CustomSelect` con `QR_TYPE_LABELS` (11 tipos: Dinámica, Estática, WhatsApp, Correo, Llamada, WiFi, Texto, Multi link, Tarjeta, Mascota, Teléfono, Mapa) → `handleQrTypeChange` | snapshot + código |
+| C05-B-06 | **Duración**: select DAYS/WEEKS/MONTHS/YEARS ("Meses" default) + input number (1) — `handleDurationChange`/`handleDurationNumberChange` | snapshot |
+| C05-B-07 | **Submit create**: `buildSubmitData` (quita `id` local de details, price Number, endDate Date, duration Number) → `PlanService.createPlan` → reset `defaultPlan` + toast "Plan creado" + `onSuccess` | código |
+| C05-B-08 | **Submit edit**: `mode === 'edit' && initialData._id` → `updatePlan` + toast "Plan actualizado"; useEffect inicializa formData desde initialData (details con id local, typeQr fallback DYNAMIC, populier false) | código |
+| C05-B-09 | **Botones**: Cancelar (onCancel) + submit con spinner "Creando.../Actualizando..." y texto "Crear Plan/Actualizar Plan"; disabled durante loading | snapshot |
+
+> [!note] ⚠️ Datos de prueba
+> Sin creación de planes (solo validación de errores en submit). La lista de planes muestra Plan Premium + Multi Link (datos existentes).
+
+#### Estructura interna (para el refactor)
+
+- **Module scope ya existente** (~75 líneas): `QR_TYPE_LABELS`, `DurationType` enum, `detailIdCounter`/`genDetailId`, `defaultPlan`, tipos `PlanDetail`/`PlanFormData`/`FormErrors` → **mover a `PlanForm.helpers.ts`** + **nuevo** `validateFormData(formData)` (pura, devuelve errores) + `buildSubmitData(formData)` (payload API).
+- **Estado (3 useState)**: `loading`, `formData` (PlanFormData), `errors` (FormErrors).
+- **Handlers**: `handleInputChange` (number/checkbox/text), `handleDurationChange`, `handleDurationNumberChange`, `addDetail`, `removeDetail`, `handleDetailChange`, `handleQrTypeChange`, `handleSubmit`.
+- **JSX**: grid campos básicos (6 campos ~95 líneas) + tipo QR + checkboxes (~30) + **Detalles del Plan ~45 líneas** (header + Agregar + lista dinámica + errores) → **candidato a subcomponente `PlanDetailsList`** + botones.
+- **Timing a preservar**: validación SOLO en submit (como CreateQrForm), errores por campo `border-red-500` + texto, `genDetailId` para keys estables, payload sin id local.
+
 ---
 
 ## 5. Ejecuciones de react-doctor (dinámica)
@@ -273,6 +303,18 @@ Pasos por componente (por cada C-XX):
 > [!warning] Fix de layout post-C-02 (commit `95201c0`, reportado por el usuario)
 > **Problema**: en `md:flex-row`, el wrapper del `Select` (`ui/select.tsx` genera `relative inline-block w-full`) competía con el contenedor del input (ambos `w-full` = 100%) → flexbox repartía el ancho ~50/50 → el input se veía corto (298px de 727 disponibles).
 > **Fix**: `<Select className="w-full md:w-[200px] md:shrink-0">` (wrapper fijo 200px en md, full en móvil) + contenedor del input `flex w-full flex-1 gap-2` (toma el resto en md). Verificado visualmente por el usuario: ✅ correcto.
+
+### 5.6 Ejecución B-5 (2026-08-09, tras C-05)
+
+**Resultado: Score 88/100 — 6 issues** (3 `no-giant-component` + 2 falso positivo + 1 decisión). C-05 PlanForm resuelto: **470 → 239 líneas** (`PlanForm.tsx`) + `PlanForm.helpers.ts` (101) + `PlanDetailsList.tsx` (61) + `PlanFormFields.tsx` (113).
+
+> [!success] C-05 implementado (commit `71a2796` en qr-app)
+> - `PlanForm.helpers.ts`: `QR_TYPE_LABELS`, `DurationType`, `genDetailId`/`defaultPlan`, tipos + **nuevos** `validateFormData` (pura) y `buildSubmitData` (payload sin id local)
+> - `PlanDetailsList.tsx`: detalles dinámicos (Agregar/eliminar por id, keys estables)
+> - `PlanFormFields.tsx`: grid de campos básicos (nombre/descripción/precio/fecha fin/duración tipo+número)
+> - `PlanForm.tsx`: orquestador (estado, handlers, tipo QR, checkboxes, botones)
+> - **Validado**: tsc ✅ · lint ✅ · build ✅ (58/58) · navegador ✅ (C05-B-01..B-09: render create, errores submit idénticos "El nombre es requerido"/"La descripción es requerida"/"El precio debe ser mayor a 0"/"Todos los detalles son requeridos", agregar detalle)
+> - Sin datos de prueba (solo validación de errores, sin crear planes)
 
 ### 5.5 Ejecución B-4 (2026-08-09, tras C-04)
 
@@ -326,7 +368,7 @@ Pasos por componente (por cada C-XX):
 | T-004B-02 | **C-02 ListUrlForm** (489→236): baseline + refactor + validación | ✅ done (commits `f2b34ed` + `ad47714`) |
 | T-004B-03 | **C-03 QrGrid** (490→260): baseline + refactor + validación | ✅ done (commit `17c7fca`) |
 | T-004B-04 | **C-04 activate/send** (475→283): baseline + refactor + validación | ✅ done (commit `5753ef7`) |
-| T-004B-05 | **C-05 PlanForm** (429): baseline + refactor + validación | pendiente |
+| T-004B-05 | **C-05 PlanForm** (470→239): baseline + refactor + validación | ✅ done (commit `71a2796`) |
 | T-004B-06 | **C-06 HomePageClient** (413): baseline + refactor + validación | pendiente |
 | T-004B-07 | **C-07 qr/edit/[id]** (362): baseline + refactor + validación | pendiente |
 | T-004B-08 | **C-08 qr/pay** (324): baseline + refactor + validación | pendiente |
@@ -384,3 +426,4 @@ Pasos por componente (por cada C-XX):
 | 2026-08-09 | Equipo | **Fix layout C-02** (commit `95201c0`): wrapper del Select con `w-full` competía con el input en `md:flex-row` → ancho partido ~50/50. Fix: `Select className="w-full md:w-[200px] md:shrink-0"` + input `flex-1`. Verificado por el usuario ✅ |
 | 2026-08-09 | Equipo | **C-03 QrGrid completado**: baseline §4.3 (C03-B-01..B-10). Refactor 490→260 líneas (QrCard.tsx + QrGrid.helpers.ts, commit `17c7fca`). `getQrTooltipContent` nueva (ternario del tooltip pet/list a función pura). Ejecución B-3: 87/100, 8 issues (5 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **C-04 activate/send completado**: baseline §4.4 (C04-B-01..B-10). Refactor 475→283 (activation.helpers + ActivationSuccess + CartSummary + InvoiceFields, commit `5753ef7`). **Fix layout reportado por usuario**: mensaje admin fuera del contenedor p-6 → restaurado. **Código muerto**: `toDocumentTypeString` eliminado. **Fix locale-format**: priceFormatter module-scope + formatDate. Ejecución B-4: **88/100, 7 issues** (4 giants). Validado tsc/lint/build/navegador |
+| 2026-08-09 | Equipo | **C-05 PlanForm completado**: baseline §4.5 (C05-B-01..B-09). Refactor 470→239 (PlanForm.helpers + PlanDetailsList + PlanFormFields, commit `71a2796`). `validateFormData`/`buildSubmitData` puras nuevas. Ejecución B-5: **88/100, 6 issues** (3 giants). Validado tsc/lint/build/navegador |

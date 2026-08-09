@@ -60,7 +60,7 @@
                       "id":  "5",
                       "content":  "[SPEC-004-B] C-05 PlanForm (429 lineas): baseline + refactor + validacion",
                       "description":  "src/components/PlanForm.tsx (429 lineas, prioridad media - formulario de planes). Refactor a \u003c300 lineas.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "medium",
                       "tag":  "spec-004-b",
                       "dependencies":  [
