@@ -127,7 +127,7 @@ El render de `PayInvoiceFields` y la validación **ya leen `documentType`** → 
 ## 6. Plan de implementación (tareas)
 
 > [!todo] Taskmaster
-> Registradas en `docs/tarea/SPEC-012-tareas.json`.
+> Registradas en `docs/tareas/SPEC-012-tareas.json`.
 
 | ID | Tarea | Estado |
 | --- | --- | --- |
