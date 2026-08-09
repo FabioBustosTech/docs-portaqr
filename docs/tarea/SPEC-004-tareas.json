@@ -1,0 +1,54 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-004] Agregar script doctor a package.json de qr-app",
+            "description": "Agregar \"doctor\": \"npx react-doctor@latest .\" a scripts de desarrollo-qr/qr-app/package.json. Rama feat/spec-004-react-doctor-qr-app.",
+            "status": "in-progress",
+            "priority": "high",
+            "tag": "spec-004",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-004] Ejecutar npm run doctor (primera pasada) y documentar hallazgos",
+            "description": "Correr react-doctor en qr-app, capturar reporte completo y documentar cada hallazgo en SPEC-004 §3 (severidad, archivo, descripción).",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-004",
+            "dependencies": ["1"],
+            "subtasks": []
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-004] Corregir hallazgos de react-doctor (loop iterativo)",
+            "description": "Corregir cada hallazgo documentado, validando tsc --noEmit, lint y build después de cada corrección. Re-ejecutar doctor hasta estado objetivo.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-004",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-004] Validación final y cierre de spec",
+            "description": "Validación final: tsc --noEmit, lint, build, re-ejecución de npm run doctor. Actualizar SPEC-004 a estado implementado.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-004",
+            "dependencies": ["3"],
+            "subtasks": []
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-004] Refactor CreateQrForm: useReducer + split por tipo de QR",
+            "description": "Migrar los 15+ useState del formulario a useReducer (actions SET_FIELD/SET_TYPE/RESET) junto con el split del componente gigante por tipo de QR. Resuelve prefer-useReducer (CreateQrForm:30), rerender-lazy-state-init (:38) y su parte de no-giant-component. Ver decisión en SPEC-004 §3.2.1. Rama feat/doctor-update.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-004",
+            "dependencies": ["3"],
+            "subtasks": []
+        }
+    ]
+}
