@@ -81,7 +81,7 @@ Reducir los 8 componentes gigantes de `qr-app/` (todos >300 líneas) a un tamañ
 | ID | Componente | Líneas | Rol | Prioridad | Estado |
 | --- | --- | --- | --- | --- | --- |
 | C-01 | `src/components/SignUpForm/index.tsx` | 548 → **276** | Registro de usuarios | 🔴 Alta | ✅ done |
-| C-02 | `src/components/qr/forms/ListUrlForm.tsx` | 489 | Núcleo QR multilink (producto principal) | 🔴 Alta | pendiente |
+| C-02 | `src/components/qr/forms/ListUrlForm.tsx` | 489 → **236** | Núcleo QR multilink (producto principal) | 🔴 Alta | ✅ done |
 | C-03 | `src/components/qr/QrGrid.tsx` | 461 | Listado principal dashboard | 🔴 Alta | pendiente |
 | C-04 | `src/app/dashboard/admin/qr/activate/send/page.tsx` | 441 | Envío masivo admin | 🟠 Media | pendiente |
 | C-05 | `src/components/PlanForm.tsx` | 429 | Formulario de planes | 🟠 Media | pendiente |
@@ -158,6 +158,37 @@ Pasos por componente (por cada C-XX):
 - **JSX**: 3 secciones (Datos Personales / Información de la Cuenta / Términos) con 8 `Input` + tooltips + checkbox + botón. Patrón repetido por campo (error condicional + isValid condicional + aria) → **candidato a un subcomponente `FormField`**.
 - **Timing a preservar**: validación onChange (vivo) + onBlur (checkExists) + submit (todo con checkExists). Errores solo visibles si `touchedFields[x]`.
 
+### 4.2 Baseline C-02 — `ListUrlForm` (2026-08-09, PRE-refactor)
+
+> [!important] Datos del componente
+> **Archivo:** `src/components/qr/forms/ListUrlForm.tsx` (489 líneas). **Consumidores (2):** `CreateQrForm` (creación) y `src/app/dashboard/qr/edit/[id]/page.tsx` (edición, con `key={qr.idQr}` + `listImageIdQr`). **Props:** `{ nameList, description?, setDescriptionChange?, setNameListChange, urlList, onUrlListChange, error?, listImageIdQr?, listImageUrl?, onListImageUrlChange?, onListImageFileSelected? }`. **Verificado en navegador:** `localhost:3000/dashboard/qr` (tipo Multi links, usuario baselinec01).
+
+#### Estados y flujos (verificados en navegador + console)
+
+| ID | Comportamiento (PRE-refactor) | Evidencia |
+| --- | --- | --- |
+| C02-B-01 | **Render inicial**: fila vacía (select "Tipo de enlace" + input + trash), nombre/descripción/imagen portada (SPEC-002), botón "Agregar enlace", botón "Crear QR" disabled, preview placeholder | screenshot `baseline-c02-1-inicial.png` |
+| C02-B-02 | **Dropdown de tipo**: 40 tipos de enlace desde `socialConst` (Sitio Web, Blog, Facebook, Instagram, WhatsApp, Teléfono, Email, Google maps, TikTok, X, Telegram, Pinterest, LinkedIn, YouTube, GitHub, GitLab, OnlyFans, Line, SoundCloud, Spotify, Discord, Skype, Vimeo, PlayStation, Xbox, Dropbox, Uber Eats, PedidosYa, Snapchat, Apple Music, Messenger, Reddit, Tumblr, Slack, Steam, Twitch, Google Formulario, Meta, Vcard, Google Drive, Miro, Notion) | snapshot dropdown |
+| C02-B-03 | **Autopopulado al cambiar tipo** (console): `handleTypeChange` → web: `https://`, whatsapp: `https://wa.me/569`, email: `correo@ejemplo.com`, teléfono: `tel:+569`, social con baseUrl: prefijo. ⚠️ **BUG detectado por el usuario (2026-08-09)**: con `https://` (protocolo solo) el botón se habilitaba — CORREGIDO con `hasUsableUrlContent` en `CreateQrForm.helpers.ts` (URL debe tener contenido real tras el protocolo). **Post-fix: `https://` → botón DISABLED; con dominio → ENABLED** (verificado en navegador) | console `formatUrl output: https://` + fix verificado |
+| C02-B-04 | **Escribir URL** → `formatUrl` asegura protocolo: `ejemplo-baseline-c02.cl` → `https://ejemplo-baseline-c02.cl`; payload `urlList: [{"url":"https://ejemplo-baseline-c02.cl","typeUrl":"Sitio Web"}]` (**typeUrl = nombre social**, no id) | console |
+| C02-B-05 | **Pegar URL** → `detectUrlType` + `extractRelevantUrl` (detecta teléfono/whatsapp/redes/maps/web/email; extrae username para redes) | código `handlePaste` |
+| C02-B-06 | **Filas dinámicas**: agregar (`addRow`, id `row-${Date.now()}`), eliminar (`removeRow`, garantiza mínimo 1 fila), reordenar drag&drop (`@hello-pangea/dnd` con GripVertical) | código |
+| C02-B-07 | **Filtro de filas vacías**: `updateUrlList` mantiene solo filas con `type && url` (excepto web/blog que se conservan aunque la URL esté vacía y vcard que se conserva con datos) | código |
+| C02-B-08 | **Modal vCard**: al seleccionar tipo "Vcard" (o botón "Configurar vCard") se abre `VCardFormModal` con `initialVCardData` (default vCard 4.0); al submit válido se guarda en la fila | código `handleTypeChange`/`handleOpenVCardModal` |
+| C02-B-09 | **Sync con urlList externa** (`useEffect`): si `urlList` llega con datos (edición) → `setRows(mapped)` con `typeUrl` → id social; si vacío → 1 fila en blanco | código |
+| C02-B-10 | **Errores**: `localError` interno (borde rojo en filas `localError && !row.url`) + `error` prop del padre (`{(localError \|\| error) && <p>}`) — excepción LIST de SPEC-004 §3.4.2 (no setea error del padre) | código |
+
+> [!note] ⚠️ Datos de prueba
+> Se verificó el email de `baselinec01` en Mongo (`isEmailVerified: true`) para poder loguear — usuario creado en baseline C-01. Se creó el QR `ejemplo-baseline-c02.cl` (tipo LIST) durante la validación.
+
+#### Estructura interna (para el refactor)
+
+- **Helpers module-scope ya existentes** (~170 líneas): `detectUrlType`, `formatUrl`, `extractRelevantUrl`, `ensureUrlFormat` + `socialTypes` → **mover a `ListUrlForm.helpers.ts`** (código intacto).
+- **Estado (4 useState + 1 ref)**: `rows` (filas `{id, type, url, vcard?}`), `localError`, `isVCardModalOpen`, `currentVCardData` + `editingVCardRowIndexRef`. Handlers con `useCallback` encadenados (deps rows/updateUrlList).
+- **JSX**: fila Draggable (~70 líneas: GripVertical + Select social + Input url + botón vcard + Trash) → **candidato a subcomponente `ListUrlRow`** (misma fila, recibiendo row/index/handlers).
+- **Modal vCard**: `VCardFormModal` ya es externo — no se toca.
+- **Timing a preservar**: sync `useEffect(urlList)` → rows; handlers actualizan rows + `updateUrlList` (formateo + filtro); drag&drop reordena; el `error` fluye como prop.
+
 ---
 
 ## 5. Ejecuciones de react-doctor (dinámica)
@@ -165,6 +196,17 @@ Pasos por componente (por cada C-XX):
 ### 5.1 Ejecución B-0 (2026-08-09, previa)
 
 **Resultado: Score 87/100 — 11 issues** (8 `no-giant-component` + 2 falso positivo + 1 decisión). Línea base de esta spec. Ver SPEC-004 §3.5.
+
+### 5.3 Ejecución B-2 (2026-08-09, tras C-02)
+
+**Resultado: Score 87/100 — 9 issues** (6 `no-giant-component` + 2 falso positivo + 1 decisión). C-02 ListUrlForm resuelto: **489 → 236 líneas** (`ListUrlForm.tsx`) + `ListUrlForm.helpers.ts` (213) + `ListUrlRow.tsx` (110).
+
+> [!success] C-02 implementado (commits `f2b34ed` + `ad47714` en qr-app)
+> - **`f2b34ed` (fix de validación — bug reportado por el usuario)**: `hasUsableUrlContent` en `CreateQrForm.helpers.ts` — una URL con solo protocolo (`https://` autopopulado al elegir "Sitio Web") ya NO habilita el botón "Crear QR" (antes `item.url && item.typeUrl` con string truthy la aceptaba). Verificado en navegador: `https://` → disabled, con dominio → enabled. Aplica a `isValidForm` (gating) y `validateDataForSubmit` (abort).
+> - **`ad47714` (refactor)**: helpers movidos intactos (`detectUrlType`, `formatUrl`, `extractRelevantUrl`, `buildUrlList`, `createEmptyVCardData`, `socialTypes`, tipo `Row`) + subcomponente `ListUrlRow` (fila Draggable, JSX idéntico) + orquestador.
+> - **Código muerto eliminado**: `ensureUrlFormat` (no se usaba — el doctor lo detectó como `unused-export` al exportarlo)
+> - **Validado**: tsc ✅ · lint ✅ · build ✅ (58/58) · navegador ✅ (C02-B-01..B-06: render, dropdown 40 tipos, autopopulado + botón disabled con https://, dominio → enabled, agregar fila)
+> - ⚠️ Datos de prueba: QR tipo LIST `ejemplo-baseline-c02.cl` creado durante validación; usuario `baselinec01` con email verificado en Mongo (necesario para loguear)
 
 ### 5.2 Ejecución B-1 (2026-08-09, tras C-01)
 
@@ -192,7 +234,7 @@ _(Se agregará Ejecución B-1 al final, con score objetivo ~93-95/100.)_
 | ID | Tarea | Estado |
 | --- | --- | --- |
 | T-004B-01 | **C-01 SignUpForm** (548→276): baseline + refactor + validación | ✅ done (commit `31b8022`) |
-| T-004B-02 | **C-02 ListUrlForm** (489): baseline + refactor + validación | pendiente |
+| T-004B-02 | **C-02 ListUrlForm** (489→236): baseline + refactor + validación | ✅ done (commits `f2b34ed` + `ad47714`) |
 | T-004B-03 | **C-03 QrGrid** (461): baseline + refactor + validación | pendiente |
 | T-004B-04 | **C-04 activate/send** (441): baseline + refactor + validación | pendiente |
 | T-004B-05 | **C-05 PlanForm** (429): baseline + refactor + validación | pendiente |
@@ -249,3 +291,4 @@ _(Se agregará Ejecución B-1 al final, con score objetivo ~93-95/100.)_
 | :---------- | :----- | :---------- |
 | 2026-08-09 | Equipo | Borrador inicial: inventario de 8 componentes (deuda SPEC-004 §3.5.1), metodología recipe T-004-07, RF/CA, tareas T-004B-01..09, Ejecución B-0 (87/100). Rama `feat/spec-004-ca03-refactor-createqrform` |
 | 2026-08-09 | Equipo | **C-01 SignUpForm completado**: baseline §4.1 (C01-B-01..B-07 con UI de inputs y timing onBlur/onChange), refactor 582→276 líneas (state.ts + helpers.ts + FormField + contexto separado). Ejecución B-1: 87/100, 10 issues (7 giants). Commit `31b8022` qr-app. Validado tsc/lint/build/navegador + 2 reglas doctor nuevas resueltas sin regresión |
+| 2026-08-09 | Equipo | **C-02 ListUrlForm completado**: baseline §4.2 (C02-B-01..B-10). **Bug reportado por el usuario corregido**: `https://` autopopulado ya no habilita el botón (`hasUsableUrlContent`, commit `f2b34ed`). Refactor 489→236 líneas (helpers + ListUrlRow, commit `ad47714`). Código muerto `ensureUrlFormat` eliminado. Ejecución B-2: 87/100, 9 issues (6 giants). Validado tsc/lint/build/navegador |

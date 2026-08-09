@@ -18,7 +18,7 @@
                       "id":  "2",
                       "content":  "[SPEC-004-B] C-02 ListUrlForm (489 lineas): baseline + refactor + validacion",
                       "description":  "src/components/qr/forms/ListUrlForm.tsx (489 lineas, prioridad alta - nucleo QR multilink). CUIDADO: validacion interna propia (localError, rows dinamicas, modal vCard) - ver SPEC-004 Â§3.4.2 excepcion LIST. Refactor a \u003c300 lineas preservando comportamiento de filas dinamicas.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-004-b",
                       "dependencies":  [
