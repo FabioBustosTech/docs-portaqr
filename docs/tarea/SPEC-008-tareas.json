@@ -1,0 +1,74 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-008] H1 P0: Escapar HTML en NodemailerContactAdapter (XSS correo contacto)",
+            "description": "En src/modules/mail/infrastructure/adapters/NodemailerContactAdapter.ts: escapar nombre, email, asunto y mensaje antes de interpolar en el HTML (helper escapeHtml en src/common/utils/ con unit tests) o migrar a plantilla EJS con <%= %>. Criterio CA-01. Rama feat/spec-008-sanitizacion.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-008",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-008] H2 P0: Hardening ValidationPipe global (whitelist + forbidNonWhitelisted + transform)",
+            "description": "En src/main.ts: app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, transformOptions: { enableImplicitConversion: false } })). Revisar specs de controllers que envíen campos extra y ajustar payloads. Criterios CA-03, CA-04, CA-10.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-008",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-008] H3 P0: escape-string-regexp en $regex de búsqueda (6 repositorios)",
+            "description": "Instalar escape-string-regexp. Aplicar en mongo-qr, mongo-pet-tag (:102,:107), mongo-user (:43), mongo-plan (:59), mongo-qr-free-generation (:65) y mongo-qr-activate (:56) antes de $regex. Añadir @MaxLength(100) al término search en DTOs de búsqueda. Criterio CA-02.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-008",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-008] H4 P1: Perimetral — helmet + CORS whitelist + @nestjs/throttler",
+            "description": "src/main.ts: app.use(helmet()); reemplazar origin '*' por CORS_ORIGINS (env, lista en prod, * en dev). AppModule: ThrottlerModule global (THROTTLE_TTL/THROTTLE_LIMIT, ej. 10/min) con regla más agresiva (5/min) en /auth/login, /auth/register y POST /mail/contact. Criterios CA-05, CA-06.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-008",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-008] H5 P1: Validar ObjectId en findUserByFavorites + PaginationDto en QR",
+            "description": "mongo-qr.repository.ts findUserByFavorites: Types.ObjectId.isValid(targetUserIdString) → BadRequestException (400) en vez de 500. qr.controller.ts: usar PaginationDto existente (src/common/dto/pagination.dto.ts) en findAll, findUserByFavorites y findPaginatedByUser (@Query() tipado). Criterio CA-07.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-008",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "6",
+            "content": "[SPEC-008] H6 P2: express-mongo-sanitize (defensa en profundidad opcional)",
+            "description": "app.use(mongoSanitize()) en main.ts para strip de $ y . en body/query/params. Protege endpoints futuros sin DTO. Vigilar campos legítimos con $ en entrada. Si causa regresiones, documentar y revertir (la Capa 2 ya cubre el riesgo).",
+            "status": "pending",
+            "priority": "low",
+            "tag": "spec-008",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "7",
+            "content": "[SPEC-008] Validación final: tsc, tests y criterios CA-01..CA-10",
+            "description": "tsc --noEmit sin errores, suite de tests verde (agregar unit tests: escapeHtml, escapeStringRegexp en repos, 400 por campos extra). Verificación manual de CA-01 a CA-10. Actualizar SPEC-008 a estado implementado y cerrar tareas.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-008",
+            "dependencies": ["1", "2", "3", "4", "5"],
+            "subtasks": []
+        }
+    ]
+}

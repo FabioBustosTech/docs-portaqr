@@ -1,0 +1,94 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-007] H2 P0: Método batch activateMany en repositorio QR + contrato en qr.port",
+            "description": "Añadir activateMany(qrCodes, expiration, tracking) a ICanUpdateQr (qr.port.ts) e implementar con updateMany({ idQr: { $in } }, { $set: { active, expiration } }) en mongo-qr.repository.ts. Retorna { matchedCount }. Rama feat/spec-007-n-plus-one.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-007",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-007] H2 P0: Esperar activación batch en use-cases de qr-activate (admin + Webpay)",
+            "description": "En create-qr-activate.usecase.ts (executeAdmin) y update-webpay-qr-activate.usecase.ts: reemplazar forEach fire-and-forget por await activateMany con log de matchedCount; persistir estado PAYED SOLO después de la activación batch. Adaptar QrActivateQrAdapter (nuevo use-case ActivateManyQrsUseCase o inyección del puerto).",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-007",
+            "dependencies": ["1"],
+            "subtasks": []
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-007] H1 P0: generateBatch con insertMany (pet-tag)",
+            "description": "En mongo-pet-tag.repository.ts generateBatch: reemplazar loop de new Model + save() por construcción de docs + insertMany (1 round-trip). Mantener contrato GeneratedPetTagResult[].",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-007",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-007] H5 P1: activate() atómico con findOneAndUpdate condicional (pet-tag)",
+            "description": "En mongo-pet-tag.repository.ts activate: un solo findOneAndUpdate({ idQr, activationPin, status: 'RESERVADO' }, $set, { new: true }); en caso null distinguir 404 vs 409 (ya activo) con 1 read en la rama de error. Elimina TOCTOU y reduce a 1 round-trip en camino feliz.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-007",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-007] H3 P1: findUserByFavorites paginado en BD + índices",
+            "description": "En mongo-qr.repository.ts findUserByFavorites: reemplazar find completo + slice en memoria por aggregate con $sort({ isFavorite: -1, updatedAt: -1 }) + $facet(data con skip/limit, total) por colección (2 consultas). Crear índices compuestos { userId: 1, isFavorite: -1, updatedAt: -1 } en qr y pet-tag. Mantener unión y orden dentro de página.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-007",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "6",
+            "content": "[SPEC-007] H6 P2: update() pet-tag con findOneAndUpdate + índices",
+            "description": "En mongo-pet-tag.repository.ts update: reemplazar findOne + mutate + save por findOneAndUpdate({ idQr, userId }, $set, { new: true }). Crear índices { idQr: 1, userId: 1 } y { idQr: 1, activationPin: 1 } en pet-tag.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-007",
+            "dependencies": ["4"],
+            "subtasks": []
+        },
+        {
+            "id": "7",
+            "content": "[SPEC-007] H4 P2: Consolidar statistics con $facet",
+            "description": "En mongo-statistics.repository.ts: getUserStatistics con 1 aggregate $facet por colección (scan: total/monthly/daily; qr: total/active); getSystemStatistics con 3 aggregates (scan, qr, user). Sin cambiar el contrato de respuesta.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-007",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "8",
+            "content": "[SPEC-007] H7 P3: create-user en 1 round-trip con índices únicos",
+            "description": "Índices únicos en email/userName del schema de user; en create-user.usecase.ts eliminar checkEmailExists/checkUserNameExists y capturar E11000 → ConflictException; generar verificationCode antes del create e incluir en el insert; enviar email con resultado.email (sin getById posterior).",
+            "status": "pending",
+            "priority": "low",
+            "tag": "spec-007",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "9",
+            "content": "[SPEC-007] Validación final: tsc, tests y criterios de aceptación CA-01..CA-10",
+            "description": "tsc --noEmit sin errores, suite de tests verde (agregar unit tests: activateMany, generateBatch insertMany, activate atómico, create-user E11000), verificación manual de CA-01 a CA-10. Actualizar SPEC-007 a estado implementado y cerrar tareas.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-007",
+            "dependencies": ["2", "3", "5", "6", "7", "8"],
+            "subtasks": []
+        }
+    ]
+}

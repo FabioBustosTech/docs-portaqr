@@ -1,6 +1,7 @@
 ---
 title: "SPEC-004: Auditoría react-doctor y corrección de hallazgos en qr-app"
 date: 2026-08-07
+updated: 2026-08-09
 tags:
   - spec
   - mantenimiento
@@ -187,15 +188,44 @@ Detectar problemas de calidad, rendimiento y buenas prácticas en el código Rea
 | Regla | Cant | Archivos | Estado |
 | --- | --- | --- | --- |
 | `no-giant-component` | 9 | admin/qr/activate/send, qr/edit/[id], qr/pay, PlanForm, SignUpForm, HomePageClient, **CreateQrForm**, QrGrid, ListUrlForm | pendiente |
-| `exhaustive-deps` | ~3 | varios (restantes tras fixes de la iteración) | pendiente |
-| `prefer-useReducer` | 1 | **CreateQrForm.tsx:30** | pendiente |
-| `rerender-lazy-state-init` | 1 | CreateQrForm.tsx:38 | pendiente |
-| `nextjs-no-img-element` | 1 | UrlList.tsx:303 | pendiente |
-| `js-set-map-lookups` | 1 | pet-tag.service.ts:74 | pendiente |
-| `unused-file` | 1 | QRCode/index.tsx | pendiente |
+| `exhaustive-deps` | ~3 | varios (restantes tras fixes de la iteración) | ✅ corregido (verificado en Ejecución 3) |
+| `prefer-useReducer` | 1 | **CreateQrForm.tsx:30** | pendiente (→ T-004-07) |
+| `rerender-lazy-state-init` | 1 | CreateQrForm.tsx:38 | pendiente (→ T-004-07) |
+| `nextjs-no-img-element` | 1 | UrlList.tsx:303 | decisión documentada: mantener (eslint-disable, SPEC-002) |
+| `js-set-map-lookups` | 1 | pet-tag.service.ts:74 | ✅ corregido (commit `1a20f83`) |
+| `unused-file` | 1 | QRCode/index.tsx | ✅ corregido (commit `1a20f83`) |
 
 > [!important] Decisión de arquitectura — `CreateQrForm` (prefer-useReducer + no-giant-component + rerender-lazy-state-init)
 > `CreateQrForm` concentra **3 hallazgos** (15+ useState relacionados, componente gigante, state initializer por render). Se decide **refactor conjunto**: migrar el estado del formulario a `useReducer` con `actions` (`SET_FIELD`, `SET_TYPE`, `RESET`) **junto con** el split del componente gigante por tipo de QR (los subformularios `DynamicQrForm`, `WhatsappQrForm`, etc. ya existen) — así cada tipo de QR recibe su propio estado y `CreateQrForm` queda como orquestador. Hacer el useReducer antes del split implicaría tocar todo dos veces. **Referencia**: T-004-07.
+
+### 3.3 Ejecución 3 (2026-08-09) — verificación manual de hallazgos
+
+**Resultado: Score 86/100 — GREAT · 14 issues** (266 archivos escaneados, 4.5s). **Cambios respecto a Ejecución 2**: 84 → 86, 16 → 14 issues (se eliminaron `exhaustive-deps` ×3, `js-set-map-lookups` ×1 y `unused-file` ×1).
+
+> [!success] Resueltos desde la Ejecución 2
+> `exhaustive-deps` (×3, regresiones ya corregidas) · `js-set-map-lookups` (×1, commit `1a20f83`) · `unused-file` QRCode (×1, commit `1a20f83` — verificación triple: doctor + grep + resolución TS)
+
+> [!important] Verificación manual de TODOS los 14 hallazgos (por petición del usuario — sospecha de falsos positivos)
+> | Hallazgo | Veredicto | Evidencia |
+> | --- | --- | --- |
+> | `prefer-dynamic-import` ×2 (`StatsCharts.tsx:3,15`) | ❌ **Falso positivo** | El import estático de chart.js vive DENTRO de `StatsCharts.tsx`, pero este componente se carga lazy vía `next/dynamic` desde `page.tsx` (comentario en línea 39). Verificado en iteración anterior con `next build`: chart.js en chunk propio (170KB), no en entryJSFiles ni HTML estáticos. Apareció aquí por el refactor que movió el código de `page.tsx` → `StatsCharts.tsx`. **No corregible** (código ya óptimo) |
+| `nextjs-no-img-element` ×1 (`UrlList.tsx:303`) | ✅ Real — **decisión: mantener** | Imagen dinámica del usuario (S3/R2) con `onError` fallback, `loading="lazy"`, `decoding="async"`, `eslint-disable` documentado (SPEC-002). `next/image` no aporta con dominios dinámicos/URL firmada |
+| `prefer-useReducer` ×1 (`CreateQrForm.tsx:30`) | ✅ Real | 19+ useState fragmentados (líneas 35–80): estado de formulario que requiere `useReducer` → T-004-07 |
+| `rerender-lazy-state-init` ×1 (`CreateQrForm.tsx:38`) | ✅ Real | `useState<string>(uuidv4())` — UUID regenerada en cada render aunque solo se usa como initializer. Fix trivial junto con T-004-07 |
+| `no-giant-component` ×9 | ✅ Reales | Verificados por tamaño: CreateQrForm 609, SignUpForm 548, ListUrlForm 489, QrGrid 461, activate/send 441, PlanForm 429, HomePageClient 413, qr/edit 362, qr/pay 324 líneas. Todos >300 |
+
+#### 3.3.1 Pendientes reales tras verificación (11)
+
+| Regla | Cant | Archivos | Estado |
+| --- | --- | --- | --- |
+| `no-giant-component` | 9 | admin/qr/activate/send, qr/edit/[id], qr/pay, PlanForm, SignUpForm, HomePageClient, **CreateQrForm**, QrGrid, ListUrlForm | pendiente |
+| `prefer-useReducer` | 1 | **CreateQrForm.tsx:30** | pendiente (→ T-004-07) |
+| `rerender-lazy-state-init` | 1 | CreateQrForm.tsx:38 | pendiente (→ T-004-07) |
+| `nextjs-no-img-element` | 1 | UrlList.tsx:303 | decisión: mantener |
+| `prefer-dynamic-import` | 2 | StatsCharts.tsx:3,15 | falso positivo verificado |
+
+> [!note] Score objetivo
+> Sin T-004-07, el score real alcanzable es ~90/100 (14 → 11 issues con la decisión y el falso positivo documentados). Con el refactor de `CreateQrForm` (resuelve 3 de los 11 reales) → ~92/100. `no-giant-component` restante (8 componentes) es refactor mayor deuda técnica progresiva.
 
 ---
 
@@ -231,10 +261,10 @@ _Pendiente — se documentarán decisiones tomadas durante las correcciones._
 | ID | Tarea | Estado |
 | --- | --- | --- |
 | T-004-01 | Crear rama `feat/spec-004-react-doctor-qr-app` | ✅ done |
-| T-004-02 | Agregar script `doctor` a `package.json` | pendiente |
-| T-004-03 | Ejecutar `npm run doctor` (primera pasada) | pendiente |
-| T-004-04 | Documentar hallazgos en §3 | pendiente |
-| T-004-05 | Corregir hallazgos (loop) | pendiente |
+| T-004-02 | Agregar script `doctor` a `package.json` | ✅ done (verificado: `npm run doctor` → 86/100) |
+| T-004-03 | Ejecutar `npm run doctor` (primera pasada) | ✅ done (3 ejecuciones documentadas) |
+| T-004-04 | Documentar hallazgos en §3 | ✅ done (§3.1, §3.2, §3.3) |
+| T-004-05 | Corregir hallazgos (loop) | 🔄 en progreso (11 reglas eliminadas; quedan 14 issues — 11 reales, 2 falso positivo, 1 decisión) |
 | T-004-06 | Validación final: tsc, lint, build + re-ejecución doctor | pendiente |
 | T-004-07 | **Refactor `CreateQrForm`**: useReducer + split por tipo de QR (resuelve `prefer-useReducer`, `rerender-lazy-state-init` y su parte de `no-giant-component`) — ver decisión en §3.2.1 | pendiente |
 
