@@ -32,7 +32,7 @@
                       "id":  "3",
                       "content":  "[SPEC-004-B] C-03 QrGrid (461 lineas): baseline + refactor + validacion",
                       "description":  "src/components/qr/QrGrid.tsx (461 lineas, prioridad alta - listado principal dashboard). Refactor a \u003c300 lineas: extraer tarjeta de QR, acciones, paginacion a subcomponentes.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-004-b",
                       "dependencies":  [

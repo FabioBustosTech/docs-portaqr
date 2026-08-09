@@ -82,7 +82,7 @@ Reducir los 8 componentes gigantes de `qr-app/` (todos >300 líneas) a un tamañ
 | --- | --- | --- | --- | --- | --- |
 | C-01 | `src/components/SignUpForm/index.tsx` | 548 → **276** | Registro de usuarios | 🔴 Alta | ✅ done |
 | C-02 | `src/components/qr/forms/ListUrlForm.tsx` | 489 → **236** | Núcleo QR multilink (producto principal) | 🔴 Alta | ✅ done |
-| C-03 | `src/components/qr/QrGrid.tsx` | 461 | Listado principal dashboard | 🔴 Alta | pendiente |
+| C-03 | `src/components/qr/QrGrid.tsx` | 490 → **260** | Listado principal dashboard | 🔴 Alta | ✅ done |
 | C-04 | `src/app/dashboard/admin/qr/activate/send/page.tsx` | 441 | Envío masivo admin | 🟠 Media | pendiente |
 | C-05 | `src/components/PlanForm.tsx` | 429 | Formulario de planes | 🟠 Media | pendiente |
 | C-06 | `src/components/home/HomePageClient.tsx` | 413 | Home del sitio | 🟠 Media | pendiente |
@@ -189,6 +189,37 @@ Pasos por componente (por cada C-XX):
 - **Modal vCard**: `VCardFormModal` ya es externo — no se toca.
 - **Timing a preservar**: sync `useEffect(urlList)` → rows; handlers actualizan rows + `updateUrlList` (formateo + filtro); drag&drop reordena; el `error` fluye como prop.
 
+### 4.3 Baseline C-03 — `QrGrid` (2026-08-09, PRE-refactor)
+
+> [!important] Datos del componente
+> **Archivo:** `src/components/qr/QrGrid.tsx` (490 líneas). **Consumidores (2):** `src/app/dashboard/qr/page.tsx` (dashboard, sin admin) y `src/app/dashboard/users/[userIdClient]/qr/page.tsx` (admin, con `isAdmin` + `userIdClient`). **Props (12):** `{ qrs, loading, currentPage, totalPages, itemsPerPage, onPageChange, onSearch, onClearSearch?, onItemsPerPageChange, onFavoriteUpdated, onQrUpdated?, isWebpayActive?, isAdmin?, userIdClient?, initialSearchTerm?, initialItemsPerPage? }`. **Verificado en navegador:** `localhost:3000/dashboard/qr` (usuario baselinec01, QR de prueba `grid-baseline-c03.cl` creado).
+
+#### Estados y flujos (verificados en navegador)
+
+| ID | Comportamiento (PRE-refactor) | Evidencia |
+| --- | --- | --- |
+| C03-B-01 | **Card contenedor**: header con título "Mis Códigos QR" + Select "Mostrar:" (10/20/50/100) | snapshot |
+| C03-B-02 | **Búsqueda**: input "Buscar..." + botones "Buscar" / "limpiar filtro" (Enter dispara búsqueda) | snapshot |
+| C03-B-03 | **Tarjeta de QR**: título `getQrLabel(qr)` (+ `/ nombre` si hay), URL truncada con Tooltip, star favorito, `QrDisplay` 150px, estado Activo/Inactivo (icono verde/rojo), "Expira: fecha" (`formatDate`), botones acción | snapshot tarjeta |
+| C03-B-04 | **Botones por estado**: Activo → Estadísticas + Editar + Compartir (icono); Inactivo → Editar + Activar (admin: ruta `/dashboard/admin/qr/activate?id=...&userIdClient=...`; no-admin: `/dashboard/qr/activate?id=...&typeQr=...`) + Eliminar | snapshot (Inactivo: Editar/Activar/Eliminar) |
+| C03-B-05 | **Tooltip pet/list**: para pet-tag, list o pet muestra icono PawPrint/ListIcon con tooltip (nombre/dueño/teléfono o lista de URLs) | código |
+| C03-B-06 | **Favorito**: star amarillo → `qrService.toggleFavorite` + `onFavoriteUpdated` + toast | código |
+| C03-B-07 | **Eliminar**: `handleDeleteClick` → ConfirmationDialog → `qrService.deleteQr` + `onQrUpdated('a', ...)` + toast | código |
+| C03-B-08 | **Compartir**: `handleShareClick` → ShareModal con `window.location.origin/qr/${id}` | código |
+| C03-B-09 | **Paginación**: "Anterior/Siguiente" + "Página X de Y" (disabled en bordes); Select itemsPerPage | snapshot |
+| C03-B-10 | **clear search**: `handleClearSearch` borra `search` de URL (patrón URL fuente de verdad, SPEC-004 exec 2) | código |
+
+> [!note] ⚠️ Datos de prueba
+> QR dinámico `grid-baseline-c03.cl` creado con usuario `baselinec01` durante la validación.
+
+#### Estructura interna (para el refactor)
+
+- **Helpers module-scope ya existentes** (~28 líneas): `isPetTagItem`, `isQrActive`, `getQrLabel`, `getQrUrl` → **mover a `QrGrid.helpers.ts`** + agregar `getQrTooltipContent(qr)` (el tooltip pet/list es un string complejo de ~15 líneas).
+- **Estado (4 useState + 1 ref)**: `showConfirmDialog`, `qrToDeleteIdRef` (ref — solo en handlers), `searchTerm` (prop inicial de URL), `isShareModalOpen`, `qrToShareUrl`.
+- **JSX**: **tarjeta individual ~160 líneas** (header label/favorito/tooltip, QrDisplay, estado/expiración, tooltip pet/list, botones condicionales por estado y rol) → **candidato a subcomponente `QrCard`** (usa `useRouter` interno para stats/edit/activate; recibe callbacks para favorito/eliminar/compartir).
+- **Orquestador**: header (título + select), búsqueda, grid `map` → `QrCard`, paginación, ConfirmationDialog + ShareModal (externos).
+- **Timing a preservar**: uso de `router.push` relativo, `handleClearSearch` (URL), gating de botones por `isQrActive`/`isAdmin`, `onQrUpdated('a', ...)` tras delete.
+
 ---
 
 ## 5. Ejecuciones de react-doctor (dinámica)
@@ -212,6 +243,17 @@ Pasos por componente (por cada C-XX):
 > **Problema**: en `md:flex-row`, el wrapper del `Select` (`ui/select.tsx` genera `relative inline-block w-full`) competía con el contenedor del input (ambos `w-full` = 100%) → flexbox repartía el ancho ~50/50 → el input se veía corto (298px de 727 disponibles).
 > **Fix**: `<Select className="w-full md:w-[200px] md:shrink-0">` (wrapper fijo 200px en md, full en móvil) + contenedor del input `flex w-full flex-1 gap-2` (toma el resto en md). Verificado visualmente por el usuario: ✅ correcto.
 
+### 5.4 Ejecución B-3 (2026-08-09, tras C-03)
+
+**Resultado: Score 87/100 — 8 issues** (5 `no-giant-component` + 2 falso positivo + 1 decisión). C-03 QrGrid resuelto: **490 → 260 líneas** (`QrGrid.tsx`) + `QrCard.tsx` (177) + `QrGrid.helpers.ts` (66).
+
+> [!success] C-03 implementado (commit `17c7fca` en qr-app)
+> - `QrGrid.helpers.ts`: `isPetTagItem`, `isQrActive`, `getQrLabel`, `getQrUrl` movidos intactos + `getQrTooltipContent` (ternario del tooltip pet/list → función pura, mismo string con `<br/>`)
+> - `QrCard.tsx`: tarjeta individual (JSX idéntico: label, favorito, QrDisplay 150px, estado Activo/Inactivo, expiración, tooltip pet/list, botones por estado/rol). Usa `useRouter` interno para stats/edit/activate; callbacks: `onToggleFavorite`, `onDelete`, `onShare`
+> - `QrGrid.tsx`: orquestador (header + select 10/20/50/100, búsqueda, map → QrCard, paginación, ConfirmationDialog + ShareModal)
+> - **Validado**: tsc ✅ · lint ✅ · build ✅ (58/58) · navegador ✅ (C03-B-01..B-04, B-09: header, búsqueda, tarjeta QR Dinámico Inactivo con Editar/Activar/Eliminar, paginación)
+> - ⚠️ Datos de prueba: QR dinámico `grid-baseline-c03.cl` creado (usuario baselinec01) durante validación
+
 ### 5.2 Ejecución B-1 (2026-08-09, tras C-01)
 
 **Resultado: Score 87/100 — 10 issues** (7 `no-giant-component` + 2 falso positivo + 1 decisión). C-01 SignUpForm resuelto: **582 → 276 líneas** (`index.tsx`) + `SignUpFormField.tsx` (77) + `SignUpFormContext.ts` + `state.ts` + `helpers.ts`.
@@ -226,8 +268,6 @@ Pasos por componente (por cada C-XX):
 > - **Sin regresiones de doctor**: las 2 nuevas reglas que aparecieron al refactorizar (`only-export-components`, `context-provider-value-from-unmemoized-local-literal`) se resolvieron en el mismo commit
 > - ⚠️ Datos de prueba creados en DB dev durante baseline: `baselinec01`, `baselinec01b` (borrar si molesta)
 
-_(Se agregará Ejecución B-1 al final, con score objetivo ~93-95/100.)_
-
 ---
 
 ## 6. Plan de implementación (tareas)
@@ -239,7 +279,7 @@ _(Se agregará Ejecución B-1 al final, con score objetivo ~93-95/100.)_
 | --- | --- | --- |
 | T-004B-01 | **C-01 SignUpForm** (548→276): baseline + refactor + validación | ✅ done (commit `31b8022`) |
 | T-004B-02 | **C-02 ListUrlForm** (489→236): baseline + refactor + validación | ✅ done (commits `f2b34ed` + `ad47714`) |
-| T-004B-03 | **C-03 QrGrid** (461): baseline + refactor + validación | pendiente |
+| T-004B-03 | **C-03 QrGrid** (490→260): baseline + refactor + validación | ✅ done (commit `17c7fca`) |
 | T-004B-04 | **C-04 activate/send** (441): baseline + refactor + validación | pendiente |
 | T-004B-05 | **C-05 PlanForm** (429): baseline + refactor + validación | pendiente |
 | T-004B-06 | **C-06 HomePageClient** (413): baseline + refactor + validación | pendiente |
@@ -297,3 +337,4 @@ _(Se agregará Ejecución B-1 al final, con score objetivo ~93-95/100.)_
 | 2026-08-09 | Equipo | **C-01 SignUpForm completado**: baseline §4.1 (C01-B-01..B-07 con UI de inputs y timing onBlur/onChange), refactor 582→276 líneas (state.ts + helpers.ts + FormField + contexto separado). Ejecución B-1: 87/100, 10 issues (7 giants). Commit `31b8022` qr-app. Validado tsc/lint/build/navegador + 2 reglas doctor nuevas resueltas sin regresión |
 | 2026-08-09 | Equipo | **C-02 ListUrlForm completado**: baseline §4.2 (C02-B-01..B-10). **Bug reportado por el usuario corregido**: `https://` autopopulado ya no habilita el botón (`hasUsableUrlContent`, commit `f2b34ed`). Refactor 489→236 líneas (helpers + ListUrlRow, commit `ad47714`). Código muerto `ensureUrlFormat` eliminado. Ejecución B-2: 87/100, 9 issues (6 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **Fix layout C-02** (commit `95201c0`): wrapper del Select con `w-full` competía con el input en `md:flex-row` → ancho partido ~50/50. Fix: `Select className="w-full md:w-[200px] md:shrink-0"` + input `flex-1`. Verificado por el usuario ✅ |
+| 2026-08-09 | Equipo | **C-03 QrGrid completado**: baseline §4.3 (C03-B-01..B-10). Refactor 490→260 líneas (QrCard.tsx + QrGrid.helpers.ts, commit `17c7fca`). `getQrTooltipContent` nueva (ternario del tooltip pet/list a función pura). Ejecución B-3: 87/100, 8 issues (5 giants). Validado tsc/lint/build/navegador |
