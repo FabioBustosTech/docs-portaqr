@@ -423,7 +423,10 @@ Pasos por componente (por cada C-XX):
 
 ### 5.8 Ejecución B-7 (2026-08-09, tras C-07)
 
-**Resultado: Score 87/100 — 5 issues** (1 `no-giant-component` + 1 `prefer-useReducer` deuda + 2 falso positivo + 1 decisión). C-07 qr/edit resuelto: **388 → 175 líneas** (`page.tsx`) + `editQrForm.helpers.ts` (130) + `EditQrForm.tsx` (110). **Salió de no-giant-component**. Fix layout preview (`bg-white` → transparente, commit `4de2c7a`). Deuda documentada: `prefer-useReducer` en page.tsx (15+ useState — patrón ya resuelto en CreateQrForm/SignUpForm, no bloquea CA-01).
+**Resultado: Score 87/100 — 5 issues** (1 `no-giant-component` + 1 `prefer-useReducer` deuda + 2 falso positivo + 1 decisión). C-07 qr/edit resuelto: **388 → 175 líneas** (`page.tsx`) + `editQrForm.helpers.ts` (130) + `EditQrForm.tsx` (110). **Salió de no-giant-component**. Fix layout preview (`bg-white` → transparente, commit `4de2c7a`).
+
+> [!success] Deuda `prefer-useReducer` RESUELTA (commit `61d97e7`)
+> El `prefer-useReducer` que el doctor expuso al extraer EditQrForm (14+ useState del orquestador) se resolvió con el recipe de CreateQrForm: `editQrForm.state.ts` (reducer `SET_FIELD`/`SET_INITIAL`/`RESET` + `createInitialEditState`), `EditQrForm` recibe `values` + `onFieldChange` (contrato simplificado de 15 props a 2), `page.tsx` con `useReducer` (175 → **126 líneas**). **Validado**: tsc/lint/build ✅ + navegador (editar URL → guardar → grilla con URL actualizada). **Doctor: 88/100 · 3 issues** — solo quedan 2 falsos positivos (chart.js) + 1 decisión (img). **0 issues accionables.**
 
 ### 5.9 Ejecución B-8 (2026-08-09, tras C-08) — ESTADO FINAL
 
@@ -449,7 +452,7 @@ Pasos por componente (por cada C-XX):
 > | C-08 | qr/pay | 352 → 226 |
 > **Score: 87/100 (11 issues) → 88/100 (4 issues) · 8 `no-giant-component` → 0**
 >
-> Issues restantes (4): 1 `prefer-useReducer` (qr/edit — deuda documentada), 2 `prefer-dynamic-import` (falso positivo chart.js), 1 `nextjs-no-img-element` (decisión SPEC-002).
+> Issues restantes (3): 2 `prefer-dynamic-import` (falso positivo chart.js), 1 `nextjs-no-img-element` (decisión SPEC-002). **0 issues accionables** (el `prefer-useReducer` de qr/edit se resolvió con `editQrForm.state.ts`, commit `61d97e7`).
 
 ---
 
@@ -526,4 +529,5 @@ Pasos por componente (por cada C-XX):
 | 2026-08-09 | Equipo | **C-06 HomePageClient completado**: baseline §4.6 (C06-B-01..B-07). Refactor 429→25 (HomeHero + HomeStaticSections + HomeQrGenerator + HomeFeaturesStats, commit `1cfe835`). Estado del generador encapsulado. Ejecución B-6: **88/100, 5 issues** (2 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **C-07 qr/edit completado**: refactor 388→175 (editQrForm.helpers + EditQrForm, commit `5f80275`). Fix layout preview (commit `4de2c7a`). Salió de no-giant. Deuda: prefer-useReducer. Ejecución B-7: 87/100, 5 issues (1 giant) |
 | 2026-08-09 | Equipo | **C-08 qr/pay completado + SPEC-004-B IMPLEMENTADA**: refactor 352→226 (pay.helpers + PayCartSummary + PayInvoiceFields, commit `f877d83`). **0 `no-giant-component`** (CA-01 ✅), score 88/100, 4 issues. Bug preexistente documentType/selectedDocumentType documentado (§4.7). Todos los CA cumplidos — status: implementado |
+| 2026-08-09 | Equipo | **Deuda prefer-useReducer RESUELTA** (commit `61d97e7`): qr/edit con `editQrForm.state.ts` (reducer SET_FIELD/SET_INITIAL/RESET), EditQrForm con contrato values+onFieldChange, page.tsx 175→126. **Doctor: 88/100 · 3 issues (0 accionables)** — solo falsos positivos y decisiones |
 | 2026-08-09 | Equipo | **C-07 qr/edit/[id] completado**: baseline (QR Dinámico prellenado, switch, preview). Refactor 388→175 (editQrForm.helpers + EditQrForm, commit `5f80275`). `extractQrValues`/`buildUpdatedData`/`transformVCardForSubmit` puras. **Salió de no-giant-component** (queda 1: qr/pay). **Deuda menor documentada**: `prefer-useReducer` en page.tsx (15+ useState — patrón ya resuelto en CreateQrForm/SignUpForm, no bloquea CA-01). Ejecución B-7: **87/100, 5 issues** (1 giant + 1 prefer-useReducer + 2 falso + 1 decisión) |
