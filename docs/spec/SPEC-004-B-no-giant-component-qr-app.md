@@ -85,7 +85,7 @@ Reducir los 8 componentes gigantes de `qr-app/` (todos >300 líneas) a un tamañ
 | C-03 | `src/components/qr/QrGrid.tsx` | 490 → **260** | Listado principal dashboard | 🔴 Alta | ✅ done |
 | C-04 | `src/app/dashboard/admin/qr/activate/send/page.tsx` | 475 → **283** | Envío masivo admin | 🟠 Media | ✅ done |
 | C-05 | `src/components/PlanForm.tsx` | 470 → **239** | Formulario de planes | 🟠 Media | ✅ done |
-| C-06 | `src/components/home/HomePageClient.tsx` | 413 | Home del sitio | 🟠 Media | pendiente |
+| C-06 | `src/components/home/HomePageClient.tsx` | 429 → **25** | Home del sitio | 🟠 Media | ✅ done |
 | C-07 | `src/app/dashboard/qr/edit/[id]/page.tsx` | 362 | Edición de QR | 🟡 Baja | pendiente |
 | C-08 | `src/app/dashboard/qr/pay/page.tsx` | 324 | Checkout Webpay | 🟡 Baja | pendiente |
 
@@ -281,6 +281,33 @@ Pasos por componente (por cada C-XX):
 - **JSX**: grid campos básicos (6 campos ~95 líneas) + tipo QR + checkboxes (~30) + **Detalles del Plan ~45 líneas** (header + Agregar + lista dinámica + errores) → **candidato a subcomponente `PlanDetailsList`** + botones.
 - **Timing a preservar**: validación SOLO en submit (como CreateQrForm), errores por campo `border-red-500` + texto, `genDetailId` para keys estables, payload sin id local.
 
+### 4.6 Baseline C-06 — `HomePageClient` (2026-08-09, PRE-refactor)
+
+> [!important] Datos del componente
+> **Archivo:** `src/components/home/HomePageClient.tsx` (429 líneas reales; doctor reporta 413). **Consumidor único:** `src/app/page.tsx` (ruta `/`, sin props). **Verificado en navegador:** `localhost:3000/` (página pública).
+
+#### Estados y flujos (verificados en navegador)
+
+| ID | Comportamiento (PRE-refactor) | Evidencia |
+| --- | --- | --- |
+| C06-B-01 | **Hero**: h1 "Plataforma de Gestión de QR para tu Marca", logo (`currentTheme` dark → Logo_blanco, light → PORTA_QR_LOGO), párrafo, 3 CTA (Comenzar → /signup, Saber más → /servicios, Preguntas Frecuentes → /faq) | snapshot |
+| C06-B-02 | **Possibilities**: h2 "Un Mundo de Posibilidades" + `AnimatedLinkList` (lista de redes sociales) | snapshot |
+| C06-B-03 | **HowToStart**: 5 pasos numerados (1-5) con texto | snapshot |
+| C06-B-04 | **QR Generator**: email + tipo (select URL/Texto/Email/Teléfono) + contenido (textarea) + botón "Generar QR" **disabled** hasta `hasInteracted && qrContent && email` | snapshot + evaluate (botonDisabled false tras llenar) |
+| C06-B-05 | **Generar QR**: `handleGenerateQR` formatea según tipo (url → `https://` prefijo, email → `mailto:`, phone → `tel:`) → POST `/api/qr-free-generation` `{email, information:{typeQr, data}}` → `setGeneratedQR(formattedContent)` → **QRCode visible + botón "Descargar"** (`qrRef.current.downloadQR()`) | snapshot post-generación (botón Descargar aparece) |
+| C06-B-06 | **Features**: 3 tarjetas (Generación QR, Seguimiento, Gestión) con icono + título + descripción (constante `features` module-scope) | snapshot |
+| C06-B-07 | **Stats**: 3 valores (10K+, 1M+, 99.9%) con labels (constante `stats` module-scope) | snapshot |
+
+> [!note] ⚠️ Datos de prueba
+> Se generó 1 QR gratuito con `baseline-c06@test.cl` / `https://home-baseline-c06.cl` (POST a /api/qr-free-generation) — genera un registro en DB dev.
+
+#### Estructura interna (para el refactor)
+
+- **Constantes module-scope**: `features` (3 items con `<Icon>`), `stats` (3 items) → mover a secciones.
+- **Estado del generador (5 useState + 1 ref)**: `qrType`, `qrContent`, `generatedQR`, `email`, `hasInteracted` + `qrRef` → **encapsular en `HomeQrGenerator`** (su propio estado, handlers `handleGenerateQR`/`handleQRTypeChange`).
+- **JSX**: 6 secciones → **subcomponentes**: `HomeHero` (logo con theme + CTA con router), `HomeStaticSections` (Possibilities + HowToStart), `HomeQrGenerator` (form + preview), `HomeFeaturesStats` (Features + Stats).
+- **Orquestador**: `Header` + secciones + `Footer` (~25 líneas). `useThemeState` se mueve a HomeHero (único consumidor del logo).
+
 ---
 
 ## 5. Ejecuciones de react-doctor (dinámica)
@@ -355,6 +382,19 @@ Pasos por componente (por cada C-XX):
 > - **Sin regresiones de doctor**: las 2 nuevas reglas que aparecieron al refactorizar (`only-export-components`, `context-provider-value-from-unmemoized-local-literal`) se resolvieron en el mismo commit
 > - ⚠️ Datos de prueba creados en DB dev durante baseline: `baselinec01`, `baselinec01b` (borrar si molesta)
 
+### 5.7 Ejecución B-6 (2026-08-09, tras C-06)
+
+**Resultado: Score 88/100 — 5 issues** (2 `no-giant-component` + 2 falso positivo + 1 decisión). C-06 HomePageClient resuelto: **429 → 25 líneas** (`HomePageClient.tsx`) + `HomeHero.tsx` (65) + `HomeStaticSections.tsx` (45) + `HomeQrGenerator.tsx` (135) + `HomeFeaturesStats.tsx` (75).
+
+> [!success] C-06 implementado (commit `1cfe835` en qr-app)
+> - `HomeHero.tsx`: hero (logo según theme con `useThemeState` movido aquí, 3 CTAs con router)
+> - `HomeStaticSections.tsx`: Possibilities (AnimatedLinkList) + HowToStart (5 pasos)
+> - `HomeQrGenerator.tsx`: **estado encapsulado** (qrType/qrContent/generatedQR/email/hasInteracted + qrRef) + `handleGenerateQR` (formato por tipo + POST `/api/qr-free-generation`) + preview con Descargar
+> - `HomeFeaturesStats.tsx`: Features (3 tarjetas) + Stats (3 valores) — arrays module-scope
+> - `HomePageClient.tsx`: orquestador 25 líneas (Header + secciones + Footer)
+> - **Validado**: tsc ✅ · lint ✅ · build ✅ (58/58) · navegador ✅ (C06-B-01..B-07: hero, AnimatedLinkList, 5 pasos, generador con botón disabled → habilitado, features, stats)
+> - ⚠️ Datos de prueba: 1 QR gratuito generado (`baseline-c06@test.cl` / `https://home-baseline-c06.cl`)
+
 ---
 
 ## 6. Plan de implementación (tareas)
@@ -369,7 +409,7 @@ Pasos por componente (por cada C-XX):
 | T-004B-03 | **C-03 QrGrid** (490→260): baseline + refactor + validación | ✅ done (commit `17c7fca`) |
 | T-004B-04 | **C-04 activate/send** (475→283): baseline + refactor + validación | ✅ done (commit `5753ef7`) |
 | T-004B-05 | **C-05 PlanForm** (470→239): baseline + refactor + validación | ✅ done (commit `71a2796`) |
-| T-004B-06 | **C-06 HomePageClient** (413): baseline + refactor + validación | pendiente |
+| T-004B-06 | **C-06 HomePageClient** (429→25): baseline + refactor + validación | ✅ done (commit `1cfe835`) |
 | T-004B-07 | **C-07 qr/edit/[id]** (362): baseline + refactor + validación | pendiente |
 | T-004B-08 | **C-08 qr/pay** (324): baseline + refactor + validación | pendiente |
 | T-004B-09 | Validación final: doctor (0 no-giant-component) + cierre de spec | pendiente |
@@ -427,3 +467,4 @@ Pasos por componente (por cada C-XX):
 | 2026-08-09 | Equipo | **C-03 QrGrid completado**: baseline §4.3 (C03-B-01..B-10). Refactor 490→260 líneas (QrCard.tsx + QrGrid.helpers.ts, commit `17c7fca`). `getQrTooltipContent` nueva (ternario del tooltip pet/list a función pura). Ejecución B-3: 87/100, 8 issues (5 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **C-04 activate/send completado**: baseline §4.4 (C04-B-01..B-10). Refactor 475→283 (activation.helpers + ActivationSuccess + CartSummary + InvoiceFields, commit `5753ef7`). **Fix layout reportado por usuario**: mensaje admin fuera del contenedor p-6 → restaurado. **Código muerto**: `toDocumentTypeString` eliminado. **Fix locale-format**: priceFormatter module-scope + formatDate. Ejecución B-4: **88/100, 7 issues** (4 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **C-05 PlanForm completado**: baseline §4.5 (C05-B-01..B-09). Refactor 470→239 (PlanForm.helpers + PlanDetailsList + PlanFormFields, commit `71a2796`). `validateFormData`/`buildSubmitData` puras nuevas. Ejecución B-5: **88/100, 6 issues** (3 giants). Validado tsc/lint/build/navegador |
+| 2026-08-09 | Equipo | **C-06 HomePageClient completado**: baseline §4.6 (C06-B-01..B-07). Refactor 429→25 (HomeHero + HomeStaticSections + HomeQrGenerator + HomeFeaturesStats, commit `1cfe835`). Estado del generador encapsulado. Ejecución B-6: **88/100, 5 issues** (2 giants). Validado tsc/lint/build/navegador |

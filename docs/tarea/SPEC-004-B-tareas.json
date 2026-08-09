@@ -74,7 +74,7 @@
                       "id":  "6",
                       "content":  "[SPEC-004-B] C-06 HomePageClient (413 lineas): baseline + refactor + validacion",
                       "description":  "src/components/home/HomePageClient.tsx (413 lineas, prioridad media - home del sitio). Refactor a \u003c300 lineas.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "medium",
                       "tag":  "spec-004-b",
                       "dependencies":  [
