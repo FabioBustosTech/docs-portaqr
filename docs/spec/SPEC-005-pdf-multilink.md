@@ -15,6 +15,7 @@ tags:
   - ghostscript
   - sanitizacion
 status: borrador
+revision: 2026-08-09
 aliases:
   - SPEC-005
   - PDF QR Multilink
@@ -28,19 +29,23 @@ aliases:
 > Permitir que cada item del array `data.urlList[]` de un QR multilink (`typeQr: 'list'`) sea de **tipo PDF** (`typeUrl: 'pdf'`) con un archivo adjunto. El navegador sube el PDF al backend (**multipart/form-data**); el backend lo **sanitiza con Ghostscript** (`gs -dPDFSETTINGS=/screen -dCompatibilityLevel=1.7`) — eliminando JavaScript embebido, acciones automáticas (`/OpenAction`, `/AA`), metadata de autor/creador, embedded files y re-comprimiendo a 72 DPI — y lo sube a **Cloudflare R2** con key `qr-multilink-pdf/{idQr}-{itemId}.pdf`. Solo la URL pública final se persiste en el campo `documentUrl` del item de `urlList`. La página pública `portaqr.cl/qr/{idQr}` renderiza el item como un **botón ancla** (`<a>`) con color distintivo que descarga/abre el PDF. El dashboard permite subir, descargar y eliminar el PDF (el eliminado borra el objeto R2). Límite: **2 MB** por archivo, **`MAX_PDF_ITEMS_PER_QR`** items PDF por QR (configurable vía env, default 5).
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Borrador — **validado arquitectónicamente el 2026-08-09** (aún NO implementada; pendiente de desarrollo)
 > - **Fecha:** 2026-08-07
+> - **Revisión:** 2026-08-09 — validación contra el código tras SPEC-004, SPEC-004-B y SPEC-006..011 (paths/nombres actualizados, huecos cerrados — ver [[#14 Historial de cambios]])
 > - **Autor:** Equipo Plataforma QR
 > - **Componentes afectados:** `backend-portaqr/` (puerto 3004 en docker-compose), `qr-app/` (puerto 3000)
 > - **Alcance:** Solo QR tipo `list` (multilink). No aplica a `dynamic`, `static`, `whatsapp`, `email`, `call`, `wifi`, `texto`, `vcard`, `pet`, `phone`, `map`.
 > - **Página pública destino:** `https://portaqr.cl/qr/{idQr}` (ej. `https://portaqr.cl/qr/89302960-7799-43fe-b5a0-45d2295d539f`).
-> - **Relacionado:** [[SPEC-001-migracion-monolito-modular]], [[SPEC-002-qr-multilink-imagen]], [[SPEC-003-auditoria-dependencias-qr-app]]
+> - **Relacionado:** [[SPEC-001-migracion-monolito-modular]], [[SPEC-002-qr-multilink-imagen]], [[SPEC-003-auditoria-dependencias-qr-app]], [[SPEC-004-react-doctor-qr-app]], [[SPEC-004-B-no-giant-component-qr-app]], [[SPEC-008-hardening-sanitizacion-backend-portaqr]]
 >
 > [!warning] Impacto de SPEC-002 (implementada 2026-08-07)
 > SPEC-002 ya implementó la infraestructura de storage R2 reutilizable: `modules/storage/` con `StorageService` (upload/delete R2) e `ImageProcessorService` (pipeline sharp). Esta SPEC-005 **reutiliza** `StorageService` (extendido para PDFs) y agrega un nuevo `PdfSanitizerService` (Ghostscript). El endpoint multipart sigue el patrón de `POST /qr/list-image` pero con `POST /qr/list-pdf`. La API route del frontend sigue el patrón de `/api/qr/list-image` → `/api/qr/list-pdf`.
 >
 > [!warning] Impacto de SPEC-003 (implementada 2026-08-07)
 > Tras SPEC-003 el frontend usa **JWT directo con cookies httpOnly + `jose`** (sin next-auth): el navegador **no tiene el token**, por lo que **toda llamada autenticada debe pasar por una API route del frontend** (`/api/*`) que lee la cookie y reenvía al backend con `Authorization: Bearer`. El endpoint de subida de PDF se expone como `POST /api/qr/list-pdf` (frontend) → `POST /qr/list-pdf` (backend). Además `backend-portaqr` corre en el puerto **3004** en docker-compose (las API routes usan `NEXT_PUBLIC_BFF_URL || 'http://localhost:3001'`).
+
+> [!warning] Validación 2026-08-09 — cambios post redacción (SPEC-004/004-B/006..011)
+> Esta spec **no fue implementada** (no hay código ni tareas). Desde su redacción se implementaron otras specs que **cambiaron archivos que esta spec referencia**. La revisión 2026-08-09 actualizó: (a) paths/nombres del frontend (`ListUrlForm` dividido en `ListUrlRow.tsx` + `ListUrlForm.helpers.ts`, edición en `EditQrForm.tsx`, `CreateQrForm` con `.state.ts`/`.helpers.ts`, tipos en `interfaces/qr.ts` con `ListUrlData`/`UrlListItem`), (b) hueco RF-5/CA-10: límite de items PDF también validado en el validador del schema (PATCH), (c) limpieza R2 alineada al patrón real del controller `PATCH /qr/:id` (SPEC-002), (d) compatibilidad con `ValidationPipe` `whitelist:true` de SPEC-008 (declarar `itemId`/`documentUrl` en los DTOs o son eliminados), (e) §5.1: variables `CLOUDFLARE_R2_*` NO están en el `.env` local (corregido), (f) §6.1: Dockerfile `node:20-alpine` multi-stage (gs en development y production). Ver [[#14 Historial de cambios]].
 
 ---
 
@@ -98,7 +103,10 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
   - `typeUrl` es red social / `web` / `email` / `teléfono` / `whatsapp` / `google maps` → exige `url`, prohíbe `documentUrl` y `vcard`.
   - `typeUrl === 'vcard'` → exige `vcard`, prohíbe `url` y `documentUrl`.
 
-- **RF-5**. **Límite de items PDF por QR**: máximo `MAX_PDF_ITEMS_PER_QR` items con `typeUrl: 'pdf'` por QR (env var, default `5`). El backend valida al crear/actualizar: si el `urlList` resultante tiene más items PDF que el límite, responde `400 Bad Request`. El frontend usa el mismo env var (expuesto vía `NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR`) para bloquear la UI al alcanzar el límite.
+- **RF-5**. **Límite de items PDF por QR**: máximo `MAX_PDF_ITEMS_PER_QR` items con `typeUrl: 'pdf'` por QR (env var, default `5`). El backend valida en **dos puntos**:
+  - (a) **En el validador del schema** `case 'list'` (§4.1.3): al persistir por `POST /qr` o `PATCH /qr/{id}`, si el `urlList` resultante tiene más items PDF que el límite → `400 Bad Request`. Esto cubre el caso de PATCH directo (frontend manipulado o edición que agrega items PDF sin subir archivo).
+  - (b) **En `POST /qr/list-pdf`** (§4.1.5 paso 2): antes de sanitizar/subir, si el item es nuevo y el conteo actual ya alcanzó el límite → `400 Bad Request` (no sube nada a R2).
+  - El frontend usa el mismo env var (expuesto vía `NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR`) para bloquear la UI al alcanzar el límite.
 
 #### Formatos y límites de entrada
 
@@ -168,6 +176,9 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
 
   > [!warning] Migración de items existentes
   > Los items de `urlList[]` existentes (pre-SPEC-005) **no tienen `itemId`**. Se debe agregar un campo `itemId` con un UUID generado al vuelo en el mapper `toDomain` si no existe (mejor esfuerzo — no requiere migración masiva). Los items PDF nuevos siempre tendrán `itemId` desde el frontend.
+  >
+  > [!warning] Preservación del itemId en el frontend (revisión 2026-08-09)
+  > El `useEffect` de `ListUrlForm.tsx` que sincroniza `urlList` → rows (`{ id: row-${index}, type, url, vcard }`) **descarta campos no mapeados**: si no se agrega `itemId`/`documentUrl` al mapeo, se perderían al cargar un QR existente en edición (el item se vería como "sin archivo" y el itemId se regeneraría). Requisito: el `itemId` debe ser un campo **persistente de la fila** (generado una vez al crear el item, no derivado del índice) y preservado en el sync (§4.2.3).
 
 #### Flujo de subida y persistencia
 
@@ -194,11 +205,11 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
   - Persiste el `urlList` actualizado en MongoDB.
   - Si `DeleteObjectCommand` falla (red, no existe, etc.), se registra `ERROR` log (`r2_failed_delete`) pero **no aborta** el `PATCH` (la URL queda sin referencia en Mongo y el objeto R2 queda huérfano — lifecycle rule §6.4 lo limpiará).
 
-- **RF-16**. **Reemplazo de PDF**: el endpoint `POST /qr/list-pdf` (vía `/api/qr/list-pdf`) puede invocarse nuevamente con un nuevo `file` para el mismo `{idQr, itemId}`; retorna nueva `documentUrl` (sobrescribe el mismo objeto R2, mismo `key`). El `UpdateQrUseCase` (o el controller) al recibir `PATCH` con un `documentUrl` distinto al actual para el mismo `itemId`, borra el objeto R2 anterior de forma **mejor esfuerzo** (log si falla, no abortar).
+- **RF-16**. **Reemplazo de PDF**: el endpoint `POST /qr/list-pdf` (vía `/api/qr/list-pdf`) puede invocarse nuevamente con un nuevo `file` para el mismo `{idQr, itemId}`; retorna nueva `documentUrl` (sobrescribe el mismo objeto R2, mismo `key`). El controller `PATCH /qr/:id` (§4.1.6) al recibir un `documentUrl` distinto al actual para el mismo `itemId`, borra el objeto R2 anterior de forma **mejor esfuerzo** (log si falla, no abortar).
 
 #### UI /UX
 
-- **RF-17**. **Crear QR multilink** (`CreateQrForm.tsx` → `ListUrlForm.tsx`): el `Select` de tipo de enlace incluye una nueva opción **"PDF"** (`typeUrl: 'pdf'`). Al seleccionarla:
+- **RF-17**. **Crear QR multilink** (`CreateQrForm.tsx` + `.state.ts` → `ListUrlForm.tsx` + `ListUrlRow.tsx` + helpers): el `Select` de tipo de enlace (que itera `socialTypes`) incluye una nueva opción **"PDF"** (`typeUrl: 'pdf'`). Al seleccionarla:
   - Se muestra un input `file` con `accept="application/pdf,.pdf"`.
   - Al seleccionar archivo: validar tipo/tamaño en cliente (≤2 MB; si no es PDF → error inmediato).
   - Se genera un `itemId` (UUID v4) para el item.
@@ -213,8 +224,8 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
 - **RF-19**. **Página pública** (`https://portaqr.cl/qr/{idQr}` → `UrlList.tsx`): los items con `typeUrl === 'pdf'` se renderizan como un **botón ancla** `<a>` (no `<button>`) con:
   - `href={item.documentUrl}`
   - `target="_blank"` (abre en nueva pestaña) o `download` (descarga directa) — decisión: `target="_blank"` + `rel="noopener noreferrer"` para que el visor nativo del navegador lo abra.
-  - **Color distintivo**: `bg-red-600 hover:bg-red-700` (rojo — diferenciado de las redes sociales).
-  - **Icono**: `file-text` o `document` de lucide-react.
+  - **Color distintivo**: `bg-rose-600 hover:bg-rose-700` (revisión 2026-08-09: el `bg-red-600` original colisionaba con `google maps` — ver §4.2.5).
+  - **Icono**: `pdf` (entrada `FileText` de lucide-react agregada al mapa de `@/components/icon`).
   - **Label**: el nombre del archivo o una etiqueta personalizada.
   - Si `documentUrl` no existe (item PDF sin archivo subido), el item **no se renderiza** en la página pública (no se muestra botón roto).
 
@@ -234,7 +245,7 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
 - **CA-07**. Intentar subir un archivo de tamaño > 2 MB recibe `413 Payload Too Large` (frontend en UI; backend en multer `limits.fileSize`) antes de tocar R2. Un archivo con formato no PDF (p. ej. `.docx`, `.exe`) recibe `415 Unsupported Media Type`.
 - **CA-08**. Un binario que Ghostscript no puede procesar (PDF corrupto, falseado, o con estructura inválida) recibe `422 Unprocessable PDF` y **no se persiste ni se sube nada** a R2.
 - **CA-09**. La validación del schema (exclusividad por `typeQr` y por tipo de item) sigue pasando: un item con `typeUrl: 'pdf'` solo se persiste si tiene `documentUrl` y no tiene `url` ni `vcard`; un item con `url` no puede tener `documentUrl`.
-- **CA-10**. Si el `urlList` resultante tiene más items PDF que `MAX_PDF_ITEMS_PER_QR` (default 5), el backend responde `400 Bad Request` y el frontend bloquea la UI al alcanzar el límite.
+- **CA-10**. Si el `urlList` resultante tiene más items PDF que `MAX_PDF_ITEMS_PER_QR` (default 5), el backend responde `400 Bad Request` — tanto al persistir (`POST /qr`, `PATCH /qr/{id}` vía validador del schema) como en `POST /qr/list-pdf` antes de tocar R2 — y el frontend bloquea la UI al alcanzar el límite.
 - **CA-11**. El PDF sanitizado con Ghostscript **no contiene JavaScript embebido** (verificar con `pdfinfo` o parser que `/JS` y `/JavaScript` no existen en el árbol de nombres).
 - **CA-12**. El PDF sanitizado con Ghostscript **no contiene metadata de autor/creador** (verificar que `/Author`, `/Creator`, `/Producer` están vacíos o ausentes).
 - **CA-13**. El PDF sanitizado con Ghostscript **no contiene acciones automáticas** (verificar que `/OpenAction` y `/AA` no existen en el catálogo).
@@ -329,34 +340,64 @@ export interface QrUrlListItem {
 
 #### 4.1.2 DTOs
 
-**`application/dto/create-qr.dto.ts`** — dentro de la clase `QrUrlListItem` (o equivalente):
+> [!important] Compatibilidad con SPEC-008 (implementada)
+> El `ValidationPipe` global ya corre con `whitelist: true` + `forbidNonWhitelisted` (SPEC-008). **Si `itemId`/`documentUrl` no se declaran en los DTOs, serán eliminados silenciosamente en `PATCH /qr/{id}`** → el backend no podría correlacionar el item con su objeto R2 (bug silencioso). Ambos campos **deben** declararse en `ListUrlData` y en `UrlListItem` (url-item.dto.ts).
+
+**`application/dto/create-qr.dto.ts`** — clase existente `ListUrlData` (el item de `urlList`; en el borrador original se llamaba `QrUrlListItem` — el nombre real es `ListUrlData`):
 
 ```ts
-export class QrUrlListItemDto {
+export class ListUrlData {
   @IsOptional()
   @IsString()
-  itemId?: string;
+  itemId?: string;                  // ⬅ NUEVO: identificador estable del item (RF-12)
 
   @ValidateIf((o) => o.typeUrl === 'pdf')
   @IsOptional()
   @IsUrl({}, { message: 'La URL del documento debe ser válida' })
-  documentUrl?: string | null;
+  documentUrl?: string | null;      // ⬅ NUEVO: URL pública R2 del PDF (solo typeUrl === 'pdf')
 
-  @ValidateIf((o) => o.typeUrl !== 'pdf' && o.typeUrl !== 'vcard')
   @IsOptional()
-  @IsString()
+  @Matches(/^((https?:\/\/[^\s]+|tel:\+\d{1,3}\d{4,14}))$/, {
+    message: 'Debe comenzar con http://, https:// o tel: seguido de un número telefónico válido'
+  })
   url?: string;
 
-  @ValidateIf((o) => o.typeUrl === 'vcard')
   @IsOptional()
-  vcard?: unknown;
+  @ValidateNested({ message: 'Los datos de la tarjeta de contacto deben ser válidos' })
+  @Type(() => VCard)
+  vcard?: VCard;
 
-  @IsString()
+  @IsString({ message: 'El tipo de URL debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El tipo de URL es requerido' })
   typeUrl: string;
 }
 ```
 
-**`application/dto/update-qr.dto.ts`** — `UpdateQrDto extends PartialType(CreateQrDto)` ya existente; verificar que `@IsOptional` no chille con `null` en `documentUrl`.
+> [!note] itemId/documentUrl no rompen la exclusividad existente
+> `itemId` se acepta para cualquier tipo de item (es solo un identificador). `documentUrl` solo aplica cuando `typeUrl === 'pdf'` (via `@ValidateIf`). La exclusividad por tipo (`url`/`vcard`/`documentUrl` mutuamente excluyentes) la garantiza el validador del schema (§4.1.3), no los DTOs.
+
+**`application/dto/url-item.dto.ts`** — la clase `UrlListItem` (respuestas Swagger / redirección pública) también declara los campos nuevos, para que Swagger y el frontend tipen los items con PDF:
+
+```ts
+export class UrlListItem {
+  @ApiProperty({ required: false, description: 'Identificador estable del item (RF-12)' })
+  itemId?: string;
+
+  @ApiProperty({ type: String, required: false, description: 'Datos de vCard si el tipo es VCARD' })
+  vcard?: any;
+
+  @ApiProperty({ type: String, required: false, description: 'URL si el tipo no es VCARD' })
+  url?: string;
+
+  @ApiProperty({ type: String, required: false, nullable: true, description: 'URL pública R2 del PDF (solo typeUrl === \'pdf\')' })
+  documentUrl?: string | null;
+
+  @ApiProperty({ required: true, description: 'Tipo de URL o vCard' })
+  typeUrl: string;
+}
+```
+
+**`application/dto/update-qr.dto.ts`** — `UpdateQrDto extends PartialType(CreateQrDto)` ya existente; verificar que `@IsOptional` no chille con `null` en `documentUrl` (el validador usa `@ValidateIf((o) => o.typeUrl === 'pdf')`, que tolera `null`).
 
 #### 4.1.3 Schema Mongoose — `infrastructure/repository/mongo/schemas/qr.schema.ts`
 
@@ -377,16 +418,18 @@ urlList: {
 },
 ```
 
-Actualizar el `validate.validator` del `data` para el `case 'list'` — agregar validación de exclusividad por item:
+Actualizar el `validate.validator` del `data` para el `case 'list'` — agregar validación de exclusividad por item **y el límite `MAX_PDF_ITEMS_PER_QR`** (revisión 2026-08-09: cierra el hueco RF-5/CA-10 en PATCH):
 
 ```ts
-case 'list':
+case 'list': {
   if (!value.urlList) return false;
-  // Exclusividad a nivel de item (RF-4)
+  let pdfCount = 0;
+  // Exclusividad a nivel de item (RF-4) + conteo de items PDF (RF-5)
   for (const item of value.urlList) {
     if (item.typeUrl === 'pdf') {
       // PDF: exige documentUrl, prohíbe url y vcard
       if (!item.documentUrl || item.url || item.vcard) return false;
+      pdfCount += 1;
     } else if (item.typeUrl === 'vcard') {
       // vCard: exige vcard, prohíbe url y documentUrl
       if (!item.vcard || item.url || item.documentUrl) return false;
@@ -395,11 +438,20 @@ case 'list':
       if (!item.url || item.vcard || item.documentUrl) return false;
     }
   }
+  // RF-5: límite de items PDF por QR (env MAX_PDF_ITEMS_PER_QR, default 5).
+  // El validator es síncrono: leer process.env directo (misma técnica que el controller).
+  const maxPdfItems = Number.parseInt(process.env.MAX_PDF_ITEMS_PER_QR ?? '', 10);
+  const limit = Number.isFinite(maxPdfItems) && maxPdfItems > 0 ? maxPdfItems : 5;
+  if (pdfCount > limit) return false;
   // Exclusividad a nivel de QR (sin cambios)
   return !value.url && !value.whatsappUrl && !value.emailUrl && !value.phoneUrl
     && !value.wifiData && !value.text && !value.vcardData && !value.petData
     && !value.mapUrl;
+}
 ```
+
+> [!warning] Advertencia del validador de schema con límite
+> El validador de Mongoose corre en el proceso del backend, por lo que `process.env.MAX_PDF_ITEMS_PER_QR` está disponible (igual que `getListImageMaxUploadSize()` en el controller). **Alternativa preferida**: centralizar la lectura en un helper compartido `getMaxPdfItemsPerQr()` (§4.1.5) importado por ambos (schema y controller) para evitar divergencias de default.
 
 > [!note] Tipos TS del schema
 > Actualizar el tipo TS declarado de la propiedad `data` en `QrSchema` (líneas ~197-247) agregando `itemId?: string` y `documentUrl?: string | null` al tipo `urlList[]`.
@@ -670,64 +722,126 @@ async uploadListPdf(
 > [!note] Inyección de dependencias
 > El constructor de `QrController` agrega `pdfSanitizer: PdfSanitizerService`. El `QrModule` ya importa `StorageModule` (desde SPEC-002), que ahora exporta `PdfSanitizerService`.
 
-#### 4.1.6 Use cases
+#### 4.1.6 Limpieza R2 en `PATCH /qr/:id` — en el **controller** (patrón SPEC-002)
 
-`UpdateQrUseCase` extender para:
-- Al recibir un `PATCH` con `urlList` modificado, detectar items PDF eliminados (items que estaban en el `urlList` anterior con `documentUrl` y ya no están en el nuevo) y borrar sus objetos R2 (mejor esfuerzo — si falla, log + no aborta el patch).
-- Al detectar un item PDF con `documentUrl` cambiado para el mismo `itemId`, borrar el objeto R2 anterior (mejor esfuerzo).
+> [!warning] Revisión 2026-08-09 — ubicación alineada al patrón real
+> El borrador original proponía esta lógica en `UpdateQrUseCase`, pero el patrón real de SPEC-002 la implementa en el **controller** (`qr.controller.ts`, `PATCH /qr/:id`, bloque de `listImageUrl` ~líneas 410-425): el controller compara `oldUrl` vs `newUrl` y llama `storageService.deleteObject(oldUrl)` (mejor esfuerzo). **Esta spec sigue el mismo lugar** para mantener una sola convención. `UpdateQrUseCase` no toca R2.
+
+En `presentation/controllers/qr.controller.ts`, método `update` — junto al bloque existente de `listImageUrl`:
 
 ```ts
-// En UpdateQrUseCase.execute, antes de persistir:
-const oldUrlList = currentQr.data?.urlList ?? [];
-const newUrlList = updateQrDto.data?.urlList ?? oldUrlList;
+// SPEC-005 RF-15/RF-16: items PDF eliminados o reemplazados → borrar objeto R2 anterior (mejor esfuerzo)
+if (currentQr.typeQr === 'list' && Array.isArray(updateQrDto.data?.urlList)) {
+  const oldUrlList = currentQr.data?.urlList ?? [];
+  const newUrlList = updateQrDto.data.urlList;
 
-// Items PDF eliminados (estaban antes, ya no están)
-const removedPdfItems = oldUrlList.filter(
-  (old) => old.typeUrl === 'pdf' && old.documentUrl &&
-    !newUrlList.find((nw) => nw.itemId === old.itemId),
-);
-for (const item of removedPdfItems) {
-  if (item.documentUrl) {
-    await this.storageService.deleteObject(item.documentUrl); // mejor esfuerzo
+  // Items PDF que estaban en el urlList anterior y ya no están (eliminados) → borrar R2
+  const removedPdfItems = oldUrlList.filter(
+    (old) => old.typeUrl === 'pdf' && old.documentUrl &&
+      !newUrlList.find((nw) => nw.itemId === old.itemId),
+  );
+  for (const item of removedPdfItems) {
+    if (item.documentUrl) {
+      await this.storageService.deleteObject(item.documentUrl); // mejor esfuerzo (RF-15)
+      this.traceService.log(tracking, TraceLayer.CONTROLLER, 'PATCH /qr/:id - pdf item removed', {
+        qrid, itemId: item.itemId, oldUrl: item.documentUrl,
+      });
+    }
   }
-}
 
-// Items PDF con documentUrl reemplazado
-for (const newItem of newUrlList) {
-  if (newItem.typeUrl === 'pdf' && newItem.documentUrl) {
-    const oldItem = oldUrlList.find((old) => old.itemId === newItem.itemId);
-    if (oldItem?.documentUrl && oldItem.documentUrl !== newItem.documentUrl) {
-      await this.storageService.deleteObject(oldItem.documentUrl); // mejor esfuerzo
+  // Items PDF con documentUrl reemplazado para el mismo itemId → borrar el anterior
+  for (const newItem of newUrlList) {
+    if (newItem.typeUrl === 'pdf' && newItem.documentUrl) {
+      const oldItem = oldUrlList.find((old) => old.itemId === newItem.itemId);
+      if (oldItem?.documentUrl && oldItem.documentUrl !== newItem.documentUrl) {
+        await this.storageService.deleteObject(oldItem.documentUrl); // mejor esfuerzo (RF-16)
+        this.traceService.log(tracking, TraceLayer.CONTROLLER, 'PATCH /qr/:id - pdf replaced', {
+          qrid, itemId: newItem.itemId, oldUrl: oldItem.documentUrl,
+        });
+      }
     }
   }
 }
 ```
 
+> [!note] Comparación por `itemId`
+> La detección de eliminados/reemplazados compara por `itemId` (RF-12). Si un item viejo no tiene `itemId` (pre-SPEC-005), no se correlaciona y su objeto R2 no se borra en este flujo — queda huérfano y lo limpia el lifecycle rule (§6.3). Aceptable (mejor esfuerzo).
+
 > [!info] Dependencia de módulo
-> `QrModule` ya importa `StorageModule` (desde SPEC-002). `UpdateQrUseCase` ya tiene acceso a `StorageService`.
+> `QrController` ya inyecta `StorageService` (desde SPEC-002). Solo se agrega `PdfSanitizerService` al constructor (ver §4.1.5).
 
 #### 4.1.7 Mapper de persistencia
 
-`infrastructure/repository/mongo/mappers/qr-mongo.mapper.ts` (y su spec): propagar los campos nuevos en ambas direcciones:
-- `toDomain`/`toEntity`: incluir `itemId` y `documentUrl` de cada item de `urlList`. Si un item no tiene `itemId`, generar uno al vuelo (`randomUUID()`) para que los items existentes tengan identificador estable.
-- `toPersistence`: incluir `itemId` y `documentUrl` al guardar.
+> [!note] Revisión 2026-08-09 — el mapper es pass-through de `data`
+> `qr-mongo.mapper.ts` copia `data` tal cual (`toEntity` → `data: doc.data`; `toSchemaData` → `data: qr.data as any`). **Los campos `itemId`/`documentUrl` viajan automáticamente** al agregarlos al schema (no requieren cambios de mapeo explícitos).
+> Lo único necesario aquí es la **generación de `itemId` al vuelo** para los items existentes sin él: se normaliza `data.urlList` en `toEntity` (o en `GetQrUseCase`) agregando `itemId ?? randomUUID()` a cada item.
 
-Sin esto, los campos no viajarían del schema a las entidades/usecases.
+`infrastructure/repository/mongo/mappers/qr-mongo.mapper.ts`:
+
+```ts
+import { randomUUID } from 'crypto';
+import type { Qr } from '../../../../domain/entities/qr.entity';
+import type { QrSchema } from '../schemas/qr.schema';
+
+export class QrMongoMapper {
+  static toEntity(doc: QrSchema & { _id?: unknown }): Qr {
+    // SPEC-005 RF-12: garantizar itemId estable en cada item de urlList (mejor esfuerzo).
+    // Los items pre-SPEC-005 no tienen itemId → se genera al vuelo (no se persiste).
+    const data = doc.data ? { ...doc.data } : doc.data;
+    if (data && Array.isArray(data.urlList)) {
+      data.urlList = data.urlList.map((item) => ({
+        ...item,
+        itemId: item.itemId ?? randomUUID(),
+      }));
+    }
+    return {
+      id: doc._id?.toString() || '',
+      idQr: doc.idQr,
+      userId: doc.userId,
+      expiration: doc.expiration,
+      quantityUpdateMonth: doc.quantityUpdateMonth,
+      description: doc.description,
+      data,
+      name: doc.name,
+      updatedAt: doc.updatedAt,
+      active: doc.active,
+      isFavorite: doc.isFavorite,
+      isOldMode: doc.isOldMode,
+      typeQr: doc.typeQr,
+      createdAt: doc.createdAt,
+    };
+  }
+
+  static toSchemaData(qr: Partial<Qr>): Partial<QrSchema> {
+    return {
+      idQr: qr.idQr,
+      userId: qr.userId,
+      expiration: qr.expiration,
+      quantityUpdateMonth: qr.quantityUpdateMonth,
+      description: qr.description,
+      data: qr.data as any,
+      name: qr.name,
+      active: qr.active,
+      isFavorite: qr.isFavorite,
+      isOldMode: qr.isOldMode,
+      typeQr: qr.typeQr,
+    };
+  }
+}
+```
+
+> [!note] No perseguir el itemId generado al vuelo
+> El itemId al vuelo **no se persiste** (los items pre-SPEC-005 siguen sin itemId en Mongo hasta que el usuario los edite — el frontend los reenvía con itemId nuevo). Esto evita una migración masiva.
 
 ### 4.2 Frontend — `qr-app/`
 
 #### 4.2.1 Servicio — `services/qr.service.ts`
 
-```ts
-export interface QrUrlListItem {
-  itemId?: string;            // ⬅ NUEVO
-  vcard?: unknown;
-  url?: string;
-  documentUrl?: string | null; // ⬅ NUEVO
-  typeUrl: string;
-}
+> [!note] Revisión 2026-08-09
+> `qr.service.ts` **no define interfaces propias** de items: importa `ListUrlData`/`UrlListItem` de `@/interfaces/qr` (que se extienden en §4.2.6). Solo se agrega el método `uploadListPdf` (patrón idéntico a `uploadListImage` real: XHR + `onProgress`, sin `Content-Type` manual):
 
-// En QrService:
+```ts
+// En QrService (el tipo del item viene de @/interfaces/qr → ListUrlData, ya extendido):
 async uploadListPdf(
   idQr: string,
   itemId: string,
@@ -796,7 +910,7 @@ interface ListPdfUploaderProps {
 ```
 
 Renderiza:
-- Si `currentPdfUrl` existe: **botón ancla** `<a href={currentPdfUrl} target="_blank" rel="noopener noreferrer">` con icono `file-text` y nombre del archivo + botón "Eliminar" (trash icon) → `onChange(null)`.
+- Si `currentPdfUrl` existe: **botón ancla** `<a href={currentPdfUrl} target="_blank" rel="noopener noreferrer">` con icono `pdf` (del mapa de `@/components/icon`) y nombre del archivo + botón "Eliminar" (trash icon) → `onChange(null)`.
 - Si no existe: drop zone con `Input type="file" accept="application/pdf,.pdf"`.
 - Al seleccionar archivo:
   1. Validar tipo/tamaño en cliente (≤2 MB; si no es PDF → `onError` inmediato).
@@ -805,25 +919,141 @@ Renderiza:
 - Barra de progreso (1–100%) usando el `onProgress` de `uploadListPdf`.
 - Muestra el `documentUrl` devuelto (o error 415/413/422 con mensaje claro del backend).
 
-#### 4.2.3 Creación de QR — `CreateQrForm.tsx` + `ListUrlForm.tsx`
+#### 4.2.3 Creación de QR — `CreateQrForm.tsx` (con `.state.ts`/`.helpers.ts`) + `ListUrlForm.tsx` + `ListUrlRow.tsx` + `ListUrlForm.helpers.ts`
+
+> [!warning] Estructura real post SPEC-004/004-B (revisión 2026-08-09)
+> - `CreateQrForm.tsx` fue refactorizado (SPEC-004): el estado/`handleSubmit` viven en `CreateQrForm.state.ts` y la lógica pura en `CreateQrForm.helpers.ts`. El flujo de subida de PDFs pendientes se integra en el submit del **state** (o se expone como callback desde el componente).
+> - `ListUrlForm.tsx` fue dividido (SPEC-004-B): la **fila** es ahora `ListUrlRow.tsx` (Select de tipo + input + trash + drag) y la **lógica pura** está en `ListUrlForm.helpers.ts` (`ListUrlRow` type, `socialTypes`, `detectUrlType`, `formatUrl`, `buildUrlList`). El `Select` de tipos itera `socialTypes` (= `socialConst` de `constants/social.const.ts`).
 
 > [!warning] Secuencia en creación
 > En el flujo de **crear nuevo QR**, el `idQr` se genera en el cliente (UUID v4). **El QR se crea PRIMERO y los PDFs se suben DESPUÉS** (el endpoint `POST /qr/list-pdf` valida que el QR exista). Flujo:
-> 1. `handleSubmit`: `createQr({ ..., data: { ..., urlList: [...], typeQr: 'list' } })`. Los items PDF en el `urlList` se envían con `documentUrl: null` (aún sin archivo).
+> 1. `handleSubmit` (en `CreateQrForm.state.ts`): `createQr({ ..., data: { ..., urlList: [...], typeQr: 'list' } })`. Los items PDF en el `urlList` se envían con `documentUrl: null` (aún sin archivo).
 > 2. Por cada item PDF pendiente → `uploadListPdf(idQr, itemId, file, onProgress)` → el endpoint persiste la URL.
 > 3. Si falla alguna subida → el QR queda creado sin ese PDF y se muestra toast de warning (se puede agregar después desde editar).
 
-`ListUrlForm.tsx`:
-- El `Select` de tipo de enlace agrega la opción **"PDF"** (`value: 'pdf'`).
-- Al seleccionar 'pdf', se renderiza `<ListPdfUploader />` en lugar del `Input` de URL.
-- Se genera un `itemId` (UUID v4) para el item al seleccionar 'pdf'.
-- El `updateUrlList` agrega el item con `{ itemId, typeUrl: 'pdf', documentUrl: null }` (sin `url` ni `vcard`).
+Cambios concretos:
 
-#### 4.2.4 Edición de QR — `dashboard/qr/edit/[id]/page.tsx`
+**`constants/social.const.ts`** — agregar la entrada `pdf` a `socialConst` (la iteran el `Select` de `ListUrlRow` y `buildUrlList`):
 
-- Carga el QR con `qrService.getQrById(id)`, obtiene `data.urlList`.
+```ts
+{
+  id: 'pdf',
+  name: 'PDF',
+  icon: Icon({ name: 'pdf' }),   // requiere agregar 'pdf' al mapa de @/components/icon
+  baseUrl: '',
+  pattern: /^$/i,                 // sin pattern: no debe matchear pegado de URLs
+},
+```
+
+**`components/qr/forms/ListUrlForm.helpers.ts`**:
+- Extender el tipo `ListUrlRow` con los campos del item PDF:
+
+```ts
+export interface ListUrlRow {
+  id: string;
+  type: string;
+  url: string;
+  vcard?: VCardData;
+  itemId?: string;          // ⬅ NUEVO (RF-12): estable, generado una vez
+  documentUrl?: string | null; // ⬅ NUEVO: URL R2 persistida (edición)
+  pdfFile?: File | null;    // ⬅ NUEVO: archivo pendiente (creación)
+}
+```
+
+- **Modificar `buildUrlList`** para que los items `pdf` no sean filtrados (hoy el filtro exige `row.type && row.url` para no-vcard → un item PDF sin `url` **sería descartado del payload**):
+
+```ts
+export const buildUrlList = (currentRows: ListUrlRow[]): ListUrlData[] => {
+  const validRows = currentRows.filter(row => {
+    if (row.type === 'vcard') return row.vcard;
+    if (row.type === 'pdf') return true;            // ⬅ NUEVO: se conserva aunque no tenga url aún
+    if (row.type === 'web' || row.type === 'blog') return true;
+    return row.type && row.url;
+  });
+
+  const formattedRows: ListUrlData[] = validRows.map(row => {
+    if (row.type === 'vcard') {
+      return { vcard: row.vcard, typeUrl: 'vcard' };
+    }
+    if (row.type === 'pdf') {
+      return {                                    // ⬅ NUEVO: item PDF sin url (RF-4)
+        itemId: row.itemId,
+        typeUrl: 'pdf',
+        documentUrl: row.documentUrl ?? null,
+      };
+    }
+    return {
+      url: formatUrl(row.url, row.type),
+      typeUrl: socialTypes.find(s => s.id === row.type)?.name || row.type,
+    };
+  });
+  return formattedRows;
+};
+```
+
+**`components/qr/forms/ListUrlRow.tsx`** — render condicional para `pdf` (reemplaza el `Input` de URL por el selector de archivo):
+
+```tsx
+{row.type === 'vcard' && (
+  <Button ... onClick={() => onOpenVCard(index)}>Configurar vCard</Button>
+)}
+{row.type === 'pdf' && (
+  // ⬅ NUEVO: input file + validación cliente (tipo/tamaño ≤2MB) + botón de quitar archivo.
+  // Delegar el estado del archivo/URL al padre (ListUrlForm) vía onUrlChange/onRemoveFile.
+  <input
+    type="file"
+    accept="application/pdf,.pdf"
+    onChange={(e) => onPdfFileSelected?.(index, e.target.files?.[0] ?? null)}
+  />
+)}
+{row.type !== 'vcard' && row.type !== 'pdf' && (
+  <Input ... />
+)}
+```
+
+**`components/qr/forms/ListUrlForm.tsx`**:
+- `handleTypeChange`: al seleccionar `'pdf'`, limpiar `url` y generar `itemId` (UUID v4) si no existe:
+
+```ts
+if (value === 'pdf') {
+  newRows[index].url = '';
+  newRows[index].pdfFile = null;
+  newRows[index].itemId = newRows[index].itemId ?? crypto.randomUUID(); // RF-12
+}
+```
+
+- `useEffect` de sync (`urlList` → rows): **preservar `itemId` y `documentUrl`** (si no, se pierden al cargar el QR en edición — revisión 2026-08-09):
+
+```ts
+useEffect(() => {
+  if (urlList && urlList.length > 0) {
+    setRows(urlList.map((item, index) => ({
+      id: item.itemId ?? `row-${index}`,           // id estable = itemId (RF-12)
+      type: socialTypes.find(s => s.name === item.typeUrl)?.id || item.typeUrl,
+      url: item.url || '',
+      vcard: item.vcard,
+      itemId: item.itemId,                         // ⬅ NUEVO: preservar
+      documentUrl: item.documentUrl ?? null,       // ⬅ NUEVO: preservar
+    })));
+  } else {
+    setRows([{ id: `row-${Date.now()}`, type: '', url: '' }]);
+  }
+}, [urlList]);
+```
+
+- Integrar `<ListPdfUploader />` en la fila `pdf` (o el input file directo si la fila no sube el archivo hasta el submit). Mismo patrón que `ListImageUploader` con `idQr` (undefined en creación → `onFileSelected` guarda el `File` pendiente en `row.pdfFile`).
+
+**`CreateQrForm.state.ts`** — en el submit, tras `createQr(...)` exitoso, iterar los `row.pdfFile` pendientes y llamar `qrService.uploadListPdf(idQr, itemId, file, onProgress)` (paso 2 de la secuencia). Los `itemId` de los items del QR creado deben coincidir con los de las filas (el `urlList` enviado al crear ya los incluye).
+
+#### 4.2.4 Edición de QR — `dashboard/qr/edit/[id]/EditQrForm.tsx` (con `editQrForm.state.ts` + `editQrForm.helpers.ts`)
+
+> [!note] Revisión 2026-08-09
+> La página `dashboard/qr/edit/[id]/page.tsx` es ahora un wrapper: el formulario vive en `EditQrForm.tsx` (split de SPEC-004-B) con estado en `editQrForm.state.ts` y helpers en `editQrForm.helpers.ts`. Los cambios de esta spec van en esos archivos.
+
+- Carga el QR con `qrService.getQrById(id)` (en `editQrForm.state.ts`), obtiene `data.urlList`.
 - Para items con `typeUrl === 'pdf'`, renderiza `<ListPdfUploader idQr={id} itemId={item.itemId} currentPdfUrl={item.documentUrl} onChange=... />`.
-- En submit, envía `PATCH /api/qr?id` → `PATCH /qr/{id}` con `data: { ..., urlList }`. Si un item PDF se eliminó del array → backend borra R2 (RF-15).
+- En submit, envía `PATCH /api/qr?id` → `PATCH /qr/{id}` con `data: { ..., urlList }`. Si un item PDF se eliminó del array o su `documentUrl` cambió → el **controller** borra R2 (RF-15/RF-16, §4.1.6).
+- Recordatorio: `EditQrForm` debe **preservar `itemId`/`documentUrl`** en su estado de rows (mismo requisito que §4.2.3).
 
 #### 4.2.5 Página pública — `components/qr/UrlList.tsx`
 
@@ -843,9 +1073,9 @@ Actualizar el render de items para soportar `typeUrl === 'pdf'`:
         rel="noopener noreferrer"
         className="flex items-center justify-center gap-3 px-6 py-4 rounded-lg
                    text-white font-medium transition-all duration-200
-                   bg-red-600 hover:bg-red-700"
+                   bg-rose-600 hover:bg-rose-700"
       >
-        <Icon name="file-text" className="w-6 h-6" />
+        <Icon name="pdf" className="w-6 h-6" />
         <span>Descargar PDF</span>
       </a>
     );
@@ -860,33 +1090,64 @@ Actualizar el render de items para soportar `typeUrl === 'pdf'`:
 })}
 ```
 
-> [!note] Icono
-> Se asume que el componente `Icon` soporta `name="file-text"` (lucide-react). Si no, agregar el icono al mapa de iconos.
+> [!note] Icono (revisión 2026-08-09)
+> El componente `Icon` de `@/components/icon` usa un **mapa de nombres propios** (`facebook`, `vcard`, `map2`, `web`…), no nombres lucide directos. Hay que agregar la entrada `pdf` al mapa (icono `file-text`/`FileText` de lucide-react). El render de `UrlList` NO usa `socialConst` para el icono: usa `getIconForType(type)` → agregar `case 'pdf': return 'pdf'` y `case 'pdf': return 'bg-rose-600 hover:bg-rose-700'` en `getColorForType` (o incluir el item en el `switch`).
+
+> [!note] Color (revisión 2026-08-09)
+> El borrador original proponía `bg-red-600`. Se cambia a **`bg-rose-600`** porque `bg-red-500 hover:bg-red-600` ya está asignado a `google maps` en `getColorForType` — el rojo genérico confundiría ambos items.
+
+> [!note] Keys deterministas
+> Hoy las keys son `${typeUrl}-${url || vcard?.fn}` con contador `#n` para duplicados. Con `itemId` como primer candidato (`itemKey = item.itemId || ...`) la key es estable y única — el orden de prioridad del borrador es correcto.
 
 > [!note] Sin fallback
 > Si el PDF no carga (404/403/red), el navegador nativo mostrará su mensaje. No se implementa fallback custom.
 
-#### 4.2.6 Tipos compartidos
+#### 4.2.6 Tipos compartidos — `interfaces/qr.ts`
 
-**`interfaces/qr.ts`** (página pública):
+> [!note] Revisión 2026-08-09
+> `interfaces/qr.interface.ts` **ya no existe**: fue fusionado en `interfaces/qr.ts` (fuente única, header del archivo). Los tipos reales del item son **`ListUrlData`** (dashboard/formularios) y **`UrlListItem`** (página pública) — ambos se actualizan:
 
 ```ts
-export interface QrUrlListItem {
-  itemId?: string;            // ⬅ NUEVO
-  vcard?: unknown;
+// Formularios/dashboard — agregar itemId y documentUrl
+export interface ListUrlData {
+  itemId?: string;               // ⬅ NUEVO (RF-12)
   url?: string;
-  documentUrl?: string | null; // ⬅ NUEVO
+  vcard?: VCardData;
+  documentUrl?: string | null;   // ⬅ NUEVO (solo typeUrl === 'pdf')
+  typeUrl: string;
+}
+
+// Página pública del QR — agregar itemId y documentUrl
+export interface UrlListItem {
+  itemId?: string;               // ⬅ NUEVO (RF-12)
+  url?: string;
+  vcard?: VCardData;
+  documentUrl?: string | null;   // ⬅ NUEVO (solo typeUrl === 'pdf')
   typeUrl: string;
 }
 ```
 
-**`interfaces/qr.interface.ts`** (dashboard): tipar los campos nuevos en el tipo `Qr`/`QrResponse` correspondiente.
+> [!warning] Impacto en `buildUrlList` y `detectUrlType`
+> `buildUrlList` (en `ListUrlForm.helpers.ts`) construye `ListUrlData[]` desde las rows: para `pdf` debe emitir `{ itemId, typeUrl: 'pdf', documentUrl }` **sin `url`** (ver §4.2.3). `detectUrlType` no aplica a `pdf` (no es una URL) — el tipo solo se asigna desde el `Select`.
 
 ### 4.3 Constantes
 
-**`qr-app/src/constants/qrTypes.ts`** — agregar `'pdf'` al tipo de enlace si existe un enum/const de tipos.
+**`qr-app/src/constants/social.const.ts`** — agregar la entrada `'pdf'` a `socialConst` (es el array que alimenta el `Select` de `ListUrlRow` vía `socialTypes`):
 
-**`qr-app/src/constants/social.const.ts`** — agregar entrada para 'pdf' con icono `file-text` y color `bg-red-600` (si el sistema de detección de tipos usa este array).
+```ts
+{
+  id: 'pdf',
+  name: 'PDF',
+  icon: Icon({ name: 'pdf' }),  // requiere agregar 'pdf' al mapa de @/components/icon
+  baseUrl: '',
+  pattern: /^$/i,               // no matchea pegado de URLs (el tipo solo se elige en el Select)
+},
+```
+
+> [!note] `constants/qrTypes.ts` NO se modifica (revisión 2026-08-09)
+> `qrTypes.ts` contiene tipos de **QR** (`QR_TYPES`/`QR_TYPE_LABELS`: dynamic, list, vcard…), no de items de lista. El `typeUrl: 'pdf'` de los items vive en `socialConst`/`socialTypes`, no aquí.
+
+**`qr-app/src/components/icon` (mapa de iconos)** — agregar la entrada `'pdf'` (icono `FileText`/`file-text` de lucide-react) para: el `Select` de `ListUrlRow`, el botón ancla de `UrlList.tsx` y el `ListPdfUploader`.
 
 ---
 
@@ -894,11 +1155,18 @@ export interface QrUrlListItem {
 
 ### 5.1 Backend `backend-portaqr/.env`
 
+> [!warning] Revisión 2026-08-09 — las claves R2 NO están configuradas localmente
+> Verificado: `backendPortaqr.env`, `.env` y `.env.example` **no contienen ninguna variable `CLOUDFLARE_R2_*`** (SPEC-002 las usó probablemente solo en Railway/producción). Para que esta spec (y los uploads de SPEC-002) funcionen en el entorno local, **esta spec debe agregarlas también** — no darlas por existentes.
+
 ```env
 # ───────── Cloudflare R2 (compartido con SPEC-002) ─────────
-# Ya configuradas en SPEC-002:
-# CLOUDFLARE_R2_ACCESS_KEY_ID, CLOUDFLARE_R2_SECRET_ACCESS_KEY,
-# CLOUDFLARE_R2_ENDPOINT, CLOUDFLARE_R2_BUCKET_NAME, CLOUDFLARE_R2_PUBLIC_URL
+# ⚠️ SPEC-002 las referenció pero NO las dejó en el .env local — agregar aquí:
+CLOUDFLARE_R2_ACCESS_KEY_ID=tu_access_key
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=tu_secret_key
+CLOUDFLARE_R2_ENDPOINT=https://<accountid>.r2.cloudflarestorage.com
+CLOUDFLARE_R2_BUCKET_NAME=portaqr-assets
+CLOUDFLARE_R2_PUBLIC_URL=https://<custom-domain-o-subdominio>.r2.dev
+CLOUDFLARE_R2_MAX_UPLOAD_SIZE=5242880   # 5 MB (SPEC-002, default)
 
 # ───────── SPEC-005: PDFs ─────────
 # Límite de tamaño del PDF de entrada en bytes (default 2 MB)
@@ -907,7 +1175,7 @@ PDF_MAX_UPLOAD_SIZE=2097152
 MAX_PDF_ITEMS_PER_QR=5
 ```
 
-Actualizar `backend-portaqr/.env.example` con estas claves (valores placeholder).
+Actualizar `backend-portaqr/.env`, `backend-portaqr/backendPortaqr.env` (env_file del compose) y `.env.example` con estas claves (valores placeholder en el example).
 
 ### 5.2 Frontend `qr-app/.env.local`
 
@@ -937,20 +1205,26 @@ MAX_PDF_ITEMS_PER_QR=5
 
 ### 6.1 Dockerfile de `backend-portaqr`
 
-Agregar `ghostscript` al Dockerfile. Si el Dockerfile actual usa una imagen base `node:XX-slim` o `node:XX-alpine`, agregar:
+> [!warning] Revisión 2026-08-09 — Dockerfile real es `node:20-alpine` **multi-stage**
+> El Dockerfile actual tiene **3 etapas**: `builder` (compila), `development` (dev con hot-reload — la que usa docker-compose con `target: development`), `production` (ejecuta `dist/main.js`). **Ghostscript debe instalarse en las etapas `development` y `production`** (las que ejecutan la app; `builder` no lo necesita para compilar).
 
-**Para `node:XX-slim` (Debian-based):**
+**Etapa `development`** (después del `RUN apk add --no-cache python3 make g++` existente):
+
 ```dockerfile
-RUN apt-get update && apt-get install -y --no-install-recommends ghostscript && rm -rf /var/lib/apt/lists/*
+# SPEC-005: Ghostscript para sanitización de PDFs (PdfSanitizerService)
+RUN apk add --no-cache ghostscript
 ```
 
-**Para `node:XX-alpine`:**
+**Etapa `production`** (idéntico):
+
 ```dockerfile
 RUN apk add --no-cache ghostscript
 ```
 
-> [!warning] Verificar Dockerfile actual
-> Revisar `desarrollo-qr/backend-portaqr/Dockerfile` (o el que use docker-compose) para aplicar la capa correcta. La imagen base determina el gestor de paquetes.
+> [!note] Tamaño de imagen
+> `ghostscript` en Alpine agrega ~30-40 MB a la imagen. Aceptado (ADR-005.2, trade-off del borrador).
+>
+> ⚠️ Si en el futuro se cambia la base a `node:XX-slim` (Debian): `RUN apt-get update && apt-get install -y --no-install-recommends ghostscript && rm -rf /var/lib/apt/lists/*`.
 
 ### 6.2 Verificación de instalación
 
@@ -974,24 +1248,27 @@ SPEC-002 ya configuró el bucket `portaqr-assets` y las credenciales. SPEC-005 r
 
 > [!todo] Tareas
 > Registrar como tareas en `docs/tareas/SPEC-005-tareas.json` (formato Taskmaster-compatible). Estimación ~4-5 días.
+>
+> ⚠️ **Revisión 2026-08-09**: el JSON de tareas aún NO existe — es la primera tarea a ejecutar. Estimaciones actualizadas según los refactors de SPEC-004/004-B (paths y archivos reales).
 
 | ID | Tarea | Capa | Estimación |
 | --- | --- | --- | --- |
-| T-005-01 | Instalar `ghostscript` en Dockerfile del backend + verificar `gs --version` | Infra | 0.25d |
+| T-005-00 | Crear `docs/tareas/SPEC-005-tareas.json` + configurar env local: claves `CLOUDFLARE_R2_*` (faltan en `.env`/`backendPortaqr.env`/`.env.example`), `PDF_MAX_UPLOAD_SIZE`, `MAX_PDF_ITEMS_PER_QR`, `NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR` | Infra | 0.25d |
+| T-005-01 | Instalar `ghostscript` en Dockerfile del backend (etapas `development` y `production` — multi-stage `node:20-alpine`) + verificar `gs --version` | Infra | 0.25d |
 | T-005-02 | `PdfSanitizerService` (spawn gs) + tests unitarios (mock spawn) | Backend | 0.5d |
 | T-005-03 | Extender `StorageService.uploadPdf` + `extractKeyFromUrl` para `qr-multilink-pdf/` | Backend | 0.25d |
-| T-005-04 | Schema + DTO + entity: campos `itemId`, `documentUrl` en `urlList[]` + validador de exclusividad por item | Backend | 0.75d |
+| T-005-04 | Schema + DTOs + entity: campos `itemId`, `documentUrl` en `urlList[]` — validador de exclusividad por item **y límite `MAX_PDF_ITEMS_PER_QR` en `case 'list'`** + declarar campos en `ListUrlData` (create-qr.dto) y `UrlListItem` (url-item.dto) — **obligatorio por whitelist de SPEC-008** | Backend | 1d |
 | T-005-05 | Endpoint `POST /qr/list-pdf` (multipart + FileInterceptor + gs + R2) + validación owner/tipo/limite | Backend | 1d |
-| T-005-06 | `UpdateQrUseCase`: borrar R2 al eliminar/reemplazar item PDF + mapper `qr-mongo.mapper.ts` (itemId al vuelo) | Backend | 0.5d |
+| T-005-06 | `PATCH /qr/:id` en controller: borrar R2 al eliminar/reemplazar item PDF (patrón SPEC-002, §4.1.6) + mapper `qr-mongo.mapper.ts` (itemId al vuelo en `toEntity`) | Backend | 0.5d |
 | T-005-07 | API route `/api/qr/list-pdf` (proxy con jose/cookies) + `uploadListPdf` en `qr.service.ts` | Frontend | 0.5d |
-| T-005-08 | `ListPdfUploader.tsx` + integración en `ListUrlForm` (opción 'pdf' en Select) | Frontend | 1d |
-| T-005-09 | Integrar en `edit/[id]/page.tsx` (editar/eliminar PDF) | Frontend | 0.5d |
-| T-005-10 | Render en `UrlList.tsx` (botón ancla rojo para typeUrl === 'pdf') + tipos (`interfaces/qr.ts`, `qr.interface.ts`) | Frontend | 0.25d |
-| T-005-11 | Tests unitarios `PdfSanitizerService` (mock spawn de gs) + `StorageService.uploadPdf` (mock S3 client) | Backend | 0.5d |
+| T-005-08 | `ListPdfUploader.tsx` + integración en el form de lista: `social.const.ts` (entrada pdf), `ListUrlRow.tsx` (input file condicional), `ListUrlForm.helpers.ts` (tipo `ListUrlRow` + `buildUrlList` sin filtrar pdf), `ListUrlForm.tsx` (handleTypeChange + useEffect preservando itemId/documentUrl), mapa de iconos (`pdf`) | Frontend | 1.5d |
+| T-005-09 | Integrar en `EditQrForm.tsx` (+ `editQrForm.state.ts`/`.helpers.ts`) — editar/eliminar PDF; integración de subidas pendientes en `CreateQrForm.state.ts` (creación) | Frontend | 0.75d |
+| T-005-10 | Render en `UrlList.tsx` (botón ancla `bg-rose-600` para `typeUrl === 'pdf'` + `getIconForType`/`getColorForType`) + tipos (`interfaces/qr.ts`: `ListUrlData` y `UrlListItem`) | Frontend | 0.25d |
+| T-005-11 | Tests unitarios `PdfSanitizerService` (mock spawn de gs) + `StorageService.uploadPdf` (mock S3 client) + validador schema (exclusividad + límite) | Backend | 0.5d |
 | T-005-12 | Tests integración endpoint multipart (supertest, sin tocar R2 real ni gs real) | Backend | 0.5d |
-| T-005-13 | Tests unitarios `ListPdfUploader` (mock `uploadListPdf`) + API route proxy | Frontend | 0.5d |
+| T-005-13 | Tests unitarios `ListPdfUploader` (mock `uploadListPdf`) + `buildUrlList` (item pdf no filtrado) + API route proxy | Frontend | 0.5d |
 | T-005-14 | Tests E2E: subir PDF real, verificar sanitización (sin JS, sin metadata) | QA | 0.5d |
-| T-005-15 | Docs Obsidian + este spec polish | Docs | 0.25d |
+| T-005-15 | Docs Obsidian + este spec polish + `docs/tareas/SPEC-005-tareas.json` con status done | Docs | 0.25d |
 
 ---
 
@@ -1015,7 +1292,8 @@ SPEC-002 ya configuró el bucket `portaqr-assets` y las credenciales. SPEC-005 r
   - 413 si el archivo excede 2 MB.
   - 415 si MIME no es `application/pdf`.
   - 422 si gs no puede procesar el PDF (mock que lanza `UnprocessableEntityException`).
-- **`UpdateQrUseCase`**: si se elimina un item PDF del `urlList`, invoca `deleteObject` de su `documentUrl` (mejor esfuerzo); si se reemplaza `documentUrl` para el mismo `itemId`, invoca `deleteObject` del anterior.
+- **Validador del schema (case 'list')**: item `pdf` sin `documentUrl` → inválido; item `pdf` con `url` o `vcard` → inválido; `urlList` con > `MAX_PDF_ITEMS_PER_QR` items pdf → inválido; items legacy (url/vcard) siguen pasando (sin regresión).
+- **Controller `PATCH /qr/:id`**: al eliminar un item PDF del `urlList` invoca `deleteObject` de su `documentUrl` (mejor esfuerzo); al reemplazar `documentUrl` para el mismo `itemId` invoca `deleteObject` del anterior; si `deleteObject` falla no aborta el patch (mock de `StorageService.deleteObject` lanzando).
 
 ### 8.2 Frontend
 
@@ -1025,8 +1303,9 @@ SPEC-002 ya configuró el bucket `portaqr-assets` y las credenciales. SPEC-005 r
   - extensión no PDF → `onError`.
   - botón "Eliminar" → `onChange(null)`.
   - error de red / 413 / 415 / 422 del backend → `onError` y `onChange` no se llama.
+- **`buildUrlList`** (`ListUrlForm.helpers.ts`): una row `{ type: 'pdf', itemId, documentUrl: null }` **no es filtrada** y emite `{ itemId, typeUrl: 'pdf', documentUrl: null }` sin `url`; las rows url/vcard existentes no cambian su salida (regresión).
 - **API route `/api/qr/list-pdf`**: 401 sin cookie válida; reenvía FormData al backend y propaga status/errores.
-- **`UrlList`** renderiza botón ancla rojo solo si `typeUrl === 'pdf'` y `documentUrl` existe; si `documentUrl` no existe, el item no se renderiza.
+- **`UrlList`** renderiza botón ancla `bg-rose-600` solo si `typeUrl === 'pdf'` y `documentUrl` existe; si `documentUrl` no existe, el item no se renderiza; la key usa `itemId` si existe.
 
 ### 8.3 E2E (Playwright, `e2e-tests-portaqr/`)
 
@@ -1043,25 +1322,35 @@ SPEC-002 ya configuró el bucket `portaqr-assets` y las credenciales. SPEC-005 r
 | Ghostscript no instalado en el contenedor | Media | Alto | Dockerfile layer + verificación `gs --version` en healthcheck |
 | Subida de PDFs grandes consume memoria del backend (multipart `memoryStorage`) | Media | Medio | `limits.fileSize: 2MB` + `fileFilter` allowlist |
 | Usuario sube un PDF con `Content-Type` falseado o corrupto | Media | Medio | gs valida el binario real (parsing) → `422`; el MIME falseado no supera el re-renderizado |
-| Objetos R2 huérfanos (item eliminado sin borrar PDF viejo) | Media | Bajo | `UpdateQrUseCase` borra al detectar eliminación + lifecycle rule §6.3 |
+| Objetos R2 huérfanos (item eliminado sin borrar PDF viejo) | Media | Bajo | Controller `PATCH /qr/:id` borra al detectar eliminación (§4.1.6) + lifecycle rule §6.3 |
 | Fallo entre `PutObjectCommand` y el PATCH a Mongo (objeto subido sin URL persistida) | Baja | Bajo | Orden del flujo: primero R2, luego Mongo; si el PATCH falla queda objeto huérfano → lifecycle |
 | Latencia de gs (~1-3s por upload) bloquea el event loop | Media | Medio | gs corre en subprocess (no bloquea el event loop de Node); para alta concurrencia futuro: pool de procesos (§11.4) |
 | Abuso: usuario sube muchos PDFs (hasta el límite) repetidamente | Baja | Medio | `MAX_PDF_ITEMS_PER_QR` (default 5) + rate limit por usuario (futuro §11.5) |
 | `itemId` colisiona entre items (si el frontend genera duplicados) | Baja | Bajo | UUID v4 evita colisiones; el backend valida unicidad al persistir |
 | Items existentes (pre-SPEC-005) sin `itemId` | Alta | Bajo | Mapper genera `itemId` al vuelo (`randomUUID()`) — no requiere migración masiva |
+| **`whitelist:true` de SPEC-008 elimina `itemId`/`documentUrl` en PATCH si no están en los DTOs** (revisión 2026-08-09) | Alta | Alto | Declarar ambos campos en `ListUrlData` (create-qr.dto) y `UrlListItem` (url-item.dto) — §4.1.2; test de integración PATCH con items PDF |
+| **`buildUrlList` filtra items sin `url` → el item PDF no llega al payload al crear** (revisión 2026-08-09) | Alta | Alto | Modificar el filtro y el tipo `ListUrlRow` (§4.2.3) + test unitario de `buildUrlList` |
+| **PATCH directo supera `MAX_PDF_ITEMS_PER_QR` sin validación** (revisión 2026-08-09) | Media | Medio | Validación del límite en el validador del schema `case 'list'` (§4.1.3) + test |
+| **`itemId`/`documentUrl` se pierden en el sync `urlList`→rows del form** (revisión 2026-08-09) | Media | Medio | Preservar campos en el `useEffect` de `ListUrlForm.tsx` (§4.2.3) |
+| **Env local sin claves `CLOUDFLARE_R2_*`** (revisión 2026-08-09) | Alta | Alto | T-005-00: agregar claves a `.env`/`backendPortaqr.env`/`.env.example` (§5.1) |
 
 ---
 
 ## 10. Observabilidad
 
-- **Logs backend** en el endpoint `POST /qr/list-pdf`:
+> [!note] Revisión 2026-08-09 — patrón unificado
+> El patrón real del codebase: **`TraceService`/`TraceLayer` para logs de request-scoped** (controller: `this.traceService.log/warn(tracking, TraceLayer.CONTROLLER, ...)`) y **`Logger` de NestJS para logs de servicios internos** (`PdfSanitizerService`, `StorageService`). Se mantiene ese patrón.
+
+- **Logs request-scoped** (TraceService) en el endpoint `POST /qr/list-pdf` (controller):
   - `INFO`: `pdf_upload_received` con `{ userId, idQr, itemId, originalSize }`.
-  - `INFO`: `pdf_sanitized` con `{ idQr, itemId, inputBytes, outputBytes }` (tras gs).
   - `INFO`: `pdf_uploaded` con `{ idQr, itemId, key, bytes }` (tras PutObjectCommand).
   - `WARN`: `pdf_upload_rejected` con motivo (`not_owner` / `wrong_type` / `bad_mime` / `too_large` / `limit_exceeded` / `sanitize_failed`).
-- **Logs backend** en `UpdateQrUseCase` cuando hace `deleteObject` de un item PDF:
-  - `INFO`: `r2_pdf_deleted` con `{ oldKey, itemId }`.
-  - `ERROR`: si `deleteObject` falla — no abortar el patch; registrar.
+- **Logs request-scoped** en `PATCH /qr/:id` (controller) cuando limpia R2:
+  - `INFO`: `PATCH /qr/:id - pdf item removed` / `- pdf replaced` con `{ qrid, itemId, oldUrl }`.
+  - `ERROR`: si `deleteObject` falla — no abortar el patch; registrar (`StorageService` ya logea `r2_failed_delete`).
+- **Logs de servicios** (Logger):
+  - `PdfSanitizerService`: `INFO` `pdf_sanitized` con `{ idQr, itemId, inputBytes, outputBytes }` (tras gs); `WARN` `gs exited with code ...` / `ERROR` `gs spawn error`.
+  - `StorageService.uploadPdf`: `INFO` `r2_object_put { idQr, itemId, size }` (mismo formato que `uploadImage`).
 - **Métricas** (cuando existan):
   - `qr_list_pdf_uploads_total{userId}`
   - `qr_list_pdf_upload_errors_total{reason}`
@@ -1116,8 +1405,11 @@ Agregar watermark con el `idQr` o logo de portaqr al PDF sanitizado (con `pdftk`
 ## 13. Referencias
 
 - [[SPEC-001-migracion-monolito-modular]] — arquitectura hexagonal de `backend-portaqr/`.
-- [[SPEC-002-qr-multilink-imagen]] — infraestructura R2 + `StorageService` + `ImageProcessorService` (reutilizada).
+- [[SPEC-002-qr-multilink-imagen]] — infraestructura R2 + `StorageService` + `ImageProcessorService` (reutilizada) + patrón de limpieza R2 en controller.
 - [[SPEC-003-auditoria-dependencias-qr-app]] — impacto en auth (cookies httpOnly + jose) y puerto del backend (:3004).
+- [[SPEC-004-react-doctor-qr-app]] — refactor de `CreateQrForm` (`CreateQrForm.state.ts` + `CreateQrForm.helpers.ts`).
+- [[SPEC-004-B-no-giant-component-qr-app]] — split de `ListUrlForm` (`ListUrlRow.tsx` + `ListUrlForm.helpers.ts`) y `EditQrForm` (`editQrForm.state.ts` + `editQrForm.helpers.ts`).
+- [[SPEC-008-hardening-sanitizacion-backend-portaqr]] — `ValidationPipe` con `whitelist:true` + `forbidNonWhitelisted` (obliga a declarar `itemId`/`documentUrl` en DTOs).
 - Cloudflare R2 docs: https://developers.cloudflare.com/r2/
 - AWS SDK v3 client-s3 (PutObject/DeleteObject): https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/s3/
 - Ghostscript docs: https://www.ghostscript.com/documentation/
@@ -1126,8 +1418,23 @@ Agregar watermark con el `idQr` o logo de portaqr al PDF sanitizado (con `pdftk`
 - Mapper QR: `backend-portaqr/src/modules/qr/infrastructure/repository/mongo/mappers/qr-mongo.mapper.ts`
 - StorageService: `backend-portaqr/src/modules/storage/storage.service.ts`
 - ImageProcessorService (patrón a seguir): `backend-portaqr/src/modules/storage/image-processor.service.ts`
-- Controller QR (endpoint list-image patrón): `backend-portaqr/src/modules/qr/presentation/controllers/qr.controller.ts`
+- Controller QR (patrones list-image + limpieza R2 en PATCH): `backend-portaqr/src/modules/qr/presentation/controllers/qr.controller.ts`
+- DTOs: `backend-portaqr/src/modules/qr/application/dto/create-qr.dto.ts` (`ListUrlData`) y `url-item.dto.ts` (`UrlListItem`)
 - API route frontend (patrón): `qr-app/src/app/api/qr/list-image/route.ts`
+- Servicio QR (patrón `uploadListImage`): `qr-app/src/services/qr.service.ts`
 - Componente UrlList: `qr-app/src/components/qr/UrlList.tsx`
-- Componente ListUrlForm: `qr-app/src/components/qr/forms/ListUrlForm.tsx`
+- Form de lista (post SPEC-004-B): `qr-app/src/components/qr/forms/ListUrlForm.tsx` + `ListUrlRow.tsx` + `ListUrlForm.helpers.ts`
+- Constantes de tipos de item: `qr-app/src/constants/social.const.ts`
+- Tipos compartidos: `qr-app/src/interfaces/qr.ts` (`ListUrlData`, `UrlListItem`)
 - Componente ListImageUploader (patrón a seguir): `qr-app/src/components/qr/ListImageUploader.tsx`
+- Edición QR (post SPEC-004-B): `qr-app/src/app/dashboard/qr/edit/[id]/EditQrForm.tsx` (+ `editQrForm.state.ts` + `editQrForm.helpers.ts`)
+- Creación QR (post SPEC-004): `qr-app/src/components/qr/CreateQrForm.tsx` (+ `CreateQrForm.state.ts` + `CreateQrForm.helpers.ts`)
+
+---
+
+## 14. Historial de cambios
+
+| Fecha | Autor | Cambio |
+| :---------- | :----- | :---------- |
+| 2026-08-07 | Equipo | Borrador inicial. Modelo del item PDF en `urlList[]` (`typeUrl: 'pdf'` + `documentUrl`), sanitización con Ghostscript, key R2 `qr-multilink-pdf/{idQr}-{itemId}.pdf`, límites `PDF_MAX_UPLOAD_SIZE` (2 MB) y `MAX_PDF_ITEMS_PER_QR` (5), endpoint `POST /qr/list-pdf`, ADRs 005.1-005.3 |
+| 2026-08-09 | Equipo | **Validación arquitectónica post-desarrollo** (SPEC-004, SPEC-004-B, SPEC-006..011 implementadas; SPEC-005 NO implementada — sin código ni tareas). Actualizaciones: (1) paths/nombres frontend: `ListUrlForm` dividido (`ListUrlRow.tsx` + `ListUrlForm.helpers.ts`), edición en `EditQrForm.tsx`, creación en `CreateQrForm.state.ts`/`.helpers.ts`, tipos en `interfaces/qr.ts` (`ListUrlData` + `UrlListItem`, `qr.interface.ts` eliminado); (2) DTOs: clase real `ListUrlData` (no `QrUrlListItem`) + `UrlListItem` en `url-item.dto.ts`; (3) hueco RF-5/CA-10 cerrado: límite `MAX_PDF_ITEMS_PER_QR` también validado en el validador del schema `case 'list'` (cubre PATCH directo); (4) limpieza R2 de items PDF movida al **controller** `PATCH /qr/:id` (patrón SPEC-002, no `UpdateQrUseCase`); (5) compatibilidad `whitelist:true` de SPEC-008: `itemId`/`documentUrl` declarados en DTOs o serán eliminados; (6) `buildUrlList` modificado para no filtrar items PDF sin `url`; (7) preservación de `itemId`/`documentUrl` en el sync `urlList`→rows; (8) §5.1 corregido: claves `CLOUDFLARE_R2_*` NO existen en el `.env` local (T-005-00 las agrega); (9) §6.1: Dockerfile `node:20-alpine` multi-stage → gs en etapas `development` y `production`; (10) color botón PDF `bg-rose-600` (evita colisión con `google maps` `bg-red-500`); (11) icono `pdf` agregado al mapa de `@/components/icon`; (12) §4.1.7: mapper es pass-through de `data` (solo itemId al vuelo en `toEntity`); (13) plan de tareas T-005-00..15 actualizado (paths reales + estimaciones). Estado: **sigue `borrador`** — pendiente de desarrollo |
