@@ -1,0 +1,94 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-004-B] C-01 SignUpForm (548 lineas): baseline + refactor + validacion",
+            "description": "src/components/SignUpForm/index.tsx (548 lineas, prioridad alta - registro). Capturar baseline B-XX (flujos + UI inputs + payload), refactor a <300 lineas (logica pura a helpers, estado a hooks, subcomponentes), validar tsc/lint/build + navegador + doctor. Recipe SPEC-004-B §4.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-004-b",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-004-B] C-02 ListUrlForm (489 lineas): baseline + refactor + validacion",
+            "description": "src/components/qr/forms/ListUrlForm.tsx (489 lineas, prioridad alta - nucleo QR multilink). CUIDADO: validacion interna propia (localError, rows dinamicas, modal vCard) - ver SPEC-004 §3.4.2 excepcion LIST. Refactor a <300 lineas preservando comportamiento de filas dinamicas.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-004-b",
+            "dependencies": ["1"],
+            "subtasks": []
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-004-B] C-03 QrGrid (461 lineas): baseline + refactor + validacion",
+            "description": "src/components/qr/QrGrid.tsx (461 lineas, prioridad alta - listado principal dashboard). Refactor a <300 lineas: extraer tarjeta de QR, acciones, paginacion a subcomponentes.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-004-b",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-004-B] C-04 admin/qr/activate/send (441 lineas): baseline + refactor + validacion",
+            "description": "src/app/dashboard/admin/qr/activate/send/page.tsx (441 lineas, prioridad media - envio masivo admin). Page.tsx App Router: split en componentes + extraer logica de envio a hook.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-004-b",
+            "dependencies": ["3"],
+            "subtasks": []
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-004-B] C-05 PlanForm (429 lineas): baseline + refactor + validacion",
+            "description": "src/components/PlanForm.tsx (429 lineas, prioridad media - formulario de planes). Refactor a <300 lineas.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-004-b",
+            "dependencies": ["4"],
+            "subtasks": []
+        },
+        {
+            "id": "6",
+            "content": "[SPEC-004-B] C-06 HomePageClient (413 lineas): baseline + refactor + validacion",
+            "description": "src/components/home/HomePageClient.tsx (413 lineas, prioridad media - home del sitio). Refactor a <300 lineas.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-004-b",
+            "dependencies": ["5"],
+            "subtasks": []
+        },
+        {
+            "id": "7",
+            "content": "[SPEC-004-B] C-07 qr/edit/[id] (362 lineas): baseline + refactor + validacion",
+            "description": "src/app/dashboard/qr/edit/[id]/page.tsx (362 lineas, prioridad baja - edicion QR). Patron URL-fuente-de-verdad ya aplicado en otros (SPEC-004 ejecucion 2).",
+            "status": "pending",
+            "priority": "low",
+            "tag": "spec-004-b",
+            "dependencies": ["6"],
+            "subtasks": []
+        },
+        {
+            "id": "8",
+            "content": "[SPEC-004-B] C-08 qr/pay (324 lineas): baseline + refactor + validacion",
+            "description": "src/app/dashboard/qr/pay/page.tsx (324 lineas, prioridad baja - checkout Webpay). Refactor a <300 lineas.",
+            "status": "pending",
+            "priority": "low",
+            "tag": "spec-004-b",
+            "dependencies": ["7"],
+            "subtasks": []
+        },
+        {
+            "id": "9",
+            "content": "[SPEC-004-B] Validacion final y cierre de spec",
+            "description": "npm run doctor con 0 no-giant-component (score ~93-95/100), tsc/lint/build finales, actualizar SPEC-004-B (Ejecucion B-1 en §5, changelog §11) a estado implementado. Commit final.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-004-b",
+            "dependencies": ["8"],
+            "subtasks": []
+        }
+    ]
+}
