@@ -454,6 +454,9 @@ Pasos por componente (por cada C-XX):
 >
 > Issues restantes (3): 2 `prefer-dynamic-import` (falso positivo chart.js), 1 `nextjs-no-img-element` (decisión SPEC-002). **0 issues accionables** (el `prefer-useReducer` de qr/edit se resolvió con `editQrForm.state.ts`, commit `61d97e7`).
 
+> [!success] Validación final E2E (2026-08-09) — no-regresión de los 8 refactors
+> **Suite E2E completa: 38/38 passed** (1.5m, chromium, `desarrollo-qr/e2e-tests-portaqr`). Cubre auth (login/registro), creación de QR (7 tipos), activación Webpay, dashboard cards, edición (URL/activo/texto), SPEC-002 (imagen portada), name/description, página pública, scan stats y smoke. **Evidencia de que los refactors C-01..C-08 no rompieron funcionalidad.** Stack: qr-app :3000 + backend-portaqr :3004 (monolito local, node).
+
 ---
 
 ## 6. Plan de implementación (tareas)
@@ -504,6 +507,7 @@ Pasos por componente (por cada C-XX):
 - Cada componente completado se registra en §4 (baseline + estado) y §11 (changelog).
 - Cada ejecución de `npm run doctor` se registra en §5 con fecha.
 - Estado de la spec se actualiza a `implementado` al cumplir todos los CA (§2.2).
+- **Estado: ✅ IMPLEMENTADA (2026-08-09)** — 8/8 componentes refactorizados, 0 `no-giant-component`, score 88/100, E2E 38/38 verde.
 
 ---
 
@@ -530,4 +534,5 @@ Pasos por componente (por cada C-XX):
 | 2026-08-09 | Equipo | **C-07 qr/edit completado**: refactor 388→175 (editQrForm.helpers + EditQrForm, commit `5f80275`). Fix layout preview (commit `4de2c7a`). Salió de no-giant. Deuda: prefer-useReducer. Ejecución B-7: 87/100, 5 issues (1 giant) |
 | 2026-08-09 | Equipo | **C-08 qr/pay completado + SPEC-004-B IMPLEMENTADA**: refactor 352→226 (pay.helpers + PayCartSummary + PayInvoiceFields, commit `f877d83`). **0 `no-giant-component`** (CA-01 ✅), score 88/100, 4 issues. Bug preexistente documentType/selectedDocumentType documentado (§4.7). Todos los CA cumplidos — status: implementado |
 | 2026-08-09 | Equipo | **Deuda prefer-useReducer RESUELTA** (commit `61d97e7`): qr/edit con `editQrForm.state.ts` (reducer SET_FIELD/SET_INITIAL/RESET), EditQrForm con contrato values+onFieldChange, page.tsx 175→126. **Doctor: 88/100 · 3 issues (0 accionables)** — solo falsos positivos y decisiones |
+| 2026-08-09 | Equipo | **Cierre formal**: validación final E2E **38/38 verde** (1.5m) — no-regresión de los 8 refactors (auth, creación, Webpay, edición, SPEC-002, pública, stats, smoke). Estado final: 88/100 · 3 issues (0 accionables). **SPEC-004-B IMPLEMENTADA** |
 | 2026-08-09 | Equipo | **C-07 qr/edit/[id] completado**: baseline (QR Dinámico prellenado, switch, preview). Refactor 388→175 (editQrForm.helpers + EditQrForm, commit `5f80275`). `extractQrValues`/`buildUpdatedData`/`transformVCardForSubmit` puras. **Salió de no-giant-component** (queda 1: qr/pay). **Deuda menor documentada**: `prefer-useReducer` en page.tsx (15+ useState — patrón ya resuelto en CreateQrForm/SignUpForm, no bloquea CA-01). Ejecución B-7: **87/100, 5 issues** (1 giant + 1 prefer-useReducer + 2 falso + 1 decisión) |

@@ -308,6 +308,9 @@ Detectar problemas de calidad, rendimiento y buenas prácticas en el código Rea
 > - **Falso positivo verificado (2)**: `prefer-dynamic-import` (chart.js, §3.2)
 > - **Decisión (1)**: `nextjs-no-img-element` (UrlList:303, SPEC-002)
 
+> [!success] CIERRE — evolución completa de la deuda (SPEC-004 + [[SPEC-004-B-no-giant-component-qr-app]])
+> La deuda de 8 `no-giant-component` se resolvió íntegramente en la **SPEC-004-B (implementada 2026-08-09)**: los 8 componentes se refactorizaron a <300 líneas y el `prefer-useReducer` expuesto en qr/edit también se resolvió. **Estado final del proyecto: score 88/100 · 3 issues (0 accionables)** — 2 falsos positivos (chart.js) + 1 decisión (img). **Suite E2E 38/38 verde** (1.5m) validando que todos los refactors no rompieron funcionalidad.
+
 ---
 
 ## 4. Diseño Técnico
@@ -394,3 +397,4 @@ _Pendiente — se documentarán decisiones tomadas durante las correcciones._
 | 2026-08-09 | Equipo | §11 Historial de cambios creado (formato SPEC-001). Taskmaster: tareas 3-4 done, T-004-07 documentada como deuda |
 | 2026-08-09 | Equipo | T-004-07 iniciada: rama `feat/spec-004-ca03-refactor-createqrform` creada en qr-app. Baseline funcional `CreateQrForm` documentado (§3.4): B-01 a B-08 (flujos, tipos QR, estados, payload API) + B-09 a B-12 (UI de inputs: no mutado/válido/inválido tras submit, verificado en navegador con submit dispatch) + §3.4.2 matriz de validación UI por tipo (8 subformularios verificados en código; 2 excepciones: LIST y VCARD validan internamente, no usan `error` del padre) |
 | 2026-08-09 | Equipo | **T-004-07 implementado (Ejecución 4, §3.5)**: score 87/100, 11 issues. Nuevos archivos `CreateQrForm.state.ts` (reducer + lazy init previewId) y `CreateQrForm.helpers.ts` (validación/payload/preview puros); `CreateQrForm.tsx` reescrito como orquestador (609 → 249 líneas). Commits: `e43e86e` (doctor script), `2dbd68a` (5.1), `564f76c` (5.2), `8adedc3` (5.3). Baseline post-refactor B-01..B-12 validado en navegador + tsc/lint/build ✅. **CA-03 cumplido — SPEC-004 implementada** |
+| 2026-08-09 | Equipo | **Cierre con SPEC-004-B**: la deuda de 8 `no-giant-component` + `prefer-useReducer` se resolvió en la spec hija (implementada). **Estado final del proyecto: score 88/100 · 3 issues (0 accionables)** — 2 falsos positivos (chart.js) + 1 decisión (img). **Suite E2E 38/38 verde** (1.5m) validando no-regresión de todos los refactors |
