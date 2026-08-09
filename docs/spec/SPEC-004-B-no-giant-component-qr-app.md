@@ -83,7 +83,7 @@ Reducir los 8 componentes gigantes de `qr-app/` (todos >300 líneas) a un tamañ
 | C-01 | `src/components/SignUpForm/index.tsx` | 548 → **276** | Registro de usuarios | 🔴 Alta | ✅ done |
 | C-02 | `src/components/qr/forms/ListUrlForm.tsx` | 489 → **236** | Núcleo QR multilink (producto principal) | 🔴 Alta | ✅ done |
 | C-03 | `src/components/qr/QrGrid.tsx` | 490 → **260** | Listado principal dashboard | 🔴 Alta | ✅ done |
-| C-04 | `src/app/dashboard/admin/qr/activate/send/page.tsx` | 441 | Envío masivo admin | 🟠 Media | pendiente |
+| C-04 | `src/app/dashboard/admin/qr/activate/send/page.tsx` | 475 → **283** | Envío masivo admin | 🟠 Media | ✅ done |
 | C-05 | `src/components/PlanForm.tsx` | 429 | Formulario de planes | 🟠 Media | pendiente |
 | C-06 | `src/components/home/HomePageClient.tsx` | 413 | Home del sitio | 🟠 Media | pendiente |
 | C-07 | `src/app/dashboard/qr/edit/[id]/page.tsx` | 362 | Edición de QR | 🟡 Baja | pendiente |
@@ -220,6 +220,37 @@ Pasos por componente (por cada C-XX):
 - **Orquestador**: header (título + select), búsqueda, grid `map` → `QrCard`, paginación, ConfirmationDialog + ShareModal (externos).
 - **Timing a preservar**: uso de `router.push` relativo, `handleClearSearch` (URL), gating de botones por `isQrActive`/`isAdmin`, `onQrUpdated('a', ...)` tras delete.
 
+### 4.4 Baseline C-04 — `admin/qr/activate/send` (2026-08-09, PRE-refactor)
+
+> [!important] Datos del componente
+> **Archivo:** `src/app/dashboard/admin/qr/activate/send/page.tsx` (475 líneas reales; doctor reporta 441). **Page.tsx de App Router** — sin props. **Flujo de entrada:** admin selecciona QR en `/dashboard/admin/qr/activate` (con `?id=&userIdClient=`) → `CartAdminService.addToCart` → navega a `/send`. **Servicios:** `CartAdminService` (subscribe/clearCart), `QrActivateService.createActivation`. **Helpers externos:** `toDocumentType`, `toDocumentTypeString`, `getDurationInMilliseconds` (`@/lib/format`), `validateRut` (`@/lib/validators`). **Verificado en navegador** (usuario baselinec01 → role admin en Mongo, QR `9fcdc142...` del usuario e2e agregado al carrito).
+
+#### Estados y flujos (verificados en navegador)
+
+| ID | Comportamiento (PRE-refactor) | Evidencia |
+| --- | --- | --- |
+| C04-B-01 | **Carrito vacío**: "Carrito Vacío" + "No hay items en el carrito..." + botón "Volver al Dashboard" (`router.push('/dashboard/qr')`) | código (guard `cartItems.length === 0`) |
+| C04-B-02 | **Resumen de activación**: título "Resumen de Activacion", lista items (QR Code + Duración + precio `toLocaleString('es-CL')`), Total (`calculateSubtotal` — ojo: `calculateTotal` = subtotal, sin tax aplicado en UI) | snapshot `baseline-c04-1-form.png` |
+| C04-B-03 | **Tipo de Documento**: Select 3 opciones (Boleta/Factura/No aplica) → `toDocumentType(value)`; botón "Proceder" disabled sin selección | snapshot dropdown |
+| C04-B-04 | **Campos FACTURA condicionales**: solo con `FACTURA` → RUT + Razón Social + Dirección + Giro (grid md:grid-cols-2), cada uno con error `border-red-500` + `<p class="text-red-500">` | snapshot FACTURA |
+| C04-B-05 | **Validación RUT en vivo** (`validateRut` en onChange): `123` → "DV inválido"; `11111111-1` → sin error | evaluate (errorVisible + rutError) |
+| C04-B-06 | **Mensaje del Administrador**: textarea requerido (gating) | snapshot |
+| C04-B-07 | **Gating botón** "Proceder a la Activación": disabled si `loading` OR sin tipo doc OR mensaje vacío OR (FACTURA y falta algún campo o error) | evaluate (btn disabled → enabled) |
+| C04-B-08 | **handleActivation**: permisos admin (`user.role !== 'admin'` → toast) → `buildQrActivationData` (methodActivation ADMIN, state ADMIN, adminId, price {TotalPrice, TotalTax: 19%, TotalDiscount: 0}, userId del carrito, qrList con `getDurationInMilliseconds`, documentType, invoiceData si FACTURA) → `createActivation` → `isActivation=true` + `activationResult` → **éxito**: check verde "¡Activacion Exitoso!" + ID transacción + fecha + total + lista QR activados + botón "Volver al Dashboard" (`handleReturn` limpia carrito + `router.push('/dashboard/users/${activationResult.userId}/qr')`) | código + snapshots |
+| C04-B-09 | **Errores**: toasts "Error de Permiso", "Error de Sesión", "Error de Validación", "Error en la Activación" | código |
+| C04-B-10 | **Suscripción carrito**: `useEffect` → `CartAdminService.subscribe` con `isMounted` guard (setState post-unmount) + cleanup | código |
+
+> [!note] ⚠️ Datos de prueba
+> `baselinec01` → role **admin** en Mongo (necesario para acceder). QR `9fcdc142-6014-473b-962a-096a004ccb57` (usuario e2e) agregado al carrito admin — **limpiar carrito tras el baseline** (`CartAdminService.clearCart` vía UI o recarga).
+
+#### Estructura interna (para el refactor)
+
+- **Estado (7 useState)**: `cartItems`, `loading`, `descriptionAdministrator`, `activationResult`, `isActivation`, `selectedDocumentType`, `invoiceData` (4 campos), `errors` (4 campos).
+- **Lógica pura extraíble**: `calculateSubtotal`/`calculateTax`/`calculateTotal` (module scope — cálculos de carrito) y `buildQrActivationData(...)` (construcción del payload QrActivate, ~20 líneas del handler).
+- **JSX**: 3 bloques condicionales → **componentes**: `ActivationSuccess` (éxito, ~50 líneas), `CartSummary` (resumen items + total, ~35 líneas), `InvoiceFields` (campos factura condicionales, ~75 líneas). El resto del orquestador: guards (loading/vacío), tipo documento, mensaje admin, botón.
+- **Timing a preservar**: validación en vivo de RUT (onChange), gating del botón, guards de permisos, toasts, `isMounted` en useEffect, console.logs de debug (parte del flujo documentado).
+- **⚠️ Detalle**: hay `setIsActivation(true)` duplicado (líneas 186 y 191) — NO se toca (comportamiento actual). `calculateTotal` no aplica impuesto en UI (pero sí en payload `TotalTax`) — comportamiento actual.
+
 ---
 
 ## 5. Ejecuciones de react-doctor (dinámica)
@@ -242,6 +273,20 @@ Pasos por componente (por cada C-XX):
 > [!warning] Fix de layout post-C-02 (commit `95201c0`, reportado por el usuario)
 > **Problema**: en `md:flex-row`, el wrapper del `Select` (`ui/select.tsx` genera `relative inline-block w-full`) competía con el contenedor del input (ambos `w-full` = 100%) → flexbox repartía el ancho ~50/50 → el input se veía corto (298px de 727 disponibles).
 > **Fix**: `<Select className="w-full md:w-[200px] md:shrink-0">` (wrapper fijo 200px en md, full en móvil) + contenedor del input `flex w-full flex-1 gap-2` (toma el resto en md). Verificado visualmente por el usuario: ✅ correcto.
+
+### 5.5 Ejecución B-4 (2026-08-09, tras C-04)
+
+**Resultado: Score 88/100 — 7 issues** (4 `no-giant-component` + 2 falso positivo + 1 decisión). C-04 activate/send resuelto: **475 → 283 líneas** (`page.tsx`) + `activation.helpers.ts` (60) + `ActivationSuccess.tsx` (60) + `CartSummary.tsx` (45) + `InvoiceFields.tsx` (85).
+
+> [!success] C-04 implementado (commit `5753ef7` en qr-app)
+> - `activation.helpers.ts`: `calculateSubtotal`/`calculateTax`/`calculateTotal` (module scope) + `buildQrActivationData` (payload QrActivate, código idéntico)
+> - `ActivationSuccess.tsx`: pantalla de éxito (check verde, detalles transacción, QR activados). **Fix `no-locale-format-in-render`**: precio con `Intl.NumberFormat('es-CL')` module-scope + fecha con `formatDate` (utils/date, patrón SPEC-004)
+> - `CartSummary.tsx`: resumen items + total · `InvoiceFields.tsx`: campos FACTURA condicionales con errores en vivo
+> - `page.tsx`: orquestador (guards, estado, handleActivation con toasts, tipo doc, mensaje, botón gating intactos)
+> - **Código muerto eliminado**: `toDocumentTypeString` (lib/format.ts — nadie lo usaba, doctor lo marcó unused-export)
+> - **Fix layout reportado por el usuario**: "Mensaje del Administrador" quedó fuera del contenedor `p-6 border-t` (perdió padding lateral) → restaurado dentro (textarea 720px en vez de 768px). Verificado ✅
+> - **Validado**: tsc ✅ · lint ✅ · build ✅ (58/58) · navegador ✅ (C04-B-01..B-10: resumen, tipo doc, FACTURA condicional, RUT en vivo "DV inválido", gating botón, carrito con item)
+> - ⚠️ Datos de prueba: `baselinec01` → role admin; QR `9fcdc142...` (usuario e2e) en carrito admin — **limpiar carrito tras baseline**
 
 ### 5.4 Ejecución B-3 (2026-08-09, tras C-03)
 
@@ -280,7 +325,7 @@ Pasos por componente (por cada C-XX):
 | T-004B-01 | **C-01 SignUpForm** (548→276): baseline + refactor + validación | ✅ done (commit `31b8022`) |
 | T-004B-02 | **C-02 ListUrlForm** (489→236): baseline + refactor + validación | ✅ done (commits `f2b34ed` + `ad47714`) |
 | T-004B-03 | **C-03 QrGrid** (490→260): baseline + refactor + validación | ✅ done (commit `17c7fca`) |
-| T-004B-04 | **C-04 activate/send** (441): baseline + refactor + validación | pendiente |
+| T-004B-04 | **C-04 activate/send** (475→283): baseline + refactor + validación | ✅ done (commit `5753ef7`) |
 | T-004B-05 | **C-05 PlanForm** (429): baseline + refactor + validación | pendiente |
 | T-004B-06 | **C-06 HomePageClient** (413): baseline + refactor + validación | pendiente |
 | T-004B-07 | **C-07 qr/edit/[id]** (362): baseline + refactor + validación | pendiente |
@@ -338,3 +383,4 @@ Pasos por componente (por cada C-XX):
 | 2026-08-09 | Equipo | **C-02 ListUrlForm completado**: baseline §4.2 (C02-B-01..B-10). **Bug reportado por el usuario corregido**: `https://` autopopulado ya no habilita el botón (`hasUsableUrlContent`, commit `f2b34ed`). Refactor 489→236 líneas (helpers + ListUrlRow, commit `ad47714`). Código muerto `ensureUrlFormat` eliminado. Ejecución B-2: 87/100, 9 issues (6 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **Fix layout C-02** (commit `95201c0`): wrapper del Select con `w-full` competía con el input en `md:flex-row` → ancho partido ~50/50. Fix: `Select className="w-full md:w-[200px] md:shrink-0"` + input `flex-1`. Verificado por el usuario ✅ |
 | 2026-08-09 | Equipo | **C-03 QrGrid completado**: baseline §4.3 (C03-B-01..B-10). Refactor 490→260 líneas (QrCard.tsx + QrGrid.helpers.ts, commit `17c7fca`). `getQrTooltipContent` nueva (ternario del tooltip pet/list a función pura). Ejecución B-3: 87/100, 8 issues (5 giants). Validado tsc/lint/build/navegador |
+| 2026-08-09 | Equipo | **C-04 activate/send completado**: baseline §4.4 (C04-B-01..B-10). Refactor 475→283 (activation.helpers + ActivationSuccess + CartSummary + InvoiceFields, commit `5753ef7`). **Fix layout reportado por usuario**: mensaje admin fuera del contenedor p-6 → restaurado. **Código muerto**: `toDocumentTypeString` eliminado. **Fix locale-format**: priceFormatter module-scope + formatDate. Ejecución B-4: **88/100, 7 issues** (4 giants). Validado tsc/lint/build/navegador |

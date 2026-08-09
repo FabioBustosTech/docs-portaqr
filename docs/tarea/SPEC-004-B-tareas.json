@@ -46,7 +46,7 @@
                       "id":  "4",
                       "content":  "[SPEC-004-B] C-04 admin/qr/activate/send (441 lineas): baseline + refactor + validacion",
                       "description":  "src/app/dashboard/admin/qr/activate/send/page.tsx (441 lineas, prioridad media - envio masivo admin). Page.tsx App Router: split en componentes + extraer logica de envio a hook.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "medium",
                       "tag":  "spec-004-b",
                       "dependencies":  [
