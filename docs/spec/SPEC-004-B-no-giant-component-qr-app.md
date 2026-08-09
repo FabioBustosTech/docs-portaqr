@@ -86,7 +86,7 @@ Reducir los 8 componentes gigantes de `qr-app/` (todos >300 líneas) a un tamañ
 | C-04 | `src/app/dashboard/admin/qr/activate/send/page.tsx` | 475 → **283** | Envío masivo admin | 🟠 Media | ✅ done |
 | C-05 | `src/components/PlanForm.tsx` | 470 → **239** | Formulario de planes | 🟠 Media | ✅ done |
 | C-06 | `src/components/home/HomePageClient.tsx` | 429 → **25** | Home del sitio | 🟠 Media | ✅ done |
-| C-07 | `src/app/dashboard/qr/edit/[id]/page.tsx` | 362 | Edición de QR | 🟡 Baja | pendiente |
+| C-07 | `src/app/dashboard/qr/edit/[id]/page.tsx` | 388 → **175** | Edición de QR | 🟡 Baja | ✅ done |
 | C-08 | `src/app/dashboard/qr/pay/page.tsx` | 324 | Checkout Webpay | 🟡 Baja | pendiente |
 
 > [!warning] Notas por componente
@@ -410,7 +410,7 @@ Pasos por componente (por cada C-XX):
 | T-004B-04 | **C-04 activate/send** (475→283): baseline + refactor + validación | ✅ done (commit `5753ef7`) |
 | T-004B-05 | **C-05 PlanForm** (470→239): baseline + refactor + validación | ✅ done (commit `71a2796`) |
 | T-004B-06 | **C-06 HomePageClient** (429→25): baseline + refactor + validación | ✅ done (commit `1cfe835`) |
-| T-004B-07 | **C-07 qr/edit/[id]** (362): baseline + refactor + validación | pendiente |
+| T-004B-07 | **C-07 qr/edit/[id]** (388→175): baseline + refactor + validación | ✅ done (commit `5f80275`) |
 | T-004B-08 | **C-08 qr/pay** (324): baseline + refactor + validación | pendiente |
 | T-004B-09 | Validación final: doctor (0 no-giant-component) + cierre de spec | pendiente |
 
@@ -468,3 +468,4 @@ Pasos por componente (por cada C-XX):
 | 2026-08-09 | Equipo | **C-04 activate/send completado**: baseline §4.4 (C04-B-01..B-10). Refactor 475→283 (activation.helpers + ActivationSuccess + CartSummary + InvoiceFields, commit `5753ef7`). **Fix layout reportado por usuario**: mensaje admin fuera del contenedor p-6 → restaurado. **Código muerto**: `toDocumentTypeString` eliminado. **Fix locale-format**: priceFormatter module-scope + formatDate. Ejecución B-4: **88/100, 7 issues** (4 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **C-05 PlanForm completado**: baseline §4.5 (C05-B-01..B-09). Refactor 470→239 (PlanForm.helpers + PlanDetailsList + PlanFormFields, commit `71a2796`). `validateFormData`/`buildSubmitData` puras nuevas. Ejecución B-5: **88/100, 6 issues** (3 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **C-06 HomePageClient completado**: baseline §4.6 (C06-B-01..B-07). Refactor 429→25 (HomeHero + HomeStaticSections + HomeQrGenerator + HomeFeaturesStats, commit `1cfe835`). Estado del generador encapsulado. Ejecución B-6: **88/100, 5 issues** (2 giants). Validado tsc/lint/build/navegador |
+| 2026-08-09 | Equipo | **C-07 qr/edit/[id] completado**: baseline (QR Dinámico prellenado, switch, preview). Refactor 388→175 (editQrForm.helpers + EditQrForm, commit `5f80275`). `extractQrValues`/`buildUpdatedData`/`transformVCardForSubmit` puras. **Salió de no-giant-component** (queda 1: qr/pay). **Deuda menor documentada**: `prefer-useReducer` en page.tsx (15+ useState — patrón ya resuelto en CreateQrForm/SignUpForm, no bloquea CA-01). Ejecución B-7: **87/100, 5 issues** (1 giant + 1 prefer-useReducer + 2 falso + 1 decisión) |

@@ -88,7 +88,7 @@
                       "id":  "7",
                       "content":  "[SPEC-004-B] C-07 qr/edit/[id] (362 lineas): baseline + refactor + validacion",
                       "description":  "src/app/dashboard/qr/edit/[id]/page.tsx (362 lineas, prioridad baja - edicion QR). Patron URL-fuente-de-verdad ya aplicado en otros (SPEC-004 ejecucion 2).",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "low",
                       "tag":  "spec-004-b",
                       "dependencies":  [
