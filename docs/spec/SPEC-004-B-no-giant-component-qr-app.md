@@ -208,6 +208,10 @@ Pasos por componente (por cada C-XX):
 > - **Validado**: tsc ✅ · lint ✅ · build ✅ (58/58) · navegador ✅ (C02-B-01..B-06: render, dropdown 40 tipos, autopopulado + botón disabled con https://, dominio → enabled, agregar fila)
 > - ⚠️ Datos de prueba: QR tipo LIST `ejemplo-baseline-c02.cl` creado durante validación; usuario `baselinec01` con email verificado en Mongo (necesario para loguear)
 
+> [!warning] Fix de layout post-C-02 (commit `95201c0`, reportado por el usuario)
+> **Problema**: en `md:flex-row`, el wrapper del `Select` (`ui/select.tsx` genera `relative inline-block w-full`) competía con el contenedor del input (ambos `w-full` = 100%) → flexbox repartía el ancho ~50/50 → el input se veía corto (298px de 727 disponibles).
+> **Fix**: `<Select className="w-full md:w-[200px] md:shrink-0">` (wrapper fijo 200px en md, full en móvil) + contenedor del input `flex w-full flex-1 gap-2` (toma el resto en md). Verificado visualmente por el usuario: ✅ correcto.
+
 ### 5.2 Ejecución B-1 (2026-08-09, tras C-01)
 
 **Resultado: Score 87/100 — 10 issues** (7 `no-giant-component` + 2 falso positivo + 1 decisión). C-01 SignUpForm resuelto: **582 → 276 líneas** (`index.tsx`) + `SignUpFormField.tsx` (77) + `SignUpFormContext.ts` + `state.ts` + `helpers.ts`.
@@ -292,3 +296,4 @@ _(Se agregará Ejecución B-1 al final, con score objetivo ~93-95/100.)_
 | 2026-08-09 | Equipo | Borrador inicial: inventario de 8 componentes (deuda SPEC-004 §3.5.1), metodología recipe T-004-07, RF/CA, tareas T-004B-01..09, Ejecución B-0 (87/100). Rama `feat/spec-004-ca03-refactor-createqrform` |
 | 2026-08-09 | Equipo | **C-01 SignUpForm completado**: baseline §4.1 (C01-B-01..B-07 con UI de inputs y timing onBlur/onChange), refactor 582→276 líneas (state.ts + helpers.ts + FormField + contexto separado). Ejecución B-1: 87/100, 10 issues (7 giants). Commit `31b8022` qr-app. Validado tsc/lint/build/navegador + 2 reglas doctor nuevas resueltas sin regresión |
 | 2026-08-09 | Equipo | **C-02 ListUrlForm completado**: baseline §4.2 (C02-B-01..B-10). **Bug reportado por el usuario corregido**: `https://` autopopulado ya no habilita el botón (`hasUsableUrlContent`, commit `f2b34ed`). Refactor 489→236 líneas (helpers + ListUrlRow, commit `ad47714`). Código muerto `ensureUrlFormat` eliminado. Ejecución B-2: 87/100, 9 issues (6 giants). Validado tsc/lint/build/navegador |
+| 2026-08-09 | Equipo | **Fix layout C-02** (commit `95201c0`): wrapper del Select con `w-full` competía con el input en `md:flex-row` → ancho partido ~50/50. Fix: `Select className="w-full md:w-[200px] md:shrink-0"` + input `flex-1`. Verificado por el usuario ✅ |
