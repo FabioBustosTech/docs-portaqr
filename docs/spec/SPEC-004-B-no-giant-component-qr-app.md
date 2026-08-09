@@ -8,7 +8,7 @@ tags:
   - calidad
   - refactor
   - no-giant-component
-status: borrador
+status: implementado
 aliases:
   - SPEC-004-B
   - refactor componentes gigantes
@@ -87,7 +87,7 @@ Reducir los 8 componentes gigantes de `qr-app/` (todos >300 líneas) a un tamañ
 | C-05 | `src/components/PlanForm.tsx` | 470 → **239** | Formulario de planes | 🟠 Media | ✅ done |
 | C-06 | `src/components/home/HomePageClient.tsx` | 429 → **25** | Home del sitio | 🟠 Media | ✅ done |
 | C-07 | `src/app/dashboard/qr/edit/[id]/page.tsx` | 388 → **175** | Edición de QR | 🟡 Baja | ✅ done |
-| C-08 | `src/app/dashboard/qr/pay/page.tsx` | 324 | Checkout Webpay | 🟡 Baja | pendiente |
+| C-08 | `src/app/dashboard/qr/pay/page.tsx` | 352 → **226** | Checkout Webpay | 🟡 Baja | ✅ done |
 
 > [!warning] Notas por componente
 > - **C-02 ListUrlForm**: validación interna propia (`localError`, rows, modal vCard) — ver SPEC-004 §3.4.2 (excepción LIST). Cuidado: es el componente con más lógica local de filas dinámicas.
@@ -308,6 +308,32 @@ Pasos por componente (por cada C-XX):
 - **JSX**: 6 secciones → **subcomponentes**: `HomeHero` (logo con theme + CTA con router), `HomeStaticSections` (Possibilities + HowToStart), `HomeQrGenerator` (form + preview), `HomeFeaturesStats` (Features + Stats).
 - **Orquestador**: `Header` + secciones + `Footer` (~25 líneas). `useThemeState` se mueve a HomeHero (único consumidor del logo).
 
+### 4.7 Baseline C-08 — `qr/pay` (2026-08-09, PRE-refactor)
+
+> [!important] Datos del componente
+> **Archivo:** `src/app/dashboard/qr/pay/page.tsx` (352 líneas reales; doctor reporta 324). **Checkout Webpay** — sin props. **Servicios:** `CartService.getCart`, `WebpayService.createTransaction`, `QrActivateService.createActivation`. **Verificado en navegador** (item `pay-baseline-c08` $35.000 inyectado vía `/api/cart`).
+
+#### Estados y flujos (verificados en navegador)
+
+| ID | Comportamiento (PRE-refactor) | Evidencia |
+| --- | --- | --- |
+| C08-B-01 | **Resumen de Compra**: items (QR Code + Duración + precio `toLocaleString('es-CL')`) + Total (`calculateTotal` = subtotal) | snapshot |
+| C08-B-02 | **Tipo de Documento ***: CustomSelect con **solo 2 opciones** (Boleta/Factura — sin "No aplica"); borde verde/rojo según touched; "Este campo es requerido" si touched sin selección | snapshot dropdown |
+| C08-B-03 | ⚠️ **BUG preexistente documentado**: `documentType` (useState default BOLETA, NUNCA se actualiza) vs `selectedDocumentType` (lo que setea el select). Los campos FACTURA (gated por `documentType === FACTURA`) **NUNCA se muestran**; `validateInvoiceData` (mismo gating) **siempre pasa** → el botón se habilita con solo seleccionar tipo, sin validar factura | snapshot: Factura seleccionado → sin campos + botón enabled |
+| C08-B-04 | **Botón "Proceder al Pago"**: disabled si `loading || !selectedDocumentType || errors > 0`; clases `bg-gray-400`/`bg-accent-500` según estado | snapshot (disabled → enabled) |
+| C08-B-05 | **handlePayment**: valida sesión (toast "Debes iniciar sesión...") → `validateInvoiceData` → `WebpayService.createTransaction({buyOrder: Date.now(), sessionId: user.id, amount})` → build QrActivate (WEBPAY/PENDING, WebpayTransaction INITIAL, qrList con `getDurationInMilliseconds`, invoiceData si FACTURA — con el bug, nunca) → `createActivation` → **redirect** `window.location.href = ${url}?token_ws=${token}` | código |
+| C08-B-06 | **Carrito vacío**: "Carrito Vacío" + Volver al Dashboard; **loading**: spinner | código |
+| C08-B-07 | **Fetch**: `CartService.getCart` en useEffect con `isMounted` guard + toast error | código |
+
+> [!note] ⚠️ Datos de prueba
+> Item `pay-baseline-c08` ($35.000, 1 año) agregado al carrito vía POST `/api/cart` — **limpiar carrito tras baseline** (borrar del API o usar UI).
+
+#### Estructura interna (para el refactor)
+
+- **Lógica pura extraíble**: `calculateSubtotal`/`calculateTax`/`calculateTotal` (duplicadas de activate/send — C-04), `validateInvoiceData` → pura `{errors, isValid}`, `buildWebpayActivation(...)` (payload QrActivate WEBPAY, ~25 líneas).
+- **JSX**: resumen items + total (~45 líneas) → `PayCartSummary` (o reutilizar patrón); campos FACTURA (~60 líneas) → `PayInvoiceFields`; orquestador con guards.
+- **Timing a preservar**: gating del botón, `isMounted` del useEffect, redirect a Webpay, **el bug documentType/selectedDocumentType se mantiene tal cual** (no se corrige en este refactor — solo extracción).
+
 ---
 
 ## 5. Ejecuciones de react-doctor (dinámica)
@@ -395,6 +421,36 @@ Pasos por componente (por cada C-XX):
 > - **Validado**: tsc ✅ · lint ✅ · build ✅ (58/58) · navegador ✅ (C06-B-01..B-07: hero, AnimatedLinkList, 5 pasos, generador con botón disabled → habilitado, features, stats)
 > - ⚠️ Datos de prueba: 1 QR gratuito generado (`baseline-c06@test.cl` / `https://home-baseline-c06.cl`)
 
+### 5.8 Ejecución B-7 (2026-08-09, tras C-07)
+
+**Resultado: Score 87/100 — 5 issues** (1 `no-giant-component` + 1 `prefer-useReducer` deuda + 2 falso positivo + 1 decisión). C-07 qr/edit resuelto: **388 → 175 líneas** (`page.tsx`) + `editQrForm.helpers.ts` (130) + `EditQrForm.tsx` (110). **Salió de no-giant-component**. Fix layout preview (`bg-white` → transparente, commit `4de2c7a`). Deuda documentada: `prefer-useReducer` en page.tsx (15+ useState — patrón ya resuelto en CreateQrForm/SignUpForm, no bloquea CA-01).
+
+### 5.9 Ejecución B-8 (2026-08-09, tras C-08) — ESTADO FINAL
+
+**Resultado: Score 88/100 — 4 issues · ✅ 0 `no-giant-component`** (CA-01 CUMPLIDO)
+
+> [!success] C-08 implementado (commit `f877d83`) — **SPEC-004-B COMPLETA**
+> - `pay.helpers.ts`: `calculateSubtotal`/`calculateTax`/`calculateTotal` + `validateInvoiceData` pura + `buildWebpayActivation` (payload QrActivate WEBPAY/PENDING)
+> - `PayCartSummary.tsx`: resumen de compra + total · `PayInvoiceFields.tsx`: campos FACTURA (gated por documentType — **bug preexistente documentado en §4.7 C08-B-03, NO corregido**)
+> - `page.tsx`: orquestador 226 líneas (guards, fetch isMounted, handlePayment con redirect Webpay intactos)
+> - **Validado**: tsc ✅ · lint ✅ · build ✅ (58/58) · navegador ✅ (C08-B-01..B-07: resumen, tipo doc, botón disabled → enabled, bug FACTURA preservado)
+> - ⚠️ Datos de prueba: item `pay-baseline-c08` en carrito (`/api/cart`) — limpiar
+
+> [!success] Estado final de la spec (8/8 componentes)
+> | C | Componente | Antes → Después |
+> | --- | --- | --- |
+> | C-01 | SignUpForm | 548 → 276 |
+> | C-02 | ListUrlForm | 489 → 236 |
+> | C-03 | QrGrid | 490 → 260 |
+> | C-04 | activate/send | 475 → 283 |
+> | C-05 | PlanForm | 470 → 239 |
+> | C-06 | HomePageClient | 429 → 25 |
+> | C-07 | qr/edit/[id] | 388 → 175 |
+> | C-08 | qr/pay | 352 → 226 |
+> **Score: 87/100 (11 issues) → 88/100 (4 issues) · 8 `no-giant-component` → 0**
+>
+> Issues restantes (4): 1 `prefer-useReducer` (qr/edit — deuda documentada), 2 `prefer-dynamic-import` (falso positivo chart.js), 1 `nextjs-no-img-element` (decisión SPEC-002).
+
 ---
 
 ## 6. Plan de implementación (tareas)
@@ -411,8 +467,8 @@ Pasos por componente (por cada C-XX):
 | T-004B-05 | **C-05 PlanForm** (470→239): baseline + refactor + validación | ✅ done (commit `71a2796`) |
 | T-004B-06 | **C-06 HomePageClient** (429→25): baseline + refactor + validación | ✅ done (commit `1cfe835`) |
 | T-004B-07 | **C-07 qr/edit/[id]** (388→175): baseline + refactor + validación | ✅ done (commit `5f80275`) |
-| T-004B-08 | **C-08 qr/pay** (324): baseline + refactor + validación | pendiente |
-| T-004B-09 | Validación final: doctor (0 no-giant-component) + cierre de spec | pendiente |
+| T-004B-08 | **C-08 qr/pay** (352→226): baseline + refactor + validación | ✅ done (commit `f877d83`) |
+| T-004B-09 | Validación final: doctor (0 no-giant-component) + cierre de spec | ✅ done — **0 `no-giant-component`**, score 88/100, 4 issues (1 deuda + 2 falso + 1 decisión) |
 
 > [!note] Orden de ejecución sugerido
 > Por prioridad: C-01 → C-02 → C-03 → C-04 → C-05 → C-06 → C-07 → C-08. Los de prioridad 🔴 Alta primero (mayor impacto en mantenibilidad). Alternativa: de menor a mayor líneas (quick wins primero: C-08 → C-07 → C-06...) si se quiere feedback rápido.
@@ -468,4 +524,6 @@ Pasos por componente (por cada C-XX):
 | 2026-08-09 | Equipo | **C-04 activate/send completado**: baseline §4.4 (C04-B-01..B-10). Refactor 475→283 (activation.helpers + ActivationSuccess + CartSummary + InvoiceFields, commit `5753ef7`). **Fix layout reportado por usuario**: mensaje admin fuera del contenedor p-6 → restaurado. **Código muerto**: `toDocumentTypeString` eliminado. **Fix locale-format**: priceFormatter module-scope + formatDate. Ejecución B-4: **88/100, 7 issues** (4 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **C-05 PlanForm completado**: baseline §4.5 (C05-B-01..B-09). Refactor 470→239 (PlanForm.helpers + PlanDetailsList + PlanFormFields, commit `71a2796`). `validateFormData`/`buildSubmitData` puras nuevas. Ejecución B-5: **88/100, 6 issues** (3 giants). Validado tsc/lint/build/navegador |
 | 2026-08-09 | Equipo | **C-06 HomePageClient completado**: baseline §4.6 (C06-B-01..B-07). Refactor 429→25 (HomeHero + HomeStaticSections + HomeQrGenerator + HomeFeaturesStats, commit `1cfe835`). Estado del generador encapsulado. Ejecución B-6: **88/100, 5 issues** (2 giants). Validado tsc/lint/build/navegador |
+| 2026-08-09 | Equipo | **C-07 qr/edit completado**: refactor 388→175 (editQrForm.helpers + EditQrForm, commit `5f80275`). Fix layout preview (commit `4de2c7a`). Salió de no-giant. Deuda: prefer-useReducer. Ejecución B-7: 87/100, 5 issues (1 giant) |
+| 2026-08-09 | Equipo | **C-08 qr/pay completado + SPEC-004-B IMPLEMENTADA**: refactor 352→226 (pay.helpers + PayCartSummary + PayInvoiceFields, commit `f877d83`). **0 `no-giant-component`** (CA-01 ✅), score 88/100, 4 issues. Bug preexistente documentType/selectedDocumentType documentado (§4.7). Todos los CA cumplidos — status: implementado |
 | 2026-08-09 | Equipo | **C-07 qr/edit/[id] completado**: baseline (QR Dinámico prellenado, switch, preview). Refactor 388→175 (editQrForm.helpers + EditQrForm, commit `5f80275`). `extractQrValues`/`buildUpdatedData`/`transformVCardForSubmit` puras. **Salió de no-giant-component** (queda 1: qr/pay). **Deuda menor documentada**: `prefer-useReducer` en page.tsx (15+ useState — patrón ya resuelto en CreateQrForm/SignUpForm, no bloquea CA-01). Ejecución B-7: **87/100, 5 issues** (1 giant + 1 prefer-useReducer + 2 falso + 1 decisión) |

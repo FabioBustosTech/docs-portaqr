@@ -102,7 +102,7 @@
                       "id":  "8",
                       "content":  "[SPEC-004-B] C-08 qr/pay (324 lineas): baseline + refactor + validacion",
                       "description":  "src/app/dashboard/qr/pay/page.tsx (324 lineas, prioridad baja - checkout Webpay). Refactor a \u003c300 lineas.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "low",
                       "tag":  "spec-004-b",
                       "dependencies":  [
@@ -116,7 +116,7 @@
                       "id":  "9",
                       "content":  "[SPEC-004-B] Validacion final y cierre de spec",
                       "description":  "npm run doctor con 0 no-giant-component (score ~93-95/100), tsc/lint/build finales, actualizar SPEC-004-B (Ejecucion B-1 en Â§5, changelog Â§11) a estado implementado. Commit final.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "medium",
                       "tag":  "spec-004-b",
                       "dependencies":  [
