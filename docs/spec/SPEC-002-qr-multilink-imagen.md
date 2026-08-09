@@ -11,7 +11,7 @@ tags:
   - cloudflare
   - r2
   - storage
-status: borrador
+status: implementado
 aliases:
   - SPEC-002
   - Imagen QR Multilink
@@ -24,7 +24,7 @@ aliases:
 > Agregar un campo **`listImageUrl`** a `QrData` (exclusivo del `typeQr: 'list'`) que almacena la **URL pública** de una imagen de portada/logo. El navegador sube el archivo al backend (**multipart/form-data**); el backend lo **sanitiza y re-encodea a WebP** con `sharp` (sin EXIF, sin scripts embebidos, redimensionado a máx. 512×512px) y lo sube a **Cloudflare R2**. Solo la URL pública final se persiste en MongoDB. La imagen se muestra únicamente en la página pública **`portaqr.cl/qr/{idQr}`** (componente `UrlList`) por encima del `name`. **No hay miniatura en el dashboard** (decisión 2026-08-07).
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado
 > - **Fecha:** 2026-08-07
 > - **Autor:** Equipo Plataforma QR
 > - **Componentes afectados:** `backend-portaqr/` (puerto 3004 en docker-compose; el `.env.example` declara 3001), `qr-app/` (puerto 3000)

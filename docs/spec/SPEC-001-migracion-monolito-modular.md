@@ -9,7 +9,7 @@ tags:
   - migracion
   - monolito-modular
   - ddd
-status: borrador
+status: implementado
 aliases:
   - SPEC-001
   - Migración Monolito Modular
@@ -22,7 +22,7 @@ aliases:
 > Crear un **nuevo componente `backend-portaqr/`** que unifica `bff-service` + `user-service` + `qr-service` en un solo proceso NestJS modular. La unificación deja el código listo para una siguiente fase de refactor hacia **DDD + arquitectura hexagonal** (no incluida en este spec).
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado
 > - **Fecha:** 2026-08-06
 > - **Autor:** Equipo Plataforma QR
 > - **Componente destino:** `backend-portaqr/` (puerto 3001)
@@ -776,6 +776,7 @@ Si tras PR-11 el mono falla en producción:
 | :---------- | :----- | :---------- |
 | 2026-08-06 | Equipo | Borrador inicial |
 | 2026-08-06 | Equipo | Reescritura: estrategia "nuevo componente `backend-portaqr/`", inventario exacto por archivo, matriz de fusión por módulo, roadmap DDD/hexagonal post-spec, CA-10 y RF-09 añadidos, `/auth/profile` expuesta, §8.1 merge package.json, §8.2 .env consolidado, §10 testing detallado, §11.3 rollback |
+| 2026-08-09 | Equipo | Spec marcada como implementada (migración a `backend-portaqr/` completada) |
 
 ---
 

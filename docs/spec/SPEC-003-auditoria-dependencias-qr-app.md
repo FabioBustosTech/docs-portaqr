@@ -29,7 +29,7 @@ aliases:
 > - **Pendiente menor**: login real con credenciales (backend corriendo en :3004), flujo de refresh automático con `POST /auth/refresh` (cookie ya se guarda), 2 errores de lint preexistentes en `eliminacion-de-datos/page.tsx`.
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado
 > - **Fecha:** 2026-08-07
 > - **Autor:** Equipo Plataforma QR
 > - **Componente afectado:** `desarrollo-qr/qr-app/` (puerto 3000)
