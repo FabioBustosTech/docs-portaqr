@@ -22,7 +22,7 @@ Ubicación de documentación: `docs/` (vault Obsidian del proyecto)
 
 Subcarpetas principales:
 - `docs/spec/` — especificaciones técnicas SPEC-XXX
-- `docs/tarea/` — notas de tareas
+- `docs/tareas/` — archivos JSON de tareas (uno por SPEC)
 - `docs/backup-db/` — backups de base de datos (no documentar)
 
 Cuando documentes:

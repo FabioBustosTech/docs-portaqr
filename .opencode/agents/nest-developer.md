@@ -36,7 +36,7 @@ Cuando trabajes en el backend:
 7. **Tests**: Genera tests unitarios para todo el código desarrollado
 8. **Salvaguardas**: Nunca uses `--no-verify` o `-n` para saltarte los hooks de Husky
 9. **Documentación**: Las especificaciones técnicas se guardan en `docs/spec/SPEC-XXX-nombre.md`
-10. **Tareas**: Regístralas en Taskmaster (`.taskmaster/tasks/tasks.json`) antes de implementar
+10. **Tareas**: Regístralas en `docs/tareas/SPEC-XXX-tareas.json` (formato Taskmaster-compatible, un archivo JSON por SPEC) antes de implementar. **No crear `.taskmaster/`**
 
 ## Herramientas de Análisis de Código
 

@@ -16,7 +16,7 @@ plataforma_qr_cursor/
 ├── docs/                   # Documentación (Obsidian)
 │   ├── spec/               # Especificaciones técnicas SPEC-XXX
 │   ├── backup-db/          # Backups de base de datos (no versionar)
-│   └── tarea/              # Notas de tareas
+│   └── tareas/             # Archivos JSON de tareas (uno por SPEC)
 ├── miselanios/             # Archivos misceláneos (no versionar)
 └── .opencode/              # Configuración de agentes y skills
 ```
@@ -40,14 +40,14 @@ plataforma_qr_cursor/
 | Frontend | Next.js 14+ (App Router), React, TypeScript, Tailwind CSS |
 | Backend | NestJS, TypeScript, Mongoose/MongoDB |
 | Base de datos | MongoDB (`sistema`) |
-| Autenticación | JWT (backend), next-auth (frontend) |
+| Autenticación | JWT RS256 + jose (backend y frontend), tokenVersion + logout |
 | Pagos | Webpay / Transbank |
 | Infraestructura | Docker Compose, Railway |
 
 ## Proceso de desarrollo
 
 1. **Especificación**: Las especificaciones técnicas se guardan en `docs/spec/SPEC-XXX-nombre.md` (formato en `rules/common/spec-driven-development.md`).
-2. **Tareas**: Regístralas en Taskmaster (`.taskmaster/tasks/tasks.json`) antes de implementar.
+2. **Tareas**: Regístralas en `docs/tareas/SPEC-XXX-tareas.json` (formato Taskmaster-compatible, un archivo JSON por SPEC: tasks con `id`, `content`, `status`, `priority`, `dependencies`, `subtasks`). **No crear `.taskmaster/`** — el usuario lo eliminó; las tareas viven en `docs/tareas/`.
 3. **Ramas**: Trabaja en ramas feature separadas. Nunca commitees directo a `main`.
 4. **TypeScript**: Todo el código debe pasar validaciones de tipos sin errores antes de commitear.
 5. **Tests**: Genera tests unitarios para todo el código desarrollado.

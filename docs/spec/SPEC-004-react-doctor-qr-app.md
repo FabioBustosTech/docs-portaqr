@@ -340,7 +340,7 @@ _Pendiente — se documentarán decisiones tomadas durante las correcciones._
 ## 6. Plan de implementación (tareas)
 
 > [!todo] Taskmaster
-> Registrar como tareas en `docs/tarea/SPEC-004-tareas.json` (formato Taskmaster-compatible).
+> Registrar como tareas en `docs/tareas/SPEC-004-tareas.json` (formato Taskmaster-compatible).
 
 | ID | Tarea | Estado |
 | --- | --- | --- |

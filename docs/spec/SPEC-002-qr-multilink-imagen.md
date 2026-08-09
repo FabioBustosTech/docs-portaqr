@@ -660,8 +660,8 @@ Regla de lifecycle para `qr-multilink/` sin uso en 90 días → `DeleteObject` (
 
 ## 7. Plan de implementación (tareas)
 
-> [!todo] Taskmaster
-> Registrar como tareas en `.taskmaster/tasks/tasks.json`. Estimación ~3.5-4.5 días.
+> [!todo] Tareas
+> Registrar como tareas en `docs/tareas/SPEC-002-tareas.json` (formato Taskmaster-compatible). Estimación ~3.5-4.5 días.
 
 | ID | Tarea | Capa | Estimación |
 | --- | --- | --- | --- |

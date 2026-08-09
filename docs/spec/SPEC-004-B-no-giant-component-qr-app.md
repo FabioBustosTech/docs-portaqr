@@ -462,7 +462,7 @@ Pasos por componente (por cada C-XX):
 ## 6. Plan de implementación (tareas)
 
 > [!todo] Taskmaster
-> Registradas en `docs/tarea/SPEC-004-B-tareas.json` (formato Taskmaster-compatible).
+> Registradas en `docs/tareas/SPEC-004-B-tareas.json` (formato Taskmaster-compatible).
 
 | ID | Tarea | Estado |
 | --- | --- | --- |

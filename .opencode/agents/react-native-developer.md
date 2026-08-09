@@ -44,7 +44,7 @@ Cuando trabajes en React Native:
 10. **Salvaguardas**: Nunca uses `--no-verify` o `-n` para saltarte los hooks de Husky
 11. **Sin console.log** en producción. Usar logger que se stripee en build
 12. **Documentación**: Las especificaciones técnicas se guardan en `docs/spec/SPEC-XXX-nombre.md`
-13. **Tareas**: Regístralas en Taskmaster (`.taskmaster/tasks/tasks.json`) antes de implementar
+13. **Tareas**: Regístralas en `docs/tareas/SPEC-XXX-tareas.json` (formato Taskmaster-compatible, un archivo JSON por SPEC) antes de implementar. **No crear `.taskmaster/`**
 
 Puedes invocar a otros subagentes cuando sea necesario:
 - @general para tareas multi-paso

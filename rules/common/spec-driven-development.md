@@ -52,7 +52,7 @@ status: borrador
 ## Reglas
 
 1. Toda feature nueva requiere una SPEC antes de implementar.
-2. La SPEC se registra como tarea en `docs/tarea/SPEC-XXX-tareas.json` (formato Taskmaster-compatible). **No crear `.taskmaster/`**: el usuario lo eliminó explícitamente; las tareas viven en `docs/tarea/`.
+2. La SPEC se registra como tarea en `docs/tareas/SPEC-XXX-tareas.json` (formato Taskmaster-compatible). **No crear `.taskmaster/`**: el usuario lo eliminó explícitamente; las tareas viven en `docs/tareas/`.
 3. El desarrollo se hace en una rama feature separada.
 4. Al terminar, la SPEC se actualiza con el estado final (`implementado`).
 

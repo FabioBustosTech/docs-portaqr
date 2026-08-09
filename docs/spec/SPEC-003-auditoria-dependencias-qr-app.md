@@ -488,7 +488,7 @@ Orden recomendado por riesgo/beneficio:
 ## 6. Plan de implementación (tareas)
 
 > [!todo] Taskmaster
-> Registrar como tareas en `docs/tarea/SPEC-003-tareas.json` (formato Taskmaster-compatible). Estimación total: **~7-9 días** (Fase 1: 3-4d, Fase 2: 2-3d, Fase 3: 2-3d).
+> Registrar como tareas en `docs/tareas/SPEC-003-tareas.json` (formato Taskmaster-compatible). Estimación total: **~7-9 días** (Fase 1: 3-4d, Fase 2: 2-3d, Fase 3: 2-3d).
 
 ### Fase 1 — Quitar next-auth + JWT directo (3-4 días)
 
@@ -594,7 +594,7 @@ Cada fase debe pasar:
 
 ## 9. Observabilidad
 
-- Registrar en `docs/tarea/` el avance de cada fase.
+- Registrar en `docs/tareas/` el avance de cada fase.
 - Después de cada fase, ejecutar `npm outdated` y `npm audit` y documentar el resultado en este spec (actualizar estado a `implementado` al terminar).
 
 ---

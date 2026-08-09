@@ -972,8 +972,8 @@ SPEC-002 ya configuró el bucket `portaqr-assets` y las credenciales. SPEC-005 r
 
 ## 7. Plan de implementación (tareas)
 
-> [!todo] Taskmaster
-> Registrar como tareas en `.taskmaster/tasks/tasks.json`. Estimación ~4-5 días.
+> [!todo] Tareas
+> Registrar como tareas en `docs/tareas/SPEC-005-tareas.json` (formato Taskmaster-compatible). Estimación ~4-5 días.
 
 | ID | Tarea | Capa | Estimación |
 | --- | --- | --- | --- |

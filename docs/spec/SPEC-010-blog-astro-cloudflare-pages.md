@@ -205,4 +205,4 @@ Sitemap: https://portaqr.cl/blog/sitemap-index.xml
 | 9 | Verificación | CA-01 a CA-08 |
 
 > [!info] Siguiente paso
-> Registrar tareas de esta SPEC en `docs/tarea/SPEC-010-tareas.json` (formato Taskmaster-compatible) antes de implementar.
+> Registrar tareas de esta SPEC en `docs/tareas/SPEC-010-tareas.json` (formato Taskmaster-compatible) antes de implementar.

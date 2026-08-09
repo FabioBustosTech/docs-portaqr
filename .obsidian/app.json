@@ -1,1 +1,8 @@
-{}
+{
+  "userIgnoreFilters": [
+    "desarrollo-qr/",
+    "miselanios/",
+    ".opencode/",
+    ".git/"
+  ]
+}

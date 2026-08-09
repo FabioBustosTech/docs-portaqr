@@ -22,7 +22,7 @@ plataforma_qr_cursor/
 │   └── docker-compose.yml         MongoDB en puerto 27017
 ├── docs/
 │   ├── spec/                      Specs del proyecto (SPEC-XXX)
-│   ├── tarea/                     Notas de tareas
+│   ├── tareas/                     Archivos JSON de tareas (uno por SPEC)
 │   └── backup-db/                 Backups de base de datos (no versionar)
 ├── rules/                         Reglas del proyecto
 ├── miselanios/                    ❌ EXCLUIDO (archivos misceláneos)
