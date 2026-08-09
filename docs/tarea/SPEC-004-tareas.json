@@ -1,101 +1,123 @@
-{
-    "tasks": [
-        {
-            "id": "1",
-            "content": "[SPEC-004] Agregar script doctor a package.json de qr-app",
-            "description": "Agregar \"doctor\": \"npx react-doctor@latest .\" a scripts de desarrollo-qr/qr-app/package.json. Rama feat/spec-004-react-doctor-qr-app.",
-            "status": "done",
-            "priority": "high",
-            "tag": "spec-004",
-            "dependencies": [],
-            "subtasks": []
-        },
-        {
-            "id": "2",
-            "content": "[SPEC-004] Ejecutar npm run doctor (primera pasada) y documentar hallazgos",
-            "description": "Correr react-doctor en qr-app, capturar reporte completo y documentar cada hallazgo en SPEC-004 §3 (severidad, archivo, descripción).",
-            "status": "done",
-            "priority": "high",
-            "tag": "spec-004",
-            "dependencies": ["1"],
-            "subtasks": []
-        },
-        {
-            "id": "3",
-            "content": "[SPEC-004] Corregir hallazgos de react-doctor (loop iterativo)",
-            "description": "Corregir cada hallazgo documentado, validando tsc --noEmit, lint y build después de cada corrección. Re-ejecutar doctor hasta estado objetivo. Resultado: 37 → 86/100 (11 reglas eliminadas). Restantes: 11 reales (9 no-giant-component, prefer-useReducer, rerender-lazy-state-init), 2 falso positivo verificado, 1 decisión documentada.",
-            "status": "done",
-            "priority": "high",
-            "tag": "spec-004",
-            "dependencies": ["2"],
-            "subtasks": []
-        },
-        {
-            "id": "4",
-            "content": "[SPEC-004] Validación final y cierre de spec",
-            "description": "Validación final: tsc --noEmit, lint, build, re-ejecución de npm run doctor. Actualizar SPEC-004 a estado implementado. Verificado 2026-08-09: tsc ✅, lint ✅, build ✅ (58/58 páginas), doctor ✅ (86/100).",
-            "status": "done",
-            "priority": "medium",
-            "tag": "spec-004",
-            "dependencies": ["3"],
-            "subtasks": []
-        },
-        {
-            "id": "5",
-            "content": "[SPEC-004] Refactor CreateQrForm: useReducer + split por tipo de QR",
-            "description": "Migrar los 15+ useState del formulario a useReducer (actions SET_FIELD/SET_TYPE/RESET) junto con el split del componente gigante por tipo de QR. Resuelve prefer-useReducer (CreateQrForm:30), rerender-lazy-state-init (:38) y su parte de no-giant-component. Ver decisión en SPEC-004 §3.2.1 y baseline B-01..B-12 + matriz UI §3.4.2 (subformularios NO se tocan). Rama feat/spec-004-ca03-refactor-createqrform.",
-            "status": "in-progress",
-            "priority": "high",
-            "tag": "spec-004",
-            "dependencies": ["4"],
-            "subtasks": [
-                {
-                    "id": "5.1",
-                    "content": "Crear CreateQrForm.state.ts (reducer + lazy init previewId)",
-                    "description": "Estado único CreateQrFormState (19 campos), actions SET_FIELD/SET_QR_TYPE/SET_VCARD/SET_ERROR/RESET, createInitialState() con previewId vía initializer de useReducer (resuelve rerender-lazy-state-init), EMPTY_VCARD_DATA/EMPTY_PET_DATA en module scope.",
-                    "status": "pending"
-                },
-                {
-                    "id": "5.2",
-                    "content": "Crear CreateQrForm.helpers.ts (funciones puras)",
-                    "description": "getValidationError (strings exactos de §3.4.2; null para LIST/VCARD), isFormValid (gating botón), buildQrData (payload), buildPreviewUrl (incluye vCard content). Timing preservado: error solo en submit.",
-                    "status": "pending"
-                },
-                {
-                    "id": "5.3",
-                    "content": "Reescribir CreateQrForm.tsx como orquestador delgado",
-                    "description": "useReducer + dispatch en vez de setters. JSX idéntico (baseline B-01..B-08), props públicas {onQrCreated, userId} intactas, renderForm con los 8 subformularios sin cambios, pendingImageFileRef se mantiene en el componente.",
-                    "status": "pending"
-                },
-                {
-                    "id": "5.4",
-                    "content": "Validar refactor: tsc --noEmit, lint, build",
-                    "description": "Las 3 validaciones deben pasar sin errores. npx tsc --noEmit && npm run lint && npm run build.",
-                    "status": "pending"
-                },
-                {
-                    "id": "5.5",
-                    "content": "Validación baseline post-refactor en navegador",
-                    "description": "Repetir B-01 a B-08 (flujos/creación/payload) y B-09 a B-12 (UI inputs: vacío → inválido typing → submit fallido → válido) contra SPEC-004 §3.4.",
-                    "status": "pending"
-                },
-                {
-                    "id": "5.6",
-                    "content": "Re-ejecutar doctor + actualizar SPEC-004 + Taskmaster",
-                    "description": "npm run doctor (score esperado ~89-90), documentar Ejecución 4 en §3.5, actualizar changelog §11, marcar CA-03 cumplido, tareas done.",
-                    "status": "pending"
-                }
-            ]
-        },
-        {
-            "id": "6",
-            "content": "[SPEC-004] Baseline funcional CreateQrForm documentado",
-            "description": "SPEC-004 §3.4: B-01..B-08 (flujos, tipos QR, payload API, consumidores, verificado en navegador 2026-08-09), B-09..B-12 (UI de inputs no mutado/válido/inválido) y §3.4.2 matriz de validación UI por tipo (8 subformularios, 2 excepciones LIST/VCARD).",
-            "status": "done",
-            "priority": "high",
-            "tag": "spec-004",
-            "dependencies": ["5"],
-            "subtasks": []
-        }
-    ]
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-004] Agregar script doctor a package.json de qr-app",
+                      "description":  "Agregar \"doctor\": \"npx react-doctor@latest .\" a scripts de desarrollo-qr/qr-app/package.json. Rama feat/spec-004-react-doctor-qr-app.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-004",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-004] Ejecutar npm run doctor (primera pasada) y documentar hallazgos",
+                      "description":  "Correr react-doctor en qr-app, capturar reporte completo y documentar cada hallazgo en SPEC-004 Â§3 (severidad, archivo, descripciÃ³n).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-004",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-004] Corregir hallazgos de react-doctor (loop iterativo)",
+                      "description":  "Corregir cada hallazgo documentado, validando tsc --noEmit, lint y build despuÃ©s de cada correcciÃ³n. Re-ejecutar doctor hasta estado objetivo. Resultado: 37 â†’ 86/100 (11 reglas eliminadas). Restantes: 11 reales (9 no-giant-component, prefer-useReducer, rerender-lazy-state-init), 2 falso positivo verificado, 1 decisiÃ³n documentada.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-004",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-004] ValidaciÃ³n final y cierre de spec",
+                      "description":  "ValidaciÃ³n final: tsc --noEmit, lint, build, re-ejecuciÃ³n de npm run doctor. Actualizar SPEC-004 a estado implementado. Verificado 2026-08-09: tsc âœ…, lint âœ…, build âœ… (58/58 pÃ¡ginas), doctor âœ… (86/100).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-004",
+                      "dependencies":  [
+                                           "3"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-004] Refactor CreateQrForm: useReducer + split por tipo de QR",
+                      "description":  "Migrar los 15+ useState del formulario a useReducer (actions SET_FIELD/SET_TYPE/RESET) junto con el split del componente gigante por tipo de QR. Resuelve prefer-useReducer (CreateQrForm:30), rerender-lazy-state-init (:38) y su parte de no-giant-component. Ver decisiÃ³n en SPEC-004 Â§3.2.1 y baseline B-01..B-12 + matriz UI Â§3.4.2 (subformularios NO se tocan). Rama feat/spec-004-ca03-refactor-createqrform.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-004",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "5.1",
+                                           "content":  "Crear CreateQrForm.state.ts (reducer + lazy init previewId)",
+                                           "description":  "Estado Ãºnico CreateQrFormState (19 campos), actions SET_FIELD/SET_QR_TYPE/SET_VCARD/SET_ERROR/RESET, createInitialState() con previewId vÃ­a initializer de useReducer (resuelve rerender-lazy-state-init), EMPTY_VCARD_DATA/EMPTY_PET_DATA en module scope.",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.2",
+                                           "content":  "Crear CreateQrForm.helpers.ts (funciones puras)",
+                                           "description":  "getValidationError (strings exactos de Â§3.4.2; null para LIST/VCARD), isFormValid (gating botÃ³n), buildQrData (payload), buildPreviewUrl (incluye vCard content). Timing preservado: error solo en submit.",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.3",
+                                           "content":  "Reescribir CreateQrForm.tsx como orquestador delgado",
+                                           "description":  "useReducer + dispatch en vez de setters. JSX idÃ©ntico (baseline B-01..B-08), props pÃºblicas {onQrCreated, userId} intactas, renderForm con los 8 subformularios sin cambios, pendingImageFileRef se mantiene en el componente.",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.4",
+                                           "content":  "Validar refactor: tsc --noEmit, lint, build",
+                                           "description":  "Las 3 validaciones deben pasar sin errores. npx tsc --noEmit \u0026\u0026 npm run lint \u0026\u0026 npm run build.",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.5",
+                                           "content":  "ValidaciÃ³n baseline post-refactor en navegador",
+                                           "description":  "Repetir B-01 a B-08 (flujos/creaciÃ³n/payload) y B-09 a B-12 (UI inputs: vacÃ­o â†’ invÃ¡lido typing â†’ submit fallido â†’ vÃ¡lido) contra SPEC-004 Â§3.4.",
+                                           "status":  "done"
+                                       },
+                                       {
+                                           "id":  "5.6",
+                                           "content":  "Re-ejecutar doctor + actualizar SPEC-004 + Taskmaster",
+                                           "description":  "npm run doctor (score esperado ~89-90), documentar EjecuciÃ³n 4 en Â§3.5, actualizar changelog Â§11, marcar CA-03 cumplido, tareas done.",
+                                           "status":  "done"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-004] Baseline funcional CreateQrForm documentado",
+                      "description":  "SPEC-004 Â§3.4: B-01..B-08 (flujos, tipos QR, payload API, consumidores, verificado en navegador 2026-08-09), B-09..B-12 (UI de inputs no mutado/vÃ¡lido/invÃ¡lido) y Â§3.4.2 matriz de validaciÃ³n UI por tipo (8 subformularios, 2 excepciones LIST/VCARD).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-004",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
 }

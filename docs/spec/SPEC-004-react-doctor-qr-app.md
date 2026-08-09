@@ -9,7 +9,7 @@ tags:
   - calidad
   - react-doctor
   - auditoria
-status: borrador
+status: implementado
 aliases:
   - SPEC-004
   - react-doctor qr-app
@@ -281,6 +281,33 @@ Detectar problemas de calidad, rendimiento y buenas prácticas en el código Rea
 > 2. `isFormValid(state)` replica el gating del botón (LIST: `urlList.length > 0 && every(...)`; VCARD: `isVCardFormValid`).
 > 3. Los subformularios **no se modifican** — solo `CreateQrForm` (orquestador) y sus helpers. El `error` sigue fluyendo como prop.
 
+### 3.5 Ejecución 4 (2026-08-09) — T-004-07 implementado (refactor CreateQrForm)
+
+**Resultado: Score 87/100 — GREAT · 11 issues** (268 archivos, 11.5s). **Cambios respecto a Ejecución 3**: 86 → 87, 14 → 11 issues.
+
+> [!success] Resueltos por T-004-07 (CA-03 cumplido)
+> `prefer-useReducer` (×1) · `rerender-lazy-state-init` (×1) · `no-giant-component` parte (CreateQrForm 609 → 249 líneas). Score objetivo alcanzado (~87 real; 90 proyectado incluía no-giant-component de ListUrlForm que ya existía).
+
+> [!note] Implementación (commits en rama `feat/spec-004-ca03-refactor-createqrform`)
+> - `CreateQrForm.state.ts` (nuevo): `CreateQrFormState` (19 campos), actions `SET_FIELD`/`SET_QR_TYPE`/`SET_VCARD`/`SET_ERROR`/`RESET`, `createInitialState()` con `previewId` vía initializer de useReducer (lazy init — UUID solo al montar), `EMPTY_VCARD_DATA`/`EMPTY_PET_DATA` en module scope
+> - `CreateQrForm.helpers.ts` (nuevo): `validateDataForSubmit` (replica validateData, strings exactos §3.4.2), `isValidForm` (gating), `buildQrData` (payload), `buildPreviewUrl` (con `generateVCardContent` module-scope)
+> - `CreateQrForm.tsx` (reescrito): orquestador delgado con `useReducer`, JSX idéntico, props `{onQrCreated, userId}` intactas, `pendingImageFileRef` en el componente, 8 subformularios sin tocar
+> - Nota diseño: se unificó `getValidationError` en `validateDataForSubmit` devolviendo `{ isValid, error }` — necesario porque LIST/VCARD abortan submit SIN mensaje (error '') y un string|null no distinguía "inválido sin mensaje" de "válido"
+
+#### 3.5.1 Validación baseline post-refactor (todas ✅)
+
+| ID | Resultado post-refactor | Evidencia |
+| --- | --- | --- |
+| B-01..B-08 | ✅ Flujos: 8 opciones, cambio de tipo, gating botón, preview en vivo con previewId, creación completa (toast + reset + grilla página 2), payload console `{"url":"https://post-refactor.cl","typeQr":"dynamic"}` + ID coincide con previewId, props públicas intactas | navegador + console |
+| B-09..B-12 | ✅ UI inputs: vacío sin borde + botón disabled; typing inválido sin borde pero preview renderizada; submit fallido → "URL inválida" rojo + preview con error; válido → botón habilitado (error persiste al escribir, como baseline) | navegador (snapshots) |
+| tsc / lint / build | ✅ Sin errores (build 58/58) | comandos |
+| doctor | ✅ 87/100 · 11 issues (8 no-giant-component + 2 falso positivo + 1 decisión) | npm run doctor |
+
+> [!note] Estado final de hallazgos (11)
+> - **Deuda documentada (8)**: `no-giant-component` — activate/send 441, qr/edit 362, qr/pay 324, PlanForm 429, SignUpForm 548, HomePageClient 413, QrGrid 461, ListUrlForm 489 líneas (refactor mayor, justificado por §8 Riesgos)
+> - **Falso positivo verificado (2)**: `prefer-dynamic-import` (chart.js, §3.2)
+> - **Decisión (1)**: `nextjs-no-img-element` (UrlList:303, SPEC-002)
+
 ---
 
 ## 4. Diseño Técnico
@@ -320,7 +347,7 @@ _Pendiente — se documentarán decisiones tomadas durante las correcciones._
 | T-004-04 | Documentar hallazgos en §3 | ✅ done (§3.1, §3.2, §3.3) |
 | T-004-05 | Corregir hallazgos (loop) | ✅ done (37 → 86/100, 11 reglas eliminadas; restantes: 11 reales, 2 falso positivo, 1 decisión) |
 | T-004-06 | Validación final: tsc, lint, build + re-ejecución doctor | ✅ done (2026-08-09: tsc ✅, lint ✅, build ✅ 58/58, doctor ✅ 86/100) |
-| T-004-07 | **Refactor `CreateQrForm`**: useReducer + split por tipo de QR (resuelve `prefer-useReducer`, `rerender-lazy-state-init` y su parte de `no-giant-component`) — ver decisión en §3.2.1 | pendiente (deuda técnica — no bloquea CA-01/02/04/05/06) |
+| T-004-07 | **Refactor `CreateQrForm`**: useReducer + split por tipo de QR (resuelve `prefer-useReducer`, `rerender-lazy-state-init` y su parte de `no-giant-component`) — ver decisión en §3.2.1 | ✅ done (Ejecución 4: 87/100, CA-03 cumplido; rama `feat/spec-004-ca03-refactor-createqrform`) |
 
 ---
 
@@ -366,3 +393,4 @@ _Pendiente — se documentarán decisiones tomadas durante las correcciones._
 | 2026-08-09 | Equipo | Ejecución 3 documentada (§3.3): score 86/100, 14 issues. Verificación manual de TODOS los hallazgos (2 falsos positivos `prefer-dynamic-import` confirmados, 1 decisión `nextjs-no-img-element`, 11 reales). Script `doctor` agregado a `package.json` (T-004-02 done) y verificado. Taskmaster actualizado (tareas 1-3) |
 | 2026-08-09 | Equipo | §11 Historial de cambios creado (formato SPEC-001). Taskmaster: tareas 3-4 done, T-004-07 documentada como deuda |
 | 2026-08-09 | Equipo | T-004-07 iniciada: rama `feat/spec-004-ca03-refactor-createqrform` creada en qr-app. Baseline funcional `CreateQrForm` documentado (§3.4): B-01 a B-08 (flujos, tipos QR, estados, payload API) + B-09 a B-12 (UI de inputs: no mutado/válido/inválido tras submit, verificado en navegador con submit dispatch) + §3.4.2 matriz de validación UI por tipo (8 subformularios verificados en código; 2 excepciones: LIST y VCARD validan internamente, no usan `error` del padre) |
+| 2026-08-09 | Equipo | **T-004-07 implementado (Ejecución 4, §3.5)**: score 87/100, 11 issues. Nuevos archivos `CreateQrForm.state.ts` (reducer + lazy init previewId) y `CreateQrForm.helpers.ts` (validación/payload/preview puros); `CreateQrForm.tsx` reescrito como orquestador (609 → 249 líneas). Commits: `e43e86e` (doctor script), `2dbd68a` (5.1), `564f76c` (5.2), `8adedc3` (5.3). Baseline post-refactor B-01..B-12 validado en navegador + tsc/lint/build ✅. **CA-03 cumplido — SPEC-004 implementada** |
