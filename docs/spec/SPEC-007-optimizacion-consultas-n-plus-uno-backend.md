@@ -8,7 +8,7 @@ tags:
   - mongodb
   - n-plus-one
   - nestjs
-status: borrador
+status: implementado
 aliases:
   - SPEC-007
   - Optimización N+1 backend
@@ -20,7 +20,7 @@ aliases:
 > Eliminar los **4 patrones N+1** detectados en `backend-portaqr` reemplazando operaciones por-documento por **operaciones batch atómicas de Mongo** (`insertMany` / `updateMany` / `findOneAndUpdate` condicional), **paginando en la BD** (no en memoria) y **consolidando contadores** con `$facet`. Prioridad: el flujo Webpay (P0) porque combina N+1 con **updates fire-and-forget que pueden dejar una compra pagada sin QRs activos**.
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado
 > - **Fecha:** 2026-08-09
 > - **Autor:** Equipo Plataforma QR
 > - **Componente destino:** `desarrollo-qr/backend-portaqr/`
@@ -112,7 +112,7 @@ Cadena por QR: `QrActivateQrAdapter.updateQr` → `UpdateQrUseCase` → `findOne
 **`src/modules/qr/domain/ports/queries/qr.port.ts`** — añadir a `ICanUpdateQr`:
 
 ```ts
-activateMany(qrCodes: string[], expiration: Date, tracking: TrackingContext): Promise<{ matchedCount: number }>;
+activateMany(qrCodes: string[], expiration: Date, tracking: TrackingContext): Promise<{ matchedCount: number; modifiedCount: number }>;
 ```
 
 **`src/modules/qr/infrastructure/repository/mongo/mongo-qr.repository.ts`**:
@@ -123,7 +123,7 @@ async activateMany(qrCodes: string[], expiration: Date, tracking: TrackingContex
     { idQr: { $in: qrCodes } },
     { $set: { active: true, expiration } },
   ).exec();
-  return { matchedCount: result.matchedCount };
+  return { matchedCount: result.matchedCount, modifiedCount: result.modifiedCount };
 }
 ```
 
@@ -133,8 +133,9 @@ async activateMany(qrCodes: string[], expiration: Date, tracking: TrackingContex
 
 ```ts
 const codes = activation.qrList.map(q => q.qrCode);
-const { matchedCount } = await this.qrActivator.activateMany(codes, expiration, tracking);
-// log de matchedCount vs codes.length si no coincide (QRs inexistentes, no fatal)
+const { matchedCount, modifiedCount } = await this.qrActivator.activateMany(codes, expiration, tracking);
+// log de matchedCount vs codes.length si no coincide (QRs inexistentes, no fatal);
+// log de modifiedCount para distinguir QRs ya activos en re-procesos idempotentes (RF-3)
 await this.updater.update(activation.id, { state: ActivationState.PAYED, ... }, tracking);
 ```
 
@@ -221,7 +222,7 @@ const [qrStats] = await this.qrModel.aggregate([
 const updatedTag = await this.petTagModel.findOneAndUpdate(
   { idQr, activationPin, status: 'RESERVADO' },
   { $set: { status: 'ACTIVO', userId, petData, expiration, commercialStatus: 'VENDIDO' } },
-  { new: true },
+  { new: true, runValidators: true },
 ).lean();
 
 if (!updatedTag) {
@@ -232,15 +233,18 @@ if (!updatedTag) {
 const tag = await this.petTagModel.findOneAndUpdate(
   { idQr: petTagIdQr, userId: userObjectId },
   { $set: { petData, ...(name !== undefined && { name }), ...(isFavorite !== undefined && { isFavorite }) } },
-  { new: true },
+  { new: true, runValidators: true },
 ).lean();
 ```
+
+> [!warning] `runValidators: true` es obligatorio (no-regresión)
+> `pet-tag.schema.ts` define `enum` en `status` (L73: `['RESERVADO','ACTIVO','INACTIVO']`) y `commercialStatus` (L84: `['EN_CREACION','EN_BODEGA','ASIGNADO_COMERCIO','VENDIDO']`). El `update()` actual valida vía `save()`; `findOneAndUpdate` **no ejecuta validators por defecto**. Sin `runValidators: true`, un `commercialStatus` inválido que hoy responde 400 se guardaría silenciosamente. Verificado en validación 2026-08-11.
 
 Nota: en `activate`, el caso de fallo reintenta 1 read para distinguir error (solo en la rama de error, no en el camino feliz).
 
 ### 4.7 create-user (H7)
 
-- Schema: `email: { unique: true }`, `userName: { unique: true }` (verificar que no existan duplicados antes del deploy — script de migración en backlog).
+- Schema: los índices únicos de `email` y `userName` **ya existen** (`user.schema.ts` L13/L20 + `index({ email: 1 })` L113 y `index({ userName: 1 })` L114) — **no crear**. Solo verificar que no existan duplicados en la BD antes del deploy (script de migración en backlog).
 - `CreateUserUseCase`: eliminar `checkEmailExists`/`checkUserNameExists`; envolver `create` en try/catch y mapear `E11000` → `ConflictException` con mensaje del campo duplicado.
 - Generar `verificationCode` antes del `create` e incluir en el documento; `sendVerificationEmail` recibe `resultado.email` directo (sin `getById`).
 
@@ -257,16 +261,16 @@ Nota: en `activate`, el caso de fallo reintenta 1 read para distinguir error (so
 
 ## 6. Criterios de aceptación
 
-- [ ] **CA-01 (H2)**: Una activación admin de 50 QRs genera **1** `updateMany` (verificar con logs del `TraceService` o perfilado de Mongo); el estado de la activación se guarda después.
-- [ ] **CA-02 (H2)**: Una compra Webpay de N QRs queda `PAYED` **y todos** sus QRs `active: true`; si un QR no existe, el resto se activa igual y queda traza de `matchedCount < qrList.length`.
-- [ ] **CA-03 (H2)**: Re-procesar el mismo `token_ws` (retry/idempotencia) no duplica activaciones ni errores (el guard `state !== PENDING` sigue funcionando).
-- [ ] **CA-04 (H1)**: `POST /pet-tag/admin/generate` con `quantity=100` completa con **1 insert** (log de Mongo / tiempo < 300ms local).
-- [ ] **CA-05 (H3)**: `GET /qr/user/favorites` con usuario de 5000 QRs devuelve la página en tiempo constante (sin fetch completo). Comprobable con `explain()`/logs: las queries tienen `limit` aplicado en BD.
-- [ ] **CA-06 (H3)**: El orden (favoritos → updatedAt desc) se mantiene dentro de cada página; la paginación no duplica ni pierde ítems en la mayoría de casos (borde documentado en §4.4).
-- [ ] **CA-07 (H4)**: `GET /statistics/user` y `GET /statistics/system` devuelven el **mismo contrato** de respuesta con ≤3 queries de agregación por endpoint.
-- [ ] **CA-08 (H5)**: Dos `PATCH /pet-tag/activate` concurrentes para el mismo tag: exactamente **1** gana (segundo recibe 409).
-- [ ] **CA-09 (H7)**: Registrar usuario duplicado (email o userName) → `409` con mensaje correcto, sin errores 500; registrar usuario nuevo → **1 insert**.
-- [ ] **CA-10**: `tsc --noEmit` sin errores nuevos en `backend-portaqr`; suite de tests existente verde; tests nuevos para `activateMany`, `generateBatch` (insertMany), `activate` atómico y `create-user` (E11000).
+- [x] **CA-01 (H2)**: Una activación admin de 50 QRs genera **1** `updateMany` (verificar con logs del `TraceService` o perfilado de Mongo); el estado de la activación se guarda después.
+- [x] **CA-02 (H2)**: Una compra Webpay de N QRs queda `PAYED` **y todos** sus QRs `active: true`; si un QR no existe, el resto se activa igual y queda traza de `matchedCount < qrList.length` (y `modifiedCount` distingue QRs ya activos en re-procesos).
+- [x] **CA-03 (H2)**: Re-procesar el mismo `token_ws` (retry/idempotencia) no duplica activaciones ni errores (el guard `state !== PENDING` sigue funcionando).
+- [x] **CA-04 (H1)**: `POST /pet-tag/admin/generate` con `quantity=100` completa con **1 insert** (log de Mongo / tiempo < 300ms local).
+- [x] **CA-05 (H3)**: `GET /qr/user/favorites` con usuario de 5000 QRs devuelve la página en tiempo constante (sin fetch completo). Comprobable con `explain()`/logs: las queries tienen `limit` aplicado en BD.
+- [x] **CA-06 (H3)**: El orden (favoritos → updatedAt desc) se mantiene dentro de cada página; la paginación no duplica ni pierde ítems en la mayoría de casos (borde documentado en §4.4).
+- [x] **CA-07 (H4)**: `GET /statistics/user` y `GET /statistics/system` devuelven el **mismo contrato** de respuesta con ≤3 queries de agregación por endpoint.
+- [x] **CA-08 (H5)**: Dos `PATCH /pet-tag/activate` concurrentes para el mismo tag: exactamente **1** gana (segundo recibe 409).
+- [x] **CA-09 (H7)**: Registrar usuario duplicado (email o userName) → `409` con mensaje correcto, sin errores 500; registrar usuario nuevo → **1 insert**.
+- [x] **CA-10**: `tsc --noEmit` sin errores nuevos en `backend-portaqr`; suite de tests existente verde; tests nuevos para `activateMany`, `generateBatch` (insertMany), `activate` atómico y `create-user` (E11000).
 
 ## 7. No funcionales
 
@@ -274,7 +278,7 @@ Nota: en `activate`, el caso de fallo reintenta 1 read para distinguir error (so
 - **Consistencia**: el flujo Webpay queda ordenado: activación batch → estado PAYED (sin ventanas de "pagado pero inactivo").
 - **Concurrencia**: eliminado el TOCTOU de activación de pet-tags.
 - **Compatibilidad**: los contratos HTTP (respuesta de `findUserByFavorites`, statistics, generate) no cambian; los cambios son internos (repositorios/use-cases).
-- **Mantenibilidad**: los nuevos métodos batch viven en los repositorios con el mismo patrón de traceo (`TraceService.log` con `matchedCount`).
+- **Mantenibilidad**: los nuevos métodos batch viven en los repositorios con el mismo patrón de traceo (`TraceService.log` con `matchedCount`/`modifiedCount`).
 
 ## 8. Plan de implementación y rama
 
@@ -286,7 +290,7 @@ Rama: `feat/spec-007-n-plus-one`. Orden recomendado (desbloquea valor por costo)
 4. **P1** H3 — paginación en BD + índices + `$facet`.
 5. **P2** H6 — `update` con `findOneAndUpdate` + índices.
 6. **P2** H4 — `$facet` en statistics.
-7. **P3** H7 — índices únicos + refactor `create-user`.
+7. **P3** H7 — captura `E11000` + refactor `create-user` (los índices únicos ya existen en el schema).
 
 Validación continua: `tsc --noEmit`, `npm test` (unit de repositorios), pruebas manuales con Newman/Postman en los endpoints tocados.
 
@@ -298,3 +302,12 @@ Validación continua: `tsc --noEmit`, `npm test` (unit de repositorios), pruebas
 - [ ] Rollup de contadores de scan (colección de resumen) si `scan` crece (H4).
 - [ ] Transacción Mongo (session) para el flujo Webpay completo: commit + activación + estado (elimina la ventana entre writes; hoy mitigada por orden).
 - [ ] Verificar en `mongo-qr-activate.repository.ts` `getAll` el `populate('qrList.plan')` (validar planos reales; nota existente de CastError en `qrList.qrCode`).
+
+## 10. Historial de cambios
+
+| Fecha | Autor | Cambio |
+| :---------- | :----- | :---------- |
+| 2026-08-09 | Equipo | Borrador inicial |
+| 2026-08-11 | Equipo | Validación contra el código real: 7/7 hallazgos confirmados (H1-H7). §4.1: `activateMany` retorna también `modifiedCount` (distingue re-procesos idempotentes RF-3); §4.7: índices únicos `email`/`userName` **ya existen** en `user.schema.ts` (L13/L20/L113/L114) — el trabajo se limita a captura `E11000` + refactor del use-case, no crear índices; §7 y CA-02 alineados con `matchedCount`/`modifiedCount` |
+| 2026-08-11 | Equipo | Revisión de regresión (schemas): §4.6 añade `runValidators: true` en ambos `findOneAndUpdate` (H5/H6) — `findOneAndUpdate` no ejecuta validators por defecto y `pet-tag.schema.ts` define `enum` en `status`/`commercialStatus`; sin esta opción un valor inválido que hoy responde 400 se guardaría silenciosamente. Verificados sin impacto: hook `pre('save')` de `qr.schema.ts:326` (solo defaults en creación — `updateMany` no lo necesita) y `insertMany` en pet-tag (schema sin hooks; sí ejecuta validators + timestamps). Línea base: `tsc` 0 errores, 138 suites/1015 tests verdes |
+| 2026-08-11 | Equipo | **Implementada** en rama `feat/spec-007-n-plus-one` (8 commits, backend-portaqr): H2 `activateMany` + use-cases con await (Webpay: PAYED solo tras batch); H1 `insertMany`; H5/H6 `findOneAndUpdate` atómico con `runValidators`; H3 `$facet` + índices RF-6/RF-11; H4 `$facet` statistics; H7 E11000 + verificationCode en insert. Resultado: **139 suites / 1039 tests verdes** (+24 nuevos), `tsc` 0 errores, `eslint src/**` 0 errores (barrido boyscout de imports sin uso). CAs 01-10 verificados por tests; verificación manual con datos reales pendiente (profiler Mongo, diffs JSON, concurrencia real) |
