@@ -1188,10 +1188,12 @@ Actualizar `backend-portaqr/.env`, `backend-portaqr/backendPortaqr.env` (env_fil
 ```env
 # SPEC-005: límite de items PDF por QR (debe coincidir con el backend)
 NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR=2
+# SPEC-005: tamaño máximo del PDF de entrada en bytes (debe coincidir con PDF_MAX_UPLOAD_SIZE del backend; default 2 MB = 2097152)
+NEXT_PUBLIC_PDF_MAX_UPLOAD_SIZE=2097152
 ```
 
 > [!note] Sincronización de límites
-> El frontend usa `NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR` para bloquear la UI al alcanzar el límite. El backend valida con `MAX_PDF_ITEMS_PER_QR`. Ambos deben tener el mismo valor. Si difieren, el backend tiene la última palabra (responde 400).
+> El frontend usa `NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR` para bloquear la UI al alcanzar el límite y `NEXT_PUBLIC_PDF_MAX_UPLOAD_SIZE` (bytes) para la validación cliente de tamaño (ambas leídas en `ListUrlForm.helpers.ts` — constantes `MAX_PDF_ITEMS_PER_QR` y `PDF_MAX_UPLOAD_SIZE`). El backend valida con `MAX_PDF_ITEMS_PER_QR` y `PDF_MAX_UPLOAD_SIZE`. Deben coincidir; si difieren, el backend tiene la última palabra (responde 400/413).
 
 ### 5.3 Docker Compose `desarrollo-qr/docker-compose.yml`
 
