@@ -2,11 +2,10 @@ name: plataforma_qr_cursor
 
 services:
   mongo:
-    image: mongo:latest
+    image: mongo:7.0
     container_name: 'mongo_qr'
     volumes:
       - mongodb_data_container:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     environment:
       - MONGO_INITDB_DATABASE=sistema
       - MONGO_INITDB_ROOT_USERNAME=root
@@ -79,68 +78,80 @@ services:
       retries: 3
       start_period: 40s
 
-  user-service:
-    build:
-      context: ./user-service
-      target: development
-      dockerfile: Dockerfile
-    container_name: user-service
-    restart: always
-    ports:
-      - "3002:3002"
-    env_file:
-      - ./user-service/userService.env
-    volumes:
-      - ./user-service:/app
-      - /app/node_modules
-    depends_on:
-      mongo:
-        condition: service_healthy
-    networks:
-      - webnet
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command: npm run dev
-    healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:3002/health || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    environment:
-      - SERVER_PORT=3002
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SERVICIOS DEPRECADOS (monolito modular pre-SPEC-001) — COMENTADOS
+  # SPEC-001 migró toda la lógica a `backend-portaqr` (puerto 3004, único
+  # backend activo). user-service / bff-service / qr-service ya NO se usan:
+  #   - `qr-app` apunta a `NEXT_PUBLIC_BFF_URL=http://backend-portaqr:3004`
+  #     (depends_on actualizado más abajo — antes esperaba a bff-service).
+  #   - bff-service además crasheaba (SIGSEGV en nest start --watch).
+  # Para reactivar temporalmente (NO recomendado): quitar los `#` del bloque.
+  # ═══════════════════════════════════════════════════════════════════════════
 
-  bff-service:
-    build:
-      context: ./bff-service
-      target: development
-      dockerfile: Dockerfile
-    container_name: bff-service
-    restart: always
-    ports:
-      - "3001:3001"
-    env_file:
-      - ./bff-service/bffService.env
-    environment:
-      - SERVER_PORT=3001
-      - USER_SERVICE_URL=http://user-service:3002
-    volumes:
-      - ./bff-service:/app
-      - /app/node_modules
-    depends_on:
-      user-service:
-        condition: service_healthy
-    networks:
-      - webnet
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command: npm run dev
-    healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+  # user-service (DEPRECADO — SPEC-001):
+  # user-service:
+  #   build:
+  #     context: ./user-service
+  #     target: development
+  #     dockerfile: Dockerfile
+  #   container_name: user-service
+  #   restart: always
+  #   ports:
+  #     - "3002:3002"
+  #   env_file:
+  #     - ./user-service/userService.env
+  #   volumes:
+  #     - ./user-service:/app
+  #     - /app/node_modules
+  #   depends_on:
+  #     mongo:
+  #       condition: service_healthy
+  #   networks:
+  #     - webnet
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   command: npm run dev
+  #   healthcheck:
+  #     test: wget --no-verbose --tries=1 --spider http://localhost:3002/health || exit 1
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   environment:
+  #     - SERVER_PORT=3002
+
+  # bff-service (DEPRECADO — SPEC-001/SPEC-003):
+  # bff-service:
+  #   build:
+  #     context: ./bff-service
+  #     target: development
+  #     dockerfile: Dockerfile
+  #   container_name: bff-service
+  #   restart: always
+  #   ports:
+  #     - "3001:3001"
+  #   env_file:
+  #     - ./bff-service/bffService.env
+  #   environment:
+  #     - SERVER_PORT=3001
+  #     - USER_SERVICE_URL=http://user-service:3002
+  #   volumes:
+  #     - ./bff-service:/app
+  #     - /app/node_modules
+  #   depends_on:
+  #     user-service:
+  #       condition: service_healthy
+  #   networks:
+  #     - webnet
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   command: npm run dev
+  #   healthcheck:
+  #     test: wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
 
   qr-app:
     build:
@@ -162,7 +173,9 @@ services:
       - /app/node_modules
       - /app/.next
     depends_on:
-      bff-service:
+      # SPEC-001/005: antes esperaba a bff-service (deprecado). Ahora espera al
+      # backend real (el frontend reenvía a backend-portaqr:3004 vía API routes).
+      backend-portaqr:
         condition: service_healthy
     networks:
       - webnet
@@ -176,37 +189,38 @@ services:
       retries: 3
       start_period: 40s
 
-  qr-service:
-    build:
-      context: ./qr-service
-      target: development
-      dockerfile: Dockerfile
-    container_name: qr-service
-    restart: always
-    ports:
-      - "3003:3003"
-    env_file:
-      - ./qr-service/qrService.env
-    environment:
-      - SERVER_PORT=3003
-      - USER_SERVICE_URL=http://user-service:3002
-    volumes:
-      - ./qr-service:/app
-      - /app/node_modules
-    depends_on:
-      user-service:
-        condition: service_healthy
-    networks:
-      - webnet
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command: npm run dev
-    healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:3003/health || exit 1
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+  # qr-service (DEPRECADO — SPEC-001):
+  # qr-service:
+  #   build:
+  #     context: ./qr-service
+  #     target: development
+  #     dockerfile: Dockerfile
+  #   container_name: qr-service
+  #   restart: always
+  #   ports:
+  #     - "3003:3003"
+  #   env_file:
+  #     - ./qr-service/qrService.env
+  #   environment:
+  #     - SERVER_PORT=3003
+  #     - USER_SERVICE_URL=http://user-service:3002
+  #   volumes:
+  #     - ./qr-service:/app
+  #     - /app/node_modules
+  #   depends_on:
+  #     user-service:
+  #       condition: service_healthy
+  #   networks:
+  #     - webnet
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   command: npm run dev
+  #   healthcheck:
+  #     test: wget --no-verbose --tries=1 --spider http://localhost:3003/health || exit 1
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
 
 networks:
   webnet:
