@@ -14,8 +14,8 @@ tags:
   - pdf
   - ghostscript
   - sanitizacion
-status: borrador
-revision: 2026-08-09
+status: implementado
+revision: 2026-08-11
 aliases:
   - SPEC-005
   - PDF QR Multilink
@@ -26,12 +26,12 @@ aliases:
 # SPEC-005: PDF adjunto por item para QR Multilink (Cloudflare R2 + Ghostscript)
 
 > [!abstract] Decisión clave
-> Permitir que cada item del array `data.urlList[]` de un QR multilink (`typeQr: 'list'`) sea de **tipo PDF** (`typeUrl: 'pdf'`) con un archivo adjunto. El navegador sube el PDF al backend (**multipart/form-data**); el backend lo **sanitiza con Ghostscript** (`gs -dPDFSETTINGS=/screen -dCompatibilityLevel=1.7`) — eliminando JavaScript embebido, acciones automáticas (`/OpenAction`, `/AA`), metadata de autor/creador, embedded files y re-comprimiendo a 72 DPI — y lo sube a **Cloudflare R2** con key `qr-multilink-pdf/{idQr}-{itemId}.pdf`. Solo la URL pública final se persiste en el campo `documentUrl` del item de `urlList`. La página pública `portaqr.cl/qr/{idQr}` renderiza el item como un **botón ancla** (`<a>`) con color distintivo que descarga/abre el PDF. El dashboard permite subir, descargar y eliminar el PDF (el eliminado borra el objeto R2). Límite: **2 MB** por archivo, **`MAX_PDF_ITEMS_PER_QR`** items PDF por QR (configurable vía env, default 5).
+> Permitir que cada item del array `data.urlList[]` de un QR multilink (`typeQr: 'list'`) sea de **tipo PDF** (`typeUrl: 'pdf'`) con un archivo adjunto. El navegador sube el PDF al backend (**multipart/form-data**); el backend lo **sanitiza con Ghostscript** (`gs -dPDFSETTINGS=/screen -dCompatibilityLevel=1.7`) — eliminando JavaScript embebido, acciones automáticas (`/OpenAction`, `/AA`), metadata de autor/creador, embedded files y re-comprimiendo a 72 DPI — y lo sube a **Cloudflare R2** con key `qr-multilink-pdf/{idQr}-{itemId}.pdf`. Solo la URL pública final se persiste en el campo `documentUrl` del item de `urlList`. La página pública `portaqr.cl/qr/{idQr}` renderiza el item como un **botón ancla** (`<a>`) con color distintivo que descarga/abre el PDF. El dashboard permite subir, descargar y eliminar el PDF (el eliminado borra el objeto R2). Límite: **2 MB** por archivo, **`MAX_PDF_ITEMS_PER_QR`** items PDF por QR (configurable vía env, default 2).
 
 > [!info] Metadatos
-> - **Estado:** Borrador — **validado arquitectónicamente el 2026-08-09** (aún NO implementada; pendiente de desarrollo)
+> - **Estado:** Implementado el **2026-08-11** (tareas T-005-00..15 cerradas; suite backend 138 suites/1015 tests verdes; E2E escritos — pendiente re-ejecutar con backend-portaqr levantado)
 > - **Fecha:** 2026-08-07
-> - **Revisión:** 2026-08-09 — validación contra el código tras SPEC-004, SPEC-004-B y SPEC-006..011 (paths/nombres actualizados, huecos cerrados — ver [[#14 Historial de cambios]])
+> - **Revisión:** 2026-08-11 — validación contra el código + correcciones menores (límite PDFs default 2, claves R2 ya existentes, RF-13 paso 5, label fijo — ver [[#14 Historial de cambios]])
 > - **Autor:** Equipo Plataforma QR
 > - **Componentes afectados:** `backend-portaqr/` (puerto 3004 en docker-compose), `qr-app/` (puerto 3000)
 > - **Alcance:** Solo QR tipo `list` (multilink). No aplica a `dynamic`, `static`, `whatsapp`, `email`, `call`, `wifi`, `texto`, `vcard`, `pet`, `phone`, `map`.
@@ -54,7 +54,7 @@ aliases:
 Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF** dentro de su `data.urlList[]` — además de los items de URL/redes sociales/vCard ya existentes y de la imagen de portada (`listImageUrl` de SPEC-002). Cada item PDF se renderiza en la landing pública como un **botón ancla** que descarga/abre el archivo sanitizado.
 
 > [!info] Cardinalidad: items PDF configurables por QR
-> Cada QR multilink puede tener **0 a N items PDF** dentro de `urlList[]`, donde N es configurable vía `MAX_PDF_ITEMS_PER_QR` (default 5). Cada item PDF tiene exactamente **1 archivo PDF** persistido en `documentUrl`. Reemplazar el PDF sobrescribe el mismo objeto R2 (mismo `key`). Eliminar el item PDF lo borra de R2 y del array.
+> Cada QR multilink puede tener **0 a N items PDF** dentro de `urlList[]`, donde N es configurable vía `MAX_PDF_ITEMS_PER_QR` (default 2). Cada item PDF tiene exactamente **1 archivo PDF** persistido en `documentUrl`. Reemplazar el PDF sobrescribe el mismo objeto R2 (mismo `key`). Eliminar el item PDF lo borra de R2 y del array.
 
 ### 1.1 Beneficios buscados
 
@@ -103,7 +103,7 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
   - `typeUrl` es red social / `web` / `email` / `teléfono` / `whatsapp` / `google maps` → exige `url`, prohíbe `documentUrl` y `vcard`.
   - `typeUrl === 'vcard'` → exige `vcard`, prohíbe `url` y `documentUrl`.
 
-- **RF-5**. **Límite de items PDF por QR**: máximo `MAX_PDF_ITEMS_PER_QR` items con `typeUrl: 'pdf'` por QR (env var, default `5`). El backend valida en **dos puntos**:
+- **RF-5**. **Límite de items PDF por QR**: máximo `MAX_PDF_ITEMS_PER_QR` items con `typeUrl: 'pdf'` por QR (env var, default `2`). El backend valida en **dos puntos**:
   - (a) **En el validador del schema** `case 'list'` (§4.1.3): al persistir por `POST /qr` o `PATCH /qr/{id}`, si el `urlList` resultante tiene más items PDF que el límite → `400 Bad Request`. Esto cubre el caso de PATCH directo (frontend manipulado o edición que agrega items PDF sin subir archivo).
   - (b) **En `POST /qr/list-pdf`** (§4.1.5 paso 2): antes de sanitizar/subir, si el item es nuevo y el conteo actual ya alcanzó el límite → `400 Bad Request` (no sube nada a R2).
   - El frontend usa el mismo env var (expuesto vía `NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR`) para bloquear la UI al alcanzar el límite.
@@ -200,10 +200,10 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
 
 - **RF-14**. La URL pública `documentUrl` se compone de `CLOUDFLARE_R2_PUBLIC_URL` + key (ver RF-11).
 
-- **RF-15**. **Eliminación de item PDF**: al hacer `PATCH /qr/{idQr}` (frontend) → `PATCH /qr/{idQr}` (backend) con un `urlList` que ya no incluye el item PDF (o lo incluye sin `documentUrl`), el backend:
+- **RF-15**. **Eliminación de item PDF**: al hacer `PATCH /qr/{idQr}` (frontend) → `PATCH /qr/{idQr}` (backend) con un `urlList` que ya no incluye el item PDF, el backend:
   - **Borra el objeto R2** del item eliminado vía `DeleteObjectCommand` — el PDF se elimina también del storage, no solo de MongoDB.
   - Persiste el `urlList` actualizado en MongoDB.
-  - Si `DeleteObjectCommand` falla (red, no existe, etc.), se registra `ERROR` log (`r2_failed_delete`) pero **no aborta** el `PATCH` (la URL queda sin referencia en Mongo y el objeto R2 queda huérfano — lifecycle rule §6.4 lo limpiará).
+  - Si `DeleteObjectCommand` falla (red, no existe, etc.), se registra `ERROR` log (`r2_failed_delete`) pero **no aborta** el `PATCH` (la URL queda sin referencia en Mongo y el objeto R2 queda huérfano — lifecycle rule §6.3 lo limpiará).
 
 - **RF-16**. **Reemplazo de PDF**: el endpoint `POST /qr/list-pdf` (vía `/api/qr/list-pdf`) puede invocarse nuevamente con un nuevo `file` para el mismo `{idQr, itemId}`; retorna nueva `documentUrl` (sobrescribe el mismo objeto R2, mismo `key`). El controller `PATCH /qr/:id` (§4.1.6) al recibir un `documentUrl` distinto al actual para el mismo `itemId`, borra el objeto R2 anterior de forma **mejor esfuerzo** (log si falla, no abortar).
 
@@ -214,7 +214,7 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
   - Al seleccionar archivo: validar tipo/tamaño en cliente (≤2 MB; si no es PDF → error inmediato).
   - Se genera un `itemId` (UUID v4) para el item.
   - El upload real se dispara en el `handleSubmit` de `CreateQrForm` después de crear el QR y obtener `idQr` (mismo patrón que SPEC-002 §4.2.3). Si falla la subida → el QR queda creado sin el PDF y se muestra toast de warning (se puede agregar después desde editar).
-  - El `name` textual del item (etiqueta del botón) es opcional; si no se provee, se usa el nombre del archivo.
+  - El label del botón es **fijo** ("Descargar PDF"): el modelo del item NO persiste el nombre del archivo (solo `documentUrl`). El nombre del archivo seleccionado solo se muestra en sesión (antes de persistir) — corrección 2026-08-11 (el borrador original mencionaba "name textual del item" que no tiene campo en el modelo).
 
 - **RF-18**. **Editar QR multilink** (`/dashboard/qr/edit/[id]`): mismo bloque, pero:
   - Si el item PDF ya tiene `documentUrl` (ya subido), se muestra un **botón ancla** `<a href={documentUrl} download>` con el nombre del archivo y un botón "Eliminar" (trash icon) que quita el item del array (dispara `PATCH` con `urlList` sin el item → backend borra R2).
@@ -226,7 +226,7 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
   - `target="_blank"` (abre en nueva pestaña) o `download` (descarga directa) — decisión: `target="_blank"` + `rel="noopener noreferrer"` para que el visor nativo del navegador lo abra.
   - **Color distintivo**: `bg-rose-600 hover:bg-rose-700` (revisión 2026-08-09: el `bg-red-600` original colisionaba con `google maps` — ver §4.2.5).
   - **Icono**: `pdf` (entrada `FileText` de lucide-react agregada al mapa de `@/components/icon`).
-  - **Label**: el nombre del archivo o una etiqueta personalizada.
+  - **Label**: fijo **"Descargar PDF"** (corrección 2026-08-11: el modelo no persiste el nombre del archivo — ver RF-17).
   - Si `documentUrl` no existe (item PDF sin archivo subido), el item **no se renderiza** en la página pública (no se muestra botón roto).
 
   > [!note] Sin fallback
@@ -237,7 +237,7 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
 ### 2.2 Criterios de aceptación (CA)
 
 - **CA-01**. Un usuario autenticado puede crear un QR `list` SIN items PDF y el flujo funciona exactamente igual que hoy (sin regresión).
-- **CA-02**. Un usuario autenticado puede crear un QR `list` CON un item PDF: el PDF se sube a R2, la URL queda persistida en `documentUrl` del item, y la página pública `/qr/[id]` muestra un botón ancla rojo que abre el PDF.
+- **CA-02**. Un usuario autenticado puede crear un QR `list` CON un item PDF: el PDF se sube a R2, la URL queda persistida en `documentUrl` del item, y la página pública `/qr/[id]` muestra un botón ancla rosa (`bg-rose-600`) que abre el PDF.
 - **CA-03**. El usuario puede editar un QR `list` existente y agregar un nuevo item PDF: una nueva subida persiste la URL en el item correspondiente.
 - **CA-04**. El usuario puede editar un QR `list` existente y **reemplazar** el PDF de un item: una nueva subida con el mismo `{idQr, itemId}` sobrescribe el objeto R2 (mismo `key`) y actualiza `documentUrl`.
 - **CA-05**. El usuario puede **eliminar** un item PDF de un QR `list` existente: el `PATCH` con `urlList` sin el item limpia el campo en MongoDB **y borra el objeto correspondiente del bucket R2** (verificar `DeleteObjectCommand` fue invocado con el `key` correcto). La página pública ya no muestra el botón y la URL R2 devuelve `404` tras el borrado.
@@ -245,7 +245,7 @@ Permitir que cada QR **multilink** (`typeQr: 'list'`) tenga items de tipo **PDF*
 - **CA-07**. Intentar subir un archivo de tamaño > 2 MB recibe `413 Payload Too Large` (frontend en UI; backend en multer `limits.fileSize`) antes de tocar R2. Un archivo con formato no PDF (p. ej. `.docx`, `.exe`) recibe `415 Unsupported Media Type`.
 - **CA-08**. Un binario que Ghostscript no puede procesar (PDF corrupto, falseado, o con estructura inválida) recibe `422 Unprocessable PDF` y **no se persiste ni se sube nada** a R2.
 - **CA-09**. La validación del schema (exclusividad por `typeQr` y por tipo de item) sigue pasando: un item con `typeUrl: 'pdf'` solo se persiste si tiene `documentUrl` y no tiene `url` ni `vcard`; un item con `url` no puede tener `documentUrl`.
-- **CA-10**. Si el `urlList` resultante tiene más items PDF que `MAX_PDF_ITEMS_PER_QR` (default 5), el backend responde `400 Bad Request` — tanto al persistir (`POST /qr`, `PATCH /qr/{id}` vía validador del schema) como en `POST /qr/list-pdf` antes de tocar R2 — y el frontend bloquea la UI al alcanzar el límite.
+- **CA-10**. Si el `urlList` resultante tiene más items PDF que `MAX_PDF_ITEMS_PER_QR` (default 2), el backend responde `400 Bad Request` — tanto al persistir (`POST /qr`, `PATCH /qr/{id}` vía validador del schema) como en `POST /qr/list-pdf` antes de tocar R2 — y el frontend bloquea la UI al alcanzar el límite.
 - **CA-11**. El PDF sanitizado con Ghostscript **no contiene JavaScript embebido** (verificar con `pdfinfo` o parser que `/JS` y `/JavaScript` no existen en el árbol de nombres).
 - **CA-12**. El PDF sanitizado con Ghostscript **no contiene metadata de autor/creador** (verificar que `/Author`, `/Creator`, `/Producer` están vacíos o ausentes).
 - **CA-13**. El PDF sanitizado con Ghostscript **no contiene acciones automáticas** (verificar que `/OpenAction` y `/AA` no existen en el catálogo).
@@ -438,10 +438,10 @@ case 'list': {
       if (!item.url || item.vcard || item.documentUrl) return false;
     }
   }
-  // RF-5: límite de items PDF por QR (env MAX_PDF_ITEMS_PER_QR, default 5).
+  // RF-5: límite de items PDF por QR (env MAX_PDF_ITEMS_PER_QR, default 2).
   // El validator es síncrono: leer process.env directo (misma técnica que el controller).
   const maxPdfItems = Number.parseInt(process.env.MAX_PDF_ITEMS_PER_QR ?? '', 10);
-  const limit = Number.isFinite(maxPdfItems) && maxPdfItems > 0 ? maxPdfItems : 5;
+  const limit = Number.isFinite(maxPdfItems) && maxPdfItems > 0 ? maxPdfItems : 2;
   if (pdfCount > limit) return false;
   // Exclusividad a nivel de QR (sin cambios)
   return !value.url && !value.whatsappUrl && !value.emailUrl && !value.phoneUrl
@@ -601,7 +601,7 @@ function getListPdfMaxUploadSize(): number {
 function getMaxPdfItemsPerQr(): number {
   const raw = process.env.MAX_PDF_ITEMS_PER_QR;
   const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
 }
 
 @Post('list-pdf')
@@ -615,7 +615,7 @@ function getMaxPdfItemsPerQr(): number {
     properties: {
       idQr: { type: 'string', description: 'UUID v4 del QR (typeQr: list)' },
       itemId: { type: 'string', description: 'Identificador único del item dentro de urlList[]' },
-      file: { type: 'string', format: 'binary', description: 'PDF (application/pdf, máx 2MB)' },
+      file: { type: 'string', format: 'binary', description: 'PDF (application/pdf, máx PDF_MAX_UPLOAD_SIZE default 2 MB)' },
     },
   },
 })
@@ -623,7 +623,7 @@ function getMaxPdfItemsPerQr(): number {
 @ApiResponse({ status: 200, description: 'PDF subido. Retorna { documentUrl, size, itemId }' })
 @ApiResponse({ status: 403, description: 'Prohibido - no es el propietario' })
 @ApiResponse({ status: 400, description: 'El QR no es de tipo list, falta idQr/itemId, o límite excedido' })
-@ApiResponse({ status: 413, description: 'Archivo mayor a 2 MB' })
+@ApiResponse({ status: 413, description: 'Archivo mayor al límite configurado (PDF_MAX_UPLOAD_SIZE, default 2 MB)' })
 @ApiResponse({ status: 415, description: 'Formato no soportado (solo application/pdf)' })
 @ApiResponse({ status: 422, description: 'El PDF no se pudo procesar (corrupto)' })
 @UseInterceptors(
@@ -671,10 +671,16 @@ async uploadListPdf(
     throw new BadRequestException('Solo los QRs multilink (list) admiten items PDF');
   }
 
-  // 2. Validar límite MAX_PDF_ITEMS_PER_QR (RF-5)
+  // 2. Validar límite MAX_PDF_ITEMS_PER_QR (RF-5) y tipo del item (RF-13 paso 5)
   const urlList = qr.data?.urlList ?? [];
   const existingItem = urlList.find((it) => it.itemId === itemId);
   const isReplacement = !!existingItem;
+  if (existingItem && existingItem.typeUrl !== 'pdf') {
+    // RF-13 paso 5 (corrección 2026-08-11): si el itemId existe pero NO es tipo PDF,
+    // rechazar ANTES de sanitizar/subir — evita subir a R2 y luego fallar el PATCH
+    // por el validador de exclusividad (objeto R2 huérfano + 400 confuso).
+    throw new BadRequestException('El item indicado no es de tipo PDF');
+  }
   if (!isReplacement) {
     const pdfCount = urlList.filter((it) => it.typeUrl === 'pdf').length;
     if (pdfCount >= getMaxPdfItemsPerQr()) {
@@ -902,7 +908,7 @@ interface ListPdfUploaderProps {
   idQr?: string;            // undefined en CreateQrForm (aún no existe QR)
   itemId: string;           // identificador del item (generado por el form)
   currentPdfUrl?: string | null;
-  fileName?: string;        // nombre del archivo actual (para mostrar en el botón)
+  fileName?: string;        // nombre del archivo actual SOLO en-sesión (no se persiste — ver RF-17/RF-19)
   onChange: (url: string | null) => void;
   onFileSelected?: (file: File | null) => void;  // para el flujo de creación
   onError: (msg: string) => void;
@@ -910,7 +916,7 @@ interface ListPdfUploaderProps {
 ```
 
 Renderiza:
-- Si `currentPdfUrl` existe: **botón ancla** `<a href={currentPdfUrl} target="_blank" rel="noopener noreferrer">` con icono `pdf` (del mapa de `@/components/icon`) y nombre del archivo + botón "Eliminar" (trash icon) → `onChange(null)`.
+- Si `currentPdfUrl` existe: **botón ancla** `<a href={currentPdfUrl} target="_blank" rel="noopener noreferrer">` con icono `pdf` (del mapa de `@/components/icon`) y el nombre del archivo (solo en-sesión) o el label fijo "Descargar PDF" + botón "Eliminar" (trash icon) → `onChange(null)`.
 - Si no existe: drop zone con `Input type="file" accept="application/pdf,.pdf"`.
 - Al seleccionar archivo:
   1. Validar tipo/tamaño en cliente (≤2 MB; si no es PDF → `onError` inmediato).
@@ -925,10 +931,10 @@ Renderiza:
 > - `CreateQrForm.tsx` fue refactorizado (SPEC-004): el estado/`handleSubmit` viven en `CreateQrForm.state.ts` y la lógica pura en `CreateQrForm.helpers.ts`. El flujo de subida de PDFs pendientes se integra en el submit del **state** (o se expone como callback desde el componente).
 > - `ListUrlForm.tsx` fue dividido (SPEC-004-B): la **fila** es ahora `ListUrlRow.tsx` (Select de tipo + input + trash + drag) y la **lógica pura** está en `ListUrlForm.helpers.ts` (`ListUrlRow` type, `socialTypes`, `detectUrlType`, `formatUrl`, `buildUrlList`). El `Select` de tipos itera `socialTypes` (= `socialConst` de `constants/social.const.ts`).
 
-> [!warning] Secuencia en creación
+> [!warning] Secuencia en creación (implementación 2026-08-11 — flujo corregido)
 > En el flujo de **crear nuevo QR**, el `idQr` se genera en el cliente (UUID v4). **El QR se crea PRIMERO y los PDFs se suben DESPUÉS** (el endpoint `POST /qr/list-pdf` valida que el QR exista). Flujo:
-> 1. `handleSubmit` (en `CreateQrForm.state.ts`): `createQr({ ..., data: { ..., urlList: [...], typeQr: 'list' } })`. Los items PDF en el `urlList` se envían con `documentUrl: null` (aún sin archivo).
-> 2. Por cada item PDF pendiente → `uploadListPdf(idQr, itemId, file, onProgress)` → el endpoint persiste la URL.
+> 1. `handleSubmit` (en `CreateQrForm.tsx`): `createQr({ ..., data: { ..., urlList: [...], typeQr: 'list' } })`. **Los items PDF SIN `documentUrl` NO se envían en el `urlList` inicial** (corrección 2026-08-11: `buildUrlList` los excluye porque el validador del schema rechaza `pdf` sin `documentUrl` — el borrador original decía "se envían con documentUrl: null", lo que rompía el POST /qr con 400).
+> 2. Por cada item PDF pendiente (ref `pendingPdfFilesRef` keyed por `itemId`) → `uploadListPdf(idQr, itemId, file, onProgress)` → el endpoint **agrega el item** al `urlList` con su `documentUrl` real (append en el controller).
 > 3. Si falla alguna subida → el QR queda creado sin ese PDF y se muestra toast de warning (se puede agregar después desde editar).
 
 Cambios concretos:
@@ -966,7 +972,7 @@ export interface ListUrlRow {
 export const buildUrlList = (currentRows: ListUrlRow[]): ListUrlData[] => {
   const validRows = currentRows.filter(row => {
     if (row.type === 'vcard') return row.vcard;
-    if (row.type === 'pdf') return true;            // ⬅ NUEVO: se conserva aunque no tenga url aún
+    if (row.type === 'pdf') return !!row.documentUrl;  // ⬅ NUEVO (implementación 2026-08-11): el item PDF sin documentUrl se EXCLUYE — el validador del schema rechaza pdf sin URL; el endpoint list-pdf agrega el item tras la subida
     if (row.type === 'web' || row.type === 'blog') return true;
     return row.type && row.url;
   });
@@ -1155,12 +1161,12 @@ export interface UrlListItem {
 
 ### 5.1 Backend `backend-portaqr/.env`
 
-> [!warning] Revisión 2026-08-09 — las claves R2 NO están configuradas localmente
-> Verificado: `backendPortaqr.env`, `.env` y `.env.example` **no contienen ninguna variable `CLOUDFLARE_R2_*`** (SPEC-002 las usó probablemente solo en Railway/producción). Para que esta spec (y los uploads de SPEC-002) funcionen en el entorno local, **esta spec debe agregarlas también** — no darlas por existentes.
+> [!warning] Revisión 2026-08-11 — las claves R2 YA están configuradas localmente
+> Verificado 2026-08-11: `backendPortaqr.env`, `.env` y `.env.example` **ya contienen las variables `CLOUDFLARE_R2_*` completas** (valores reales en dev, placeholders en el example). Esta spec solo necesita agregar `PDF_MAX_UPLOAD_SIZE` y `MAX_PDF_ITEMS_PER_QR` (T-005-00).
 
 ```env
 # ───────── Cloudflare R2 (compartido con SPEC-002) ─────────
-# ⚠️ SPEC-002 las referenció pero NO las dejó en el .env local — agregar aquí:
+# ✅ Ya configuradas en .env / backendPortaqr.env / .env.example (verificado 2026-08-11):
 CLOUDFLARE_R2_ACCESS_KEY_ID=tu_access_key
 CLOUDFLARE_R2_SECRET_ACCESS_KEY=tu_secret_key
 CLOUDFLARE_R2_ENDPOINT=https://<accountid>.r2.cloudflarestorage.com
@@ -1171,17 +1177,17 @@ CLOUDFLARE_R2_MAX_UPLOAD_SIZE=5242880   # 5 MB (SPEC-002, default)
 # ───────── SPEC-005: PDFs ─────────
 # Límite de tamaño del PDF de entrada en bytes (default 2 MB)
 PDF_MAX_UPLOAD_SIZE=2097152
-# Máximo de items PDF por QR multilink (default 5)
-MAX_PDF_ITEMS_PER_QR=5
+# Máximo de items PDF por QR multilink (default 2)
+MAX_PDF_ITEMS_PER_QR=2
 ```
 
-Actualizar `backend-portaqr/.env`, `backend-portaqr/backendPortaqr.env` (env_file del compose) y `.env.example` con estas claves (valores placeholder en el example).
+Actualizar `backend-portaqr/.env`, `backend-portaqr/backendPortaqr.env` (env_file del compose) y `.env.example` con las claves de PDFs (las `CLOUDFLARE_R2_*` ya existen — valores placeholder en el example).
 
 ### 5.2 Frontend `qr-app/.env.local`
 
 ```env
 # SPEC-005: límite de items PDF por QR (debe coincidir con el backend)
-NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR=5
+NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR=2
 ```
 
 > [!note] Sincronización de límites
@@ -1193,7 +1199,7 @@ El servicio `backend-portaqr` ya carga sus variables vía `env_file: ./backend-p
 
 ```env
 PDF_MAX_UPLOAD_SIZE=2097152
-MAX_PDF_ITEMS_PER_QR=5
+MAX_PDF_ITEMS_PER_QR=2
 ```
 
 > [!note] En producción (Railway)
@@ -1253,7 +1259,7 @@ SPEC-002 ya configuró el bucket `portaqr-assets` y las credenciales. SPEC-005 r
 
 | ID | Tarea | Capa | Estimación |
 | --- | --- | --- | --- |
-| T-005-00 | Crear `docs/tareas/SPEC-005-tareas.json` + configurar env local: claves `CLOUDFLARE_R2_*` (faltan en `.env`/`backendPortaqr.env`/`.env.example`), `PDF_MAX_UPLOAD_SIZE`, `MAX_PDF_ITEMS_PER_QR`, `NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR` | Infra | 0.25d |
+| T-005-00 | Crear `docs/tareas/SPEC-005-tareas.json` + configurar env local: `PDF_MAX_UPLOAD_SIZE`, `MAX_PDF_ITEMS_PER_QR`, `NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR` (las claves `CLOUDFLARE_R2_*` ya existen — verificado 2026-08-11) | Infra | 0.25d |
 | T-005-01 | Instalar `ghostscript` en Dockerfile del backend (etapas `development` y `production` — multi-stage `node:20-alpine`) + verificar `gs --version` | Infra | 0.25d |
 | T-005-02 | `PdfSanitizerService` (spawn gs) + tests unitarios (mock spawn) | Backend | 0.5d |
 | T-005-03 | Extender `StorageService.uploadPdf` + `extractKeyFromUrl` para `qr-multilink-pdf/` | Backend | 0.25d |
@@ -1289,6 +1295,7 @@ SPEC-002 ya configuró el bucket `portaqr-assets` y las credenciales. SPEC-005 r
   - 403 si `userId` no coincide y no es admin.
   - 400 si `typeQr !== 'list'`.
   - 400 si excede `MAX_PDF_ITEMS_PER_QR`.
+  - 400 si el `itemId` corresponde a un item existente que NO es `typeUrl: 'pdf'` (corrección 2026-08-11 — RF-13 paso 5).
   - 413 si el archivo excede 2 MB.
   - 415 si MIME no es `application/pdf`.
   - 422 si gs no puede procesar el PDF (mock que lanza `UnprocessableEntityException`).
@@ -1303,13 +1310,13 @@ SPEC-002 ya configuró el bucket `portaqr-assets` y las credenciales. SPEC-005 r
   - extensión no PDF → `onError`.
   - botón "Eliminar" → `onChange(null)`.
   - error de red / 413 / 415 / 422 del backend → `onError` y `onChange` no se llama.
-- **`buildUrlList`** (`ListUrlForm.helpers.ts`): una row `{ type: 'pdf', itemId, documentUrl: null }` **no es filtrada** y emite `{ itemId, typeUrl: 'pdf', documentUrl: null }` sin `url`; las rows url/vcard existentes no cambian su salida (regresión).
+- **`buildUrlList`** (`ListUrlForm.helpers.ts`): una row `{ type: 'pdf', itemId, documentUrl: null }` **es filtrada** (excluida del payload — corrección de implementación 2026-08-11: el validador del schema rechaza `pdf` sin `documentUrl`, así que el PDF se sube después vía `POST /qr/list-pdf` que agrega el item; el caso `{ type: 'pdf', itemId, documentUrl: '<url>' }` emite `{ itemId, typeUrl: 'pdf', documentUrl }` sin `url`); las rows url/vcard existentes no cambian su salida (regresión).
 - **API route `/api/qr/list-pdf`**: 401 sin cookie válida; reenvía FormData al backend y propaga status/errores.
 - **`UrlList`** renderiza botón ancla `bg-rose-600` solo si `typeUrl === 'pdf'` y `documentUrl` existe; si `documentUrl` no existe, el item no se renderiza; la key usa `itemId` si existe.
 
 ### 8.3 E2E (Playwright, `e2e-tests-portaqr/`)
 
-- Flujo crear QR multilink CON item PDF → verificar URL pública incluye el botón ancla rojo (mock del endpoint `/api/qr/list-pdf` con interceptor).
+- Flujo crear QR multilink CON item PDF → verificar URL pública incluye el botón ancla rosa (`bg-rose-600`) (mock del endpoint `/api/qr/list-pdf` con interceptor).
 - Flujo editar QR existente y eliminar item PDF → verificar `PATCH` body incluye `urlList` sin el item PDF.
 - **Test de sanitización real** (opcional, requiere gs real): subir un PDF con JavaScript embebido y metadata, descargar el PDF sanitizado de R2, verificar con `pdfinfo` que no tiene `/JS` ni `/Author`.
 
@@ -1325,14 +1332,14 @@ SPEC-002 ya configuró el bucket `portaqr-assets` y las credenciales. SPEC-005 r
 | Objetos R2 huérfanos (item eliminado sin borrar PDF viejo) | Media | Bajo | Controller `PATCH /qr/:id` borra al detectar eliminación (§4.1.6) + lifecycle rule §6.3 |
 | Fallo entre `PutObjectCommand` y el PATCH a Mongo (objeto subido sin URL persistida) | Baja | Bajo | Orden del flujo: primero R2, luego Mongo; si el PATCH falla queda objeto huérfano → lifecycle |
 | Latencia de gs (~1-3s por upload) bloquea el event loop | Media | Medio | gs corre en subprocess (no bloquea el event loop de Node); para alta concurrencia futuro: pool de procesos (§11.4) |
-| Abuso: usuario sube muchos PDFs (hasta el límite) repetidamente | Baja | Medio | `MAX_PDF_ITEMS_PER_QR` (default 5) + rate limit por usuario (futuro §11.5) |
+| Abuso: usuario sube muchos PDFs (hasta el límite) repetidamente | Baja | Medio | `MAX_PDF_ITEMS_PER_QR` (default 2) + rate limit por usuario (futuro §11.5) |
 | `itemId` colisiona entre items (si el frontend genera duplicados) | Baja | Bajo | UUID v4 evita colisiones; el backend valida unicidad al persistir |
 | Items existentes (pre-SPEC-005) sin `itemId` | Alta | Bajo | Mapper genera `itemId` al vuelo (`randomUUID()`) — no requiere migración masiva |
 | **`whitelist:true` de SPEC-008 elimina `itemId`/`documentUrl` en PATCH si no están en los DTOs** (revisión 2026-08-09) | Alta | Alto | Declarar ambos campos en `ListUrlData` (create-qr.dto) y `UrlListItem` (url-item.dto) — §4.1.2; test de integración PATCH con items PDF |
 | **`buildUrlList` filtra items sin `url` → el item PDF no llega al payload al crear** (revisión 2026-08-09) | Alta | Alto | Modificar el filtro y el tipo `ListUrlRow` (§4.2.3) + test unitario de `buildUrlList` |
 | **PATCH directo supera `MAX_PDF_ITEMS_PER_QR` sin validación** (revisión 2026-08-09) | Media | Medio | Validación del límite en el validador del schema `case 'list'` (§4.1.3) + test |
 | **`itemId`/`documentUrl` se pierden en el sync `urlList`→rows del form** (revisión 2026-08-09) | Media | Medio | Preservar campos en el `useEffect` de `ListUrlForm.tsx` (§4.2.3) |
-| **Env local sin claves `CLOUDFLARE_R2_*`** (revisión 2026-08-09) | Alta | Alto | T-005-00: agregar claves a `.env`/`backendPortaqr.env`/`.env.example` (§5.1) |
+| **Env de PDFs sin configurar (`PDF_MAX_UPLOAD_SIZE`/`MAX_PDF_ITEMS_PER_QR`)** (revisión 2026-08-11; las claves `CLOUDFLARE_R2_*` ya existen localmente) | Baja | Bajo | T-005-00: agregar las 3 claves de PDFs a `.env`/`backendPortaqr.env`/`.env.example` + `.env.local` (§5.1/§5.2) |
 
 ---
 
@@ -1398,7 +1405,7 @@ Agregar watermark con el `idQr` o logo de portaqr al PDF sanitizado (con `pdftk`
 | **Ghostscript (`gs`)** | Intérprete de PostScript/PDF, estándar de la industria. Re-renderiza el PDF descartando JS, acciones, metadata y re-comprimiendo. |
 | **R2** | Servicio de almacenamiento de objetos compatible con S3 de Cloudflare. Sin egress fees entre servicios de CF. |
 | **`idQr`** | UUID v4 generado en el cliente al crear el QR (ver `CreateQrDto.idQr`). |
-| **`MAX_PDF_ITEMS_PER_QR`** | Límite configurable (env var) de items PDF por QR multilink. Default 5. |
+| **`MAX_PDF_ITEMS_PER_QR`** | Límite configurable (env var) de items PDF por QR multilink. Default 2. |
 
 ---
 
@@ -1438,3 +1445,6 @@ Agregar watermark con el `idQr` o logo de portaqr al PDF sanitizado (con `pdftk`
 | :---------- | :----- | :---------- |
 | 2026-08-07 | Equipo | Borrador inicial. Modelo del item PDF en `urlList[]` (`typeUrl: 'pdf'` + `documentUrl`), sanitización con Ghostscript, key R2 `qr-multilink-pdf/{idQr}-{itemId}.pdf`, límites `PDF_MAX_UPLOAD_SIZE` (2 MB) y `MAX_PDF_ITEMS_PER_QR` (5), endpoint `POST /qr/list-pdf`, ADRs 005.1-005.3 |
 | 2026-08-09 | Equipo | **Validación arquitectónica post-desarrollo** (SPEC-004, SPEC-004-B, SPEC-006..011 implementadas; SPEC-005 NO implementada — sin código ni tareas). Actualizaciones: (1) paths/nombres frontend: `ListUrlForm` dividido (`ListUrlRow.tsx` + `ListUrlForm.helpers.ts`), edición en `EditQrForm.tsx`, creación en `CreateQrForm.state.ts`/`.helpers.ts`, tipos en `interfaces/qr.ts` (`ListUrlData` + `UrlListItem`, `qr.interface.ts` eliminado); (2) DTOs: clase real `ListUrlData` (no `QrUrlListItem`) + `UrlListItem` en `url-item.dto.ts`; (3) hueco RF-5/CA-10 cerrado: límite `MAX_PDF_ITEMS_PER_QR` también validado en el validador del schema `case 'list'` (cubre PATCH directo); (4) limpieza R2 de items PDF movida al **controller** `PATCH /qr/:id` (patrón SPEC-002, no `UpdateQrUseCase`); (5) compatibilidad `whitelist:true` de SPEC-008: `itemId`/`documentUrl` declarados en DTOs o serán eliminados; (6) `buildUrlList` modificado para no filtrar items PDF sin `url`; (7) preservación de `itemId`/`documentUrl` en el sync `urlList`→rows; (8) §5.1 corregido: claves `CLOUDFLARE_R2_*` NO existen en el `.env` local (T-005-00 las agrega); (9) §6.1: Dockerfile `node:20-alpine` multi-stage → gs en etapas `development` y `production`; (10) color botón PDF `bg-rose-600` (evita colisión con `google maps` `bg-red-500`); (11) icono `pdf` agregado al mapa de `@/components/icon`; (12) §4.1.7: mapper es pass-through de `data` (solo itemId al vuelo en `toEntity`); (13) plan de tareas T-005-00..15 actualizado (paths reales + estimaciones). Estado: **sigue `borrador`** — pendiente de desarrollo |
+| 2026-08-11 | Equipo | **Reducción del límite de items PDF por QR**: `MAX_PDF_ITEMS_PER_QR` cambia de default `5` a **default `2`** (máximo 2 PDFs por QR multilink, configurable vía env). Actualizado en: abstract (§resumen), §2.1 RF-5, CA-10, §4.1.3 (validador schema `case 'list'` — fallback `: 2`), §4.1.5 (`getMaxPdfItemsPerQr` — fallback `: 2`), §5.1/§5.2/§5.3 (valores de env `MAX_PDF_ITEMS_PER_QR=2` y `NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR=2`), §9 (riesgo abuso), §12 (glosario). Estado: **sigue `borrador`** — pendiente de desarrollo |
+| 2026-08-11 | Equipo | **Correcciones menores post-revisión contra el código** (verificación 2026-08-11): (1) §5.1: las claves `CLOUDFLARE_R2_*` **YA existen** en `.env`/`backendPortaqr.env`/`.env.example` — se corrige el warning, T-005-00 y la fila de riesgo §9 (solo faltan las 3 claves de PDFs); (2) RF-13 paso 5 implementado en el controller (§4.1.5): si el `itemId` existe pero no es `typeUrl: 'pdf'` → `400` ANTES de sanitizar/subir (evita objeto R2 huérfano) + test en §8.1; (3) RF-15: se elimina "(o lo incluye sin `documentUrl`)" — contradice RF-4 (validador rechaza PDF sin URL); (4) RF-15: referencia §6.4 → **§6.3** (lifecycle); (5) RF-17/RF-19/§4.2.2: label fijo **"Descargar PDF"** — el modelo no persiste el nombre del archivo (solo en-sesión); (6) cosméticos: CA-02 "rojo" → "rosa (`bg-rose-600`)", ApiResponse 413 y ApiBody con límite configurable `PDF_MAX_UPLOAD_SIZE`. Estado: **sigue `borrador`** — pendiente de desarrollo |
+| 2026-08-11 | Equipo | **IMPLEMENTADA** (T-005-00..15 cerradas). Desviaciones de implementación registradas: (1) **flujo de creación corregido**: `buildUrlList` filtra items PDF sin `documentUrl` (el validador del schema los rechaza) → el QR se crea sin items PDF y `POST /qr/list-pdf` hace **append** del item con `documentUrl` real (§4.2.3 actualizado, §8.2 corregido); (2) uploads pendientes en `CreateQrForm` iteran `pendingPdfFilesRef` keyed por `itemId` (no `state.urlList` — fix 2026-08-11 tras hallazgo E2E); (3) `try/catch` adicional alrededor de `deleteObject` en el bloque PATCH (§4.1.6, defensa en profundidad — el servicio ya no relanza); (4) `pdfSanitizer` inyectado al final del constructor del controller (no rompe mocks posicionales); (5) helper compartido `pdf-limits.helper.ts` (`getMaxPdfItemsPerQr`, fallback 2) usado por schema y controller; (6) T-005-13: `qr-app` no tiene framework de tests (Next 16.3/TS 6.0.3) → verificación estática + ejecución dinámica de `buildUrlList` (8/8 casos) — pendiente de runner (sugerencia: vitest con validación previa de compatibilidad TS 6); (7) T-005-14: E2E escritos (4 tests + fixture PDF + soporte pdf en `utils/db.ts`), compilan y listan; ejecución quedó **skipped** porque `backend-portaqr` estaba caído (Mongo reiniciado) — re-ejecutar con el contenedor sano; (8) cobertura backend: pdf-sanitizer 100%, storage 100% (branch 100%), helper 100%, schema 92.18%, controller ~74% (todas las líneas SPEC-005 cubiertas; el resto son endpoints preexistentes) — suite completa **138 suites / 1015 tests PASS**. Ramas: `feat/spec-005` en backend-portaqr, qr-app y e2e-tests-portaqr |

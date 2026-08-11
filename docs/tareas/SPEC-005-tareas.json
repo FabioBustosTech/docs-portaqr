@@ -1,0 +1,239 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-005] T-005-00: Crear tareas.json + configurar env de PDFs (Infra, 0.25d)",
+                      "description":  "Este archivo + configurar env local: PDF_MAX_UPLOAD_SIZE=2097152, MAX_PDF_ITEMS_PER_QR=2 en backend-portaqr/.env, backendPortaqr.env (env_file compose) y .env.example; NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR=2 en qr-app/.env.local. NOTA (verificado 2026-08-11): las claves CLOUDFLARE_R2_* YA existen en los 3 archivos â€” NO agregar.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-005] T-005-01: Instalar ghostscript en Dockerfile + verificar (Infra, 0.25d)",
+                      "description":  "backend-portaqr/Dockerfile (node:20-alpine multi-stage): RUN apk add --no-cache ghostscript en las etapas development y production (builder no lo necesita). Verificar en contenedor: gs --version (SPEC Â§6.1/Â§6.2).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-005] T-005-02: PdfSanitizerService (spawn gs) + tests unitarios (Backend, 0.5d)",
+                      "description":  "src/modules/storage/pdf-sanitizer.service.ts: wrapper de Ghostscript (args RF-8: -dPDFSTOPONERROR -dCompatibilityLevel=1.7 -dPDFSETTINGS=/screen -sDEVICE=pdfwrite -d*ImageResolution=72 -dEmbedAllFonts -dSubsetFonts -dDetectDuplicateImages -sOutputFile=- -), stdinâ†’stdout. Errores â†’ 422 UnprocessableEntityException. Tests unitarios mockeando child_process.spawn (SPEC Â§8.1): PDF vÃ¡lido â†’ buffer no vacÃ­o; exit code â‰  0 â†’ 422; spawn error â†’ 422 \u0027No se pudo ejecutar Ghostscript\u0027; buffer vacÃ­o â†’ 422.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-005] T-005-03: StorageService.uploadPdf + extractKeyFromUrl qr-multilink-pdf/ (Backend, 0.25d)",
+                      "description":  "storage.service.ts: mÃ©todo uploadPdf (key qr-multilink-pdf/{idQr}-{itemId}.pdf, ContentType application/pdf, CacheControl immutable, log r2_object_put) + extender extractKeyFromUrl para el prefijo qr-multilink-pdf/ (regex (qr-multilink(?:-pdf)?/[\\w-]+\\.(?:webp|pdf))$) (SPEC Â§4.1.4).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-005] T-005-04: Schema + DTOs + entity: itemId, documentUrl + validador lÃ­mite (Backend, 1d)",
+                      "description":  "(1) qr.entity.ts QrUrlListItem: + itemId?, documentUrl? (RF-1); (2) create-qr.dto.ts ListUrlData y url-item.dto.ts UrlListItem: declarar itemId y documentUrl (obligatorio por whitelist:true de SPEC-008 â€” si no se declaran se eliminan en PATCH); (3) qr.schema.ts: campos en urlList + validator case \u0027list\u0027 con exclusividad por item (pdf exige documentUrl, prohÃ­be url/vcard) y lÃ­mite MAX_PDF_ITEMS_PER_QR (process.env, fallback 2) â†’ pdfCount \u003e limit = invÃ¡lido (RF-4/RF-5, SPEC Â§4.1.2/Â§4.1.3).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-005] T-005-05: Endpoint POST /qr/list-pdf multipart (Backend, 1d)",
+                      "description":  "qr.controller.ts: POST /qr/list-pdf con FileInterceptor(\u0027file\u0027, memoryStorage, limits.fileSize=PDF_MAX_UPLOAD_SIZE default 2MB, fileFilter application/pdf). Flujo: verificar owner + typeQr===\u0027list\u0027; validar lÃ­mite MAX_PDF_ITEMS_PER_QR (item nuevo y pdfCount \u003e= limite â†’ 400); VALIDAR RF-13 paso 5 (correcciÃ³n 2026-08-11): si itemId existe pero typeUrl !== \u0027pdf\u0027 â†’ 400 ANTES de sanitizar/subir (evita R2 huÃ©rfano); sanitizar con PdfSanitizerService; uploadPdf a R2; updateQrUseCase persiste documentUrl en el item; retorna { documentUrl, size, itemId } (SPEC Â§4.1.5).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "3",
+                                           "4",
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-005] T-005-06: PATCH /qr/:id limpieza R2 + mapper itemId al vuelo (Backend, 0.5d)",
+                      "description":  "qr.controller.ts update: junto al bloque listImageUrl (patrÃ³n SPEC-002, ~lÃ­neas 410-425) â€” si typeQr===\u0027list\u0027 y urlList llega: borrar deleteObject de items PDF removidos del array y de documentUrl reemplazado por itemId (mejor esfuerzo, no abortar PATCH). qr-mongo.mapper.ts toEntity: itemId ?? randomUUID() al vuelo en cada item de urlList (no se persiste â€” SPEC Â§4.1.6/Â§4.1.7).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "8",
+                      "content":  "[SPEC-005] T-005-07: API route /api/qr/list-pdf + uploadListPdf en qr.service.ts (Frontend, 0.5d)",
+                      "description":  "src/app/api/qr/list-pdf/route.ts: patrÃ³n de list-image/route.ts (getAuthUser + getTokenFromCookie + x-tracking-id, FormData sin Content-Type manual, propaga status). qr.service.ts: uploadListPdf(idQr, itemId, file, onProgress) con XHR + FormData (idQr, itemId, file) â€” SPEC Â§4.2.1.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "6"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "9",
+                      "content":  "[SPEC-005] T-005-08: ListPdfUploader + integraciÃ³n form de lista (Frontend, 1.5d)",
+                      "description":  "components/qr/ListPdfUploader.tsx (props idQr/itemId/currentPdfUrl/fileName-solo-en-sesiÃ³n/onChange/onFileSelected/onError, validaciÃ³n tipo y â‰¤2MB en cliente, progreso). Integrar: social.const.ts entrada { id:\u0027pdf\u0027, name:\u0027PDF\u0027, pattern:/^$/i } + icono pdf en components/icon; ListUrlRow.tsx input file condicional; ListUrlForm.helpers.ts tipo ListUrlRow (+itemId/documentUrl/pdfFile) y buildUrlList sin filtrar pdf ({ itemId, typeUrl:\u0027pdf\u0027, documentUrl }); ListUrlForm.tsx handleTypeChange genera itemId (crypto.randomUUID) y useEffect preserva itemId/documentUrl en el sync; BLOQUEO UI al alcanzar NEXT_PUBLIC_MAX_PDF_ITEMS_PER_QR (RF-5/CA-10). Label de botÃ³n fijo \u0027Descargar PDF\u0027 (el modelo no persiste nombre de archivo â€” correcciÃ³n 2026-08-11).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "8"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "10",
+                      "content":  "[SPEC-005] T-005-09: Integrar en EditQrForm + CreateQrForm (Frontend, 0.75d)",
+                      "description":  "dashboard/qr/edit/[id]/EditQrForm.tsx (+ editQrForm.state.ts/helpers.ts): ListPdfUploader con idQr real, preservar itemId/documentUrl, PATCH urlList sin item eliminado. CreateQrForm.state.ts: items PDF en urlList con documentUrl:null, subir archivos pendientes (row.pdfFile) tras createQr exitoso con uploadListPdf; si falla â†’ toast warning (QR queda creado sin el PDF) â€” SPEC Â§4.2.3/Â§4.2.4.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "9"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "11",
+                      "content":  "[SPEC-005] T-005-10: Render pÃºblico UrlList.tsx + tipos interfaces/qr.ts (Frontend, 0.25d)",
+                      "description":  "UrlList.tsx: item typeUrl===\u0027pdf\u0027 con documentUrl â†’ botÃ³n ancla \u003ca href target=_blank rel=noopener noreferrer\u003e bg-rose-600 hover:bg-rose-700, icono pdf, label fijo \u0027Descargar PDF\u0027; sin documentUrl â†’ no renderizar. getIconForType/getColorForType: case \u0027pdf\u0027. interfaces/qr.ts: ListUrlData y UrlListItem + itemId/documentUrl â€” SPEC Â§4.2.5/Â§4.2.6.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "10"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "12",
+                      "content":  "[SPEC-005] T-005-11: Tests unitarios backend (Backend, 0.5d)",
+                      "description":  "PdfSanitizerService (mock spawn, 4 casos Â§8.1); StorageService.uploadPdf (mock S3Client.send: key/ContentType correctos, deleteObject extrae key qr-multilink-pdf/); validador schema case \u0027list\u0027 (pdf sin documentUrl invÃ¡lido, pdf con url/vcard invÃ¡lido, \u003e MAX_PDF_ITEMS_PER_QR invÃ¡lido, legacy sin regresiÃ³n).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "3",
+                                           "4",
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "13",
+                      "content":  "[SPEC-005] T-005-12: Tests integraciÃ³n endpoint multipart (Backend, 0.5d)",
+                      "description":  "supertest POST /qr/list-pdf con mocks de StorageService y PdfSanitizerService (sin R2 ni gs reales): 200 owner list; 403 no propietario; 400 typeQr!==\u0027list\u0027; 400 excede MAX_PDF_ITEMS_PER_QR; 400 itemId existente NO pdf (correcciÃ³n 2026-08-11); 413 \u003e2MB; 415 MIME no pdf; 422 gs falla. Controller PATCH: deleteObject al eliminar/reemplazar item PDF (mejor esfuerzo, no aborta si falla).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "6",
+                                           "7"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "14",
+                      "content":  "[SPEC-005] T-005-13: Tests unitarios frontend (Frontend, 0.5d)",
+                      "description":  "ListPdfUploader (mock uploadListPdf: vÃ¡lido â†’ botÃ³n ancla; \u003e2MB â†’ onError sin backend; no-PDF â†’ onError; Eliminar â†’ onChange(null); error 413/415/422 â†’ onError); buildUrlList (row pdf no filtrada â†’ { itemId, typeUrl:\u0027pdf\u0027, documentUrl:null } sin url; url/vcard sin regresiÃ³n); API route /api/qr/list-pdf (401 sin cookie, propaga status); UrlList (botÃ³n rose-600 solo con documentUrl, sin Ã©l no renderiza, key con itemId).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "8",
+                                           "9",
+                                           "11"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "15",
+                      "content":  "[SPEC-005] T-005-14: Tests E2E Playwright (QA, 0.5d)",
+                      "description":  "e2e-tests-portaqr/: crear QR multilink CON item PDF â†’ URL pÃºblica con botÃ³n ancla rosa (mock /api/qr/list-pdf con interceptor); editar y eliminar item PDF â†’ PATCH sin el item; sanitizaciÃ³n real opcional (gs): PDF con JS/metadata â†’ verificar con pdfinfo sin /JS ni /Author â€” SPEC Â§8.3.",
+                      "status":  "done",
+                      "priority":  "low",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "10",
+                                           "11"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "16",
+                      "content":  "[SPEC-005] T-005-15: Docs Obsidian + cierre de spec (Docs, 0.25d)",
+                      "description":  "ValidaciÃ³n final: tsc --noEmit sin errores, lint, build, suite completa verde, verificaciÃ³n manual CA-01..CA-13. Actualizar SPEC-005 a estado implementado, este tareas.json con status done y registro en Historial (Â§14).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-005",
+                      "dependencies":  [
+                                           "12",
+                                           "13",
+                                           "14",
+                                           "15"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}
