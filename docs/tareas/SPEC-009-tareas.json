@@ -23,8 +23,8 @@
         {
             "id": "3",
             "content": "[SPEC-009] Bloque 1 (A1): ownership users en dos capas + DTO + strip role",
-            "description": "PATCH /users/:id: check en controller (403, bypass admin) + regla en UpdateUserUseCase.execute(id, data, actor, tracking). Quitar isEmailVerified de UpdateUserDto; isActive solo admin (403). Strip de role en $set de mongo-user.repository.update. Validación ObjectId → 400. Ajustar users.controller.spec y update-user.usecase.spec. CA-01. ~1.5h",
-            "status": "pending",
+            "description": "PATCH /users/:id: check en controller (403, bypass admin) + regla en UpdateUserUseCase.execute(id, data, actor, tracking). Quitar isEmailVerified de UpdateUserDto; isActive solo admin (403). Strip de role en $set de mongo-user.repository.update. Validación ObjectId → 400. Ajustar users.controller.spec y update-user.usecase.spec. CA-01. Suite users: 19 suites/192 tests; suite completa backend: 147 suites/1152 tests; tsc OK. Nota: isActive vive solo en el DTO (la entidad/schema no lo persisten) — check con cast.",
+            "status": "completed",
             "priority": "high",
             "tag": "spec-009",
             "dependencies": ["2"],
