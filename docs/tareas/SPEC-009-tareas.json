@@ -73,8 +73,8 @@
         {
             "id": "8",
             "content": "[SPEC-009] Bloque 6 (A6): fail-fast llaves JWT en producción",
-            "description": "jwt-keys.ts: si NODE_ENV=production y no hay JWT_PRIVATE_KEY/JWT_PUBLIC_KEY válidas → throw en bootstrap; par efímero solo en development/test. Verificar que Railway/docker-compose inyectan las llaves PEM. CA-06. ~30 min",
-            "status": "pending",
+            "description": "jwt-keys.ts: si NODE_ENV=production y no hay llaves válidas (env PEM o archivos) → throw con mensaje claro; par efímero SOLO en development/test. Validación temprana en constructor de JwtAuthService (crash en bootstrap). Verificado: docker-compose usa NODE_ENV=development (dev OK con archivos keys/*.pem o efímero); .env.example documenta PEM inline. Tests: jwt-keys.spec (4 casos CA-06: PEM ok, prod sin llaves → throw, dev sin llaves → efímero, NODE_ENV ausente → efímero). Suite completa 1167 tests + tsc OK. E2E tras rebuild: 71 passed / 0 skipped.",
+            "status": "completed",
             "priority": "medium",
             "tag": "spec-009",
             "dependencies": [],
