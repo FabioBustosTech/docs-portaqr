@@ -10,7 +10,7 @@ tags:
   - nosql
   - redos
   - validation-pipe
-status: borrador
+status: implementado
 aliases:
   - SPEC-008
   - Hardening sanitización backend
@@ -22,8 +22,9 @@ aliases:
 > Blindar las entradas del monolito `backend-portaqr` con una **defensa en profundidad de 3 capas** (validación → saneamiento → perimetral). Se corrigen 3 riesgos reales encontrados en auditoría: (1) **XSS por HTML injection sin escapar en el correo de contacto**, (2) **ReDoS por `$regex` con input del usuario en 6 repositorios**, (3) **ValidationPipe global sin `whitelist`/`forbidNonWhitelisted`/`transform`** (mass-assignment + NaN). Se añade perimetral: `helmet`, CORS whitelist y `@nestjs/throttler`. La inyección NoSQL clásica (operadores `$ne`/`$gt`/`$where`) NO es explotable hoy (DTOs en todos los endpoints + mappers whitelist + Mongoose strict) — se mantiene como defensa extra opcional con `express-mongo-sanitize`.
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado
 > - **Fecha:** 2026-08-09
+> - **Última revisión:** 2026-08-11 (implementación H1-H6 completada — ver [[#11. Historial de cambios|§11]])
 > - **Autor:** Equipo Plataforma QR
 > - **Componente destino:** `desarrollo-qr/backend-portaqr/`
 > - **Relacionado:** [[SPEC-006]] (anti-spam contacto, misma superficie `POST /mail/contact`)
@@ -54,16 +55,18 @@ Stack: **NestJS 11 (Express) · Mongoose 8 · class-validator 0.15 + class-trans
 
 **Nota de contexto**: el route handler del frontend ([[SPEC-006]], `lib/validators.ts` con `containsDangerousContent()`) ya filtra XSS/NoSQL/SQL en `POST /api/mail/contact`, pero **no se debe confiar en el proxy**: el backend `:3001` es alcanzable directamente y debe defenderse solo.
 
+**Nota de repo (2026-08-11)**: `desarrollo-qr/backend-portaqr` es un **repositorio git independiente** (tiene `.git` propio y está gitignored del monorepo `plataforma_qr_cursor`). Toda la implementación de esta SPEC — incluida la rama `feat/spec-008-sanitizacion` — se realiza **dentro de ese repo**, no en el monorepo.
+
 ### 2.2 Riesgos encontrados en auditoría
 
 | # | Severidad | Riesgo | Ubicación |
 |---|---|---|---|
 | R1 | 🔴 Crítico | **XSS / HTML injection en correo de contacto** — `nombre`, `asunto`, `mensaje` interpolados en HTML sin escapar (`${message.x}`). `</p><img onerror=...>` se ejecuta en el cliente de correo del admin | `src/modules/mail/infrastructure/adapters/NodemailerContactAdapter.ts:38-45` |
-| R2 | 🟠 Alto | **ReDoS** — término de búsqueda del usuario inyectado directo en `$regex` (~40 campos). Patrón `(a+)+$` → backtracking exponencial (PCRE de MongoDB) → CPU 100% / DoS. Además `.*` fuerza full-collection scan | `mongo-qr`, `mongo-pet-tag` (:102,107), `mongo-user` (:43), `mongo-plan` (:59), `mongo-qr-free-generation` (:65), `mongo-qr-activate` (:56) |
+| R2 | 🟠 Alto | **ReDoS** — término de búsqueda del usuario inyectado directo en `$regex` (~40 campos). Patrón `(a+)+$` → backtracking exponencial (PCRE de MongoDB) → CPU 100% / DoS. Además `.*` fuerza full-collection scan | `mongo-qr` (L266-295, L391-446), `mongo-pet-tag` (:96,:101), `mongo-user` (:43), `mongo-plan` (:59), `mongo-qr-free-generation` (:65), `mongo-qr-activate` (:56) |
 | R3 | 🟠 Alto | **ValidationPipe sin opciones** — sin `whitelist: true` (mass-assignment), sin `forbidNonWhitelisted` (campos desconocidos pasan), sin `transform: true` (los `@Type(() => Number/Date)` nunca corren → `NaN` en `skip`/`limit`, fechas string crudas a Mongo) | `src/main.ts:13` |
 | R4 | 🟡 Medio | CORS `origin: '*'`; sin `helmet`; sin rate-limiting (login/registro bruteforceables) | `src/main.ts:18-22` |
-| R5 | 🟡 Medio | `new Types.ObjectId(userId)` sin validar → 500 con ID inválido (debe ser 400) | `mongo-qr.repository.ts:213` (`findUserByFavorites`) |
-| R6 | 🟡 Medio | Paginación sin DTO en `qr.controller` (`@Query('page') page: number = 1` sin validación ni transform) → NaN/valores negativos | `qr.controller.ts:263-265, 308-311, 470-473` |
+| R5 | 🟡 Medio | `new Types.ObjectId(userId)` sin validar → 500 con ID inválido (debe ser 400) | `mongo-qr.repository.ts:255` (función `findUserByFavorites` en `:233`) |
+| R6 | 🟡 Medio | Paginación sin DTO en `qr.controller` (`@Query('page') page: number = 1` sin validación ni transform) → NaN/valores negativos | `qr.controller.ts:407-409, 452-455, 673-675` |
 
 ## 3. Amenazas
 
@@ -123,6 +126,7 @@ const safe = escapeStringRegexp(search);          // literal: (a+)+ → \(a\+\)\
 
 - `escape-string-regexp` (paquete pequeño, ~1KB, sin deps) convierte el input en **literal** → imposible inyectar metacaracteres de regex.
 - Añadir `@MaxLength(100)` al término `search` en los DTOs de búsqueda (evita queries gigantes).
+- ⚠️ **Nota de revisión (2026-08-11)**: `PaginationDto` (`src/common/dto/pagination.dto.ts`) ya tipa `page`/`limit` (`@Type(() => Number)` + `@IsInt` + `@Min(1)` + `@Max(100)`), pero su campo `search` **no declara `@MaxLength(100)`** — añadirlo ahí y en los DTOs específicos de búsqueda al implementar.
 - Opcional futuro: índices de texto `$text` para búsqueda real (fuera de alcance).
 
 ### Capa 4 — Perimetral (fix R4)
@@ -133,7 +137,7 @@ const safe = escapeStringRegexp(search);          // literal: (a+)+ → \(a\+\)\
 
 ### Capa 5 — Validaciones puntuales (fix R5, R6)
 
-- **ObjectId**: en `findUserByFavorites` usar `Types.ObjectId.isValid(targetUserIdString)` → `BadRequestException` (400) en vez de excepción interna (500).
+- **ObjectId**: en `findUserByFavorites` (`mongo-qr.repository.ts:233`, `new Types.ObjectId` en `:255`) usar `Types.ObjectId.isValid(targetUserIdString)` → `BadRequestException` (400) en vez de excepción interna (500). Patrón ya existente en `auth.service.ts:142-143` (`isValidObjectId`).
 - **DTOs de paginación**: usar `PaginationDto` (ya existe en `src/common/dto/pagination.dto.ts`) en los controladores de QR con `@Query()` tipado → elimina NaN y bounds.
 - **Fechas**: `new Date(query.startDate)` ya está protegido por `@IsDateString()` en `QueryReservedTagsDto` — verificar que el pipeline `transform: true` lo mantenga.
 
@@ -213,11 +217,21 @@ THROTTLE_LIMIT=10
 
 ## 10. Trabajo futuro (backlog)
 
-- [ ] Implementar Capa 1 (escape correo) — ~30 min
-- [ ] Implementar Capa 2 (ValidationPipe) + ajustar specs rotas — ~1h
-- [ ] Implementar Capa 3 (escape-string-regexp ×6 repos + MaxLength) — ~1.5h
-- [ ] Implementar Capa 4 (helmet + CORS + throttler) — ~1h
-- [ ] Implementar Capa 5 (ObjectId + PaginationDto en QR) — ~1h
-- [ ] (Opcional) Capa 5b: express-mongo-sanitize — ~15 min
-- [ ] Validación final: tsc, tests, CA-01..CA-10, actualizar SPEC a `implementado`
+- [x] Implementar Capa 1 (escape correo) — H1, commit `127b614`
+- [x] Implementar Capa 2 (ValidationPipe) — H2, commit `743117a` (sin specs rotas)
+- [x] Implementar Capa 3 (escape-string-regexp ×6 repos + MaxLength) — H3, commit `3078528`
+- [x] Implementar Capa 4 (helmet + CORS + throttler) — H4, commit `1d5d94c`
+- [x] Implementar Capa 5 (ObjectId + PaginationDto en QR) — H5, commit `3bfd30d`
+- [x] (Opcional) Capa 5b: express-mongo-sanitize — H6, commit `73eabd0` (como interceptor, ver nota)
+- [x] Validación final: tsc, tests (144 suites / 1118), CAs cubiertos por tests — H7
+- [ ] Verificación manual con datos reales (CA-01..CA-10 contra instancia con datos)
 - [ ] Evaluar migración de búsquedas a índices `$text` (SPEC separada)
+- [ ] Considerar limpiar errores de lint preexistentes en main (tracking/user decorators spec, mongo-doc.ts, response-logger, auth.service, jwt-auth.guard, PlanRepositoryAdapter, storage, webpay, logger.util) — fuera de alcance de esta SPEC
+
+## 11. Historial de cambios
+
+| Fecha | Autor | Cambio |
+| :---------- | :----- | :---------- |
+| 2026-08-09 | Equipo | Borrador inicial |
+| 2026-08-11 | Equipo | Revisión de alineación post-consolidación del repo (SPEC-001/005/007 cerradas; `backend-portaqr` ahora monolito). **Confirmado: 0 de 7 tareas implementadas** — todos los riesgos R1-R6 siguen presentes en el código actual. Líneas de código actualizadas: R2 → `mongo-qr` L266-295/L391-446, `mongo-pet-tag` :96,:101; R5 → `mongo-qr.repository.ts:233-255`; R6 → `qr.controller.ts:407-409, 452-455, 673-675`. Verificaciones: `PaginationDto` existe con `page`/`limit` tipados pero `search` sin `@MaxLength(100)` (nota añadida en Capa 3); `auth.service.ts` ya tiene `isValidObjectId` reutilizable (Capa 5); `escape-string-regexp`/`helmet`/`@nestjs/throttler`/`express-mongo-sanitize` ausentes de `package.json`; sin `CORS_ORIGINS`/`THROTTLE_*` en envs. Nota operativa: `backend-portaqr` es repo git independiente (gitignored del monorepo) — la rama `feat/spec-008-sanitizacion` se crea dentro de ese repo |
+| 2026-08-11 | Equipo | **Implementada** en rama `feat/spec-008-sanitizacion` (6 commits, repo git interno de backend-portaqr): **H1** `escapeHtml` en `common/utils` + `NodemailerContactAdapter` escapado (CA-01); **H2** ValidationPipe whitelist/forbidNonWhitelisted/transform en `validation-pipe.config.ts` + test integración (CA-03/04/10); **H3** `escape-string-regexp@4` (CJS `export=`, la v5 es ESM-only y rompe CommonJS) en 6 repos + `@MaxLength(100)` en `PaginationDto.search`/`QueryReservedTagsDto` (CA-02); **H4** helmet con CSP ajustado (`style-src 'unsafe-inline'` — los templates EJS usan `<style>` y el default los rompería), `CORS_ORIGINS` + `parseCorsOrigins`, `ThrottlerModule` global 10/min + `@Throttle` 5/min en login/refresh/`POST /users`/`POST /mail/contact` (CA-05/06); **H5** `Types.ObjectId.isValid` → 400 (CA-07) + `PaginationDto`/`FavoriteQueryDto` en los 3 endpoints de QR (CA-04); **H6** `express-mongo-sanitize` como **interceptor global** — el middleware oficial crashea en Express 5 (reasigna `req.query`, getter-only) y `app.use()` corre antes del body-parser de Nest (`req.body` undefined). Resultado: **144 suites / 1118 tests verdes** (+53 nuevos), `tsc` 0 errores, eslint sin errores nuevos (los listados son preexistentes en main). CAs 01-10 cubiertos por tests; verificación manual con datos reales pendiente (backlog §10) |
