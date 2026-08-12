@@ -93,8 +93,8 @@
         {
             "id": "10",
             "content": "[SPEC-009] Bloque 8 (A8): refresh tokens con rotación + detección de reuso",
-            "description": "Colección refresh_tokens { userId, tokenHash SHA-256, expiresAt, revokedAt, createdAt } + índice TTL. refreshToken(): buscar por hash → rotar (revocar + emitir); reuso de token revocado → revocar familia (tokenVersion++). logout: revocar refresh activos. change-password/reset-password: tokenVersion++. TTL 7d configurable (REFRESH_TOKEN_TTL_DAYS). CA-08. ~3h",
-            "status": "pending",
+            "description": "Colección refresh_tokens { userId, tokenHash SHA-256, expiresAt, revokedAt, createdAt } + índice TTL + index compuesto. refreshToken(): findByHash → si no existe 401; rotación (revoca + emite + persiste); REUSO: ventana de gracia 60s (race del cliente con refreshes concurrentes → rota de nuevo) y fuera de ventana → revoca familia (tokenVersion++ + revokeAll) + 401. logout: tokenVersion++ + revokeAllByUser. change-password/reset-password: tokenVersion++. TTL 7d (REFRESH_TOKEN_TTL_DAYS). BUGFIXES encontrados en validación: (1) refreshes concurrentes generaban el MISMO token en el mismo segundo (mismo iat/hash) → E11000 duplicate key → create con upsert idempotente; (2) sin la ventana de gracia, el frontend (2 refreshes paralelos) mataba la familia. Suite 1170 tests + tsc OK. E2E tras rebuild: 70 passed + 1 flaky (retry OK) — sesión persiste.",
+            "status": "completed",
             "priority": "medium",
             "tag": "spec-009",
             "dependencies": [],
