@@ -83,8 +83,8 @@
         {
             "id": "9",
             "content": "[SPEC-009] Bloque 7 (A7/A9): scan ownership + validar QR existe",
-            "description": "scan.controller: en getStats/getRecentScans/getDailyStats/getLocationStats/getDeviceStats cargar QR → 404 si no existe → assertOwnerOrAdmin(qr.userId, actor). create-scan.usecase: validar QR existe → 404 (no crear doc); userId/userIdScan del body se ignoran (dueño real del QR). CA-07. ~1h",
-            "status": "pending",
+            "description": "scan.controller: los 5 GETs (stats/recent/daily/locations/devices) cargan el QR con GetQrUseCase (404 si no existe) + assertOwnerOrAdmin(qr.userId, actor) → 403 si ajeno. create-scan.usecase: inyecta GetQrUseCase → 404 si el QR no existe (NO crea doc — anti-flood); userId del body se IGNORA (el dueño real se toma del QR — anti-inflado). ScanModule importa QrModule. Ajustados specs (controller: mock GetQrUseCase + user en llamadas; usecase: mock QR + casos nuevos 404/ignorar userId). Suite 1168 tests + tsc OK. E2E tras rebuild: 71 passed / 0 skipped (scan-stats E2E validado).",
+            "status": "completed",
             "priority": "medium",
             "tag": "spec-009",
             "dependencies": ["2"],
