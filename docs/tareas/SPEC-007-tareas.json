@@ -115,7 +115,7 @@
                   {
                       "id":  "9",
                       "content":  "[SPEC-007] ValidaciÃ³n final: tsc, tests y criterios de aceptaciÃ³n CA-01..CA-10",
-                      "description":  "tsc --noEmit sin errores, suite de tests verde con baseline 1015 tests (no-regresiÃ³n: specs de controllers/DTOs NO se tocan â€” contrato vivo; solo se actualizan specs de repositorios/adapters/use-cases afectados). Agregar unit tests completos: activateMany, generateBatch insertMany, activate atÃ³mico (concurrencia), update runValidators, findUserByFavorites $facet, statistics $facet, create-user E11000. VerificaciÃ³n manual CA-01..CA-10 (profiler Mongo, diffs JSON, PATCH concurrente). Actualizar SPEC-007 a estado implementado y cerrar tareas.",
+                      "description":  "COMPLETADA: tsc --noEmit 0 errores, suite unit 139/1043 verde, eslint 0, E2E 59/59 verde (12 nuevos + 47 preexistentes) contra contenedor docker reconstruido con feat/spec-007-n-plus-one. Bugs encontrados por E2E y corregidos: (1) controller POST /qr-activate nunca llamaba executeAdmin (fix df9a851); (2)  con string en  (fix 74876de); (3)  con tipo de userId incorrecto por coleccion qr=string/pet-tag=ObjectId (fix 17f800b). SPEC-007 actualizada a implementado + historial. Ver detalle en docs/spec/SPEC-007 seccion 10.",
                       "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-007",
