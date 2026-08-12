@@ -19,10 +19,10 @@ parent: SPEC-008
 # SPEC-008-A: Índices de texto `$text` para búsquedas (`backend-portaqr`)
 
 > [!abstract] Decisión clave
-> La búsqueda actual (`$regex` sin anclaje sobre ~50 campos) hace full-collection scan. La candidata `$text` **cambia la semántica** (substring → tokenizado) y **afecta directamente a los 5 buscadores del frontend** — por eso el paso 0 es **medir la línea base con datos reales** y tomar la decisión con datos, no con teoría. Análisis de impacto FE incluido en §3 (completado 2026-08-11 tras revisar `qr-app`).
+> **EVALUADA — NO ACCIONABLE HOY (medición CA-00, 2026-08-11)**: con los volúmenes reales (648 `qrs`, 762 `users`, 171 `pettagschemas`), las 5 búsquedas del frontend responden en **0-2 ms** (objetivo: < 100 ms). El full-collection scan existe pero es despreciable a este tamaño → **no se cambia nada** (la opción A `$text` puro rompería la UX del frontend; los índices de las opciones C/D no justifican su costo para ahorrar 1 ms). La spec queda como referencia de decisión para reabrir cuando las colecciones crezcan (ver §4.1).
 
 > [!info] Metadatos
-> - **Estado:** Borrador (paso 0: medición de línea base + decisión de producto)
+> - **Estado:** Evaluada — no accionable hoy (medición CA-00)
 > - **Fecha:** 2026-08-11
 > - **Autor:** Equipo Plataforma QR
 > - **Componente destino:** `desarrollo-qr/backend-portaqr/`
@@ -52,7 +52,17 @@ Todas las búsquedas del monolito usan `$regex` con input escapado (`escapeStrin
 **Problema**: `$regex: /término/i` sin anclaje **no puede usar índices** → escaneo completo por búsqueda.
 
 > [!warning] Paso 0 obligatorio — MEDIR antes de decidir
-> **No se sabe cuánto tarda hoy una búsqueda con datos reales.** Si la colección `qrs` tiene 2.000 documentos, el full scan puede costar 50-100ms y el problema no existe todavía. Antes de implementar cualquier cambio de semántica hay que: (1) contar documentos por colección, (2) medir `GET /qr?search=X` con `explain()` sobre datos reales (tiempo + stage), (3) decidir con números. Si la línea base es aceptable, esta SPEC puede cerrarse como "no accionable hoy" y reabrirse cuando la colección crezca.
+> **HECHO (2026-08-11, datos reales vía mongosh contra `sistema` en dev)**:
+>
+> | Colección | Docs | Búsqueda medida (query real del backend) | Tiempo | Docs examinados |
+> |---|---|---|---|---|
+> | `qrs` | 648 | `$or` 15 campos `$regex` + sort createdAt (dashboard QR) — `search=hola` | **1 ms** | 648 (full scan) |
+> | `qrs` | 648 | idem — `search=a` (match amplio) | **1 ms** | 648 |
+> | `pettagschemas` | 171 | `$or` 4 campos (admin pet-tag) — `search=123` | **0 ms** | — |
+> | `users` | 762 | `$or` userName+email — `search=a` | **2 ms** | 760 |
+> | `plans` | 2 | `$or` 3 campos | **0 ms** | 2 |
+>
+> **Conclusión**: tiempos 0-2 ms vs. objetivo < 100 ms → el full scan NO es un problema a estos volúmenes. Decisión: **no accionable hoy**; reabrir cuando las colecciones superen ~10-20k docs (el costo del `$or` de 15 regex crece linealmente; a 100k docs se estima 100-200 ms).
 
 ### 2.2 Lo que ya está resuelto (se preserva)
 
@@ -114,17 +124,17 @@ El frontend no controla el orden: **cualquier cambio de sort se ve directamente 
 - **Si la medición muestra tiempos malos**: opción **C** (híbrido por campo) — preserva prefijos en los campos que la gente usa (nombre, ID, PIN) y usa `$text` solo para texto largo, con `default_language: 'es'` y `$sort` explícito para no romper el orden del dashboard.
 - **Nunca**: opción A (A $text puro) sin fallback — rompe el buscador de placas por PIN y la búsqueda por prefijo del dashboard.
 
-## 5. Criterios de aceptación (revisados)
+## 5. Criterios de aceptación
 
-- [ ] **CA-00 (paso 0)**: medición documentada — nº de documentos por colección + tiempo de `GET /qr?search=X` con `explain()` sobre datos reales (stage actual: `COLLSCAN` y duración) y decisión registrada (cerrar como no accionable o seguir)
-- [ ] **CA-01**: con datos reales, la búsqueda que elige producto responde en **< 100 ms** (o igual a la línea base si la opción es D) con `explain()` sin `COLLSCAN` en los campos con índice
-- [ ] **CA-02 (UX, crítico)**: `search=qr` y `search=123` (PIN parcial) **siguen devolviendo resultados** en el frontend (dashboard QR y admin pet-tag) — sin regresión de semántica
-- [ ] **CA-03**: `search=pla` (prefijo) encuentra "Playa" (dashboard QR) — sin regresión de prefijo
-- [ ] **CA-04**: el orden del dashboard no cambia: "Mis Códigos QR" mantiene `createdAt desc` y favorites mantiene `isFavorite+updatedAt` (SPEC-007 RF-6)
-- [ ] **CA-05**: los operadores de `$text` no inyectan (`+"web" -plan`) — escape propio si se usa `$text`
-- [ ] **CA-06**: suite unit (146+) + suite E2E de búsqueda (favorites-union, admin search, pet-tag PIN) verde
-- [ ] **CA-07**: `tsc --noEmit` sin errores; eslint sin errores nuevos
-- [ ] **CA-08**: índices creados y verificados en dev y deploy (sin índice en prod = warning o fallback)
+- [x] **CA-00 (paso 0)**: medición documentada — 648 `qrs` / 762 `users` / 171 `pettagschemas` / 43 `qractivates` / 2 `plans` / 3 `qrfreegenerations`; búsquedas reales **0-2 ms** (stage SUBPLAN/FETCH con full scan); decisión: **no accionable hoy**
+- [ ] **CA-01**: *(no aplica — se cierra sin cambios; reactivar si se reabre la SPEC)*: con datos reales, la búsqueda que elige producto responde en **< 100 ms** (o igual a la línea base si la opción es D) con `explain()` sin `COLLSCAN` en los campos con índice
+- [ ] **CA-02 (UX, crítico)**: `search=qr` y `search=123` (PIN parcial) **siguen devolviendo resultados** en el frontend (dashboard QR y admin pet-tag) — sin regresión de semántica *(se preserva por diseño: no se cambia nada)*
+- [ ] **CA-03**: `search=pla` (prefijo) encuentra "Playa" (dashboard QR) — sin regresión de prefijo *(idem)*
+- [ ] **CA-04**: el orden del dashboard no cambia: "Mis Códigos QR" mantiene `createdAt desc` y favorites mantiene `isFavorite+updatedAt` (SPEC-007 RF-6) *(idem)*
+- [ ] **CA-05**: los operadores de `$text` no inyectan (`+"web" -plan`) — escape propio si se usa `$text` *(no aplica hoy)*
+- [ ] **CA-06**: suite unit (146+) + suite E2E de búsqueda (favorites-union, admin search, pet-tag PIN) verde *(sin cambios de código, se mantiene)*
+- [ ] **CA-07**: `tsc --noEmit` sin errores; eslint sin errores nuevos *(sin cambios de código)*
+- [ ] **CA-08**: índices creados y verificados en dev y deploy *(no aplica — no se crean índices)*
 
 ## 6. No funcionales
 
@@ -162,3 +172,4 @@ El frontend no controla el orden: **cualquier cambio de sort se ve directamente 
 | :---------- | :----- | :---------- |
 | 2026-08-11 | Equipo | Borrador inicial — documenta el backlog de SPEC-008 §10: línea base `$regex` post-hardening, CAs medibles y plan |
 | 2026-08-11 | Equipo | **Revisión con impacto en frontend** (análisis de `qr-app`): inventario de los 5 buscadores reales (dashboard QR, QRs de cliente, placas por PIN, planes, activaciones); regresiones concretas de `$text` puro (términos < 3 chars, prefijos, PIN parcial, IDs UUID, orden de resultados); **paso 0 obligatorio de medición**; 5 opciones evaluadas con veredicto (A `$text` puro ❌, B fallback ⚠️, C híbrido por campo ✅, D índices parciales ⚠️ según medición, E Atlas fuera); CAs revisados con foco en NO romper UX (02-04) |
+| 2026-08-11 | Equipo | **Paso 0 ejecutado — EVALUADA, NO ACCIONABLE HOY** (CA-00): medición con datos reales vía mongosh (648 `qrs`, 762 `users`, 171 `pettagschemas`, 43 `qractivates`, 2 `plans`, 3 `qrfreegenerations`): las 5 búsquedas del frontend con las queries exactas del backend responden en **0-2 ms** (stage SUBPLAN/FETCH, full scan sobre 648-760 docs). Objetivo era < 100 ms → el problema no existe a estos volúmenes. **No se cambia código**: ni `$text` (rompería UX del frontend) ni índices (opciones C/D no justifican su costo para ahorrar 1 ms). La UX del dashboard queda intacta (sin regresión de semántica ni orden — CAs 02-04 preservados por diseño). **Condición de reapertura**: colecciones > ~10-20k docs (costo lineal del `$or` de 15 regex; a 100k se estima 100-200 ms) → aplicar opción C híbrida. Tareas 8-9 completadas, 10-12 canceladas (no aplican) |

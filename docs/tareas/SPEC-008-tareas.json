@@ -105,8 +105,8 @@
                   {
                       "id":  "8",
                       "content":  "[SPEC-008-A] Paso 0: medir lÃ­nea base con datos reales antes de decidir",
-                      "description":  "Contar documentos por colecciÃ³n (qrs, pettagschemas, users, plans, qrfreegenerations, qractivates) + explain() de las 5 bÃºsquedas del frontend (dashboard QR, QRs cliente, pet-tag, planes, activaciones): stage COLLSCAN y duraciÃ³n real. Decidir: cerrar como no accionable (opciÃ³n D) o seguir con opciÃ³n C. Registrar nÃºmeros en la SPEC (CA-00).",
-                      "status":  "pending",
+                      "description":  "HECHO (CA-00): 648 qrs, 762 users, 171 pettagschemas, 43 qractivates, 2 plans, 3 qrfreegenerations. Búsquedas reales con queries del backend: 0-2ms (SUBPLAN/FETCH, full scan). Objetivo \u003c100ms → NO accionable hoy. No se cambia código.",
+                      "status":  "completed",
                       "priority":  "high",
                       "tag":  "spec-008-a",
                       "dependencies":  [
@@ -119,8 +119,8 @@
                   {
                       "id":  "9",
                       "content":  "[SPEC-008-A] DecisiÃ³n de producto/semÃ¡ntica con base en la mediciÃ³n",
-                      "description":  "Validar Â§3-4 con los nÃºmeros del paso 0: quÃ© debe encontrar la bÃºsqueda (prefijos/IDs/PIN preservados â€” CAs 02-03), quÃ© campos van a $text (texto largo) vs $regex ^ (IDs/nombres/PIN). DecisiÃ³n documentada en la SPEC.",
-                      "status":  "pending",
+                      "description":  "Decisión con base en medición: NO ACCIONABLE hoy — búsqueda actual 0-2ms;  rompería UX FE; índices (C/D) no justifican costo para ahorrar 1ms. Condición de reapertura: colecciones \u003e10-20k docs → opción C. Documentado en SPEC-008-A historial.",
+                      "status":  "completed",
                       "priority":  "high",
                       "tag":  "spec-008-a",
                       "dependencies":  [
@@ -134,7 +134,7 @@
                       "id":  "10",
                       "content":  "[SPEC-008-A] (Si opciÃ³n D) Ãndices regulares parciales + $regex anclado en campos calientes",
                       "description":  "Ãndices en name/idQr/userName/activationPin + $regex ^ (anclado al inicio usa Ã­ndice y mantiene prefijos). Sin cambio de semÃ¡ntica FE. CA-01, CA-08.",
-                      "status":  "pending",
+                      "status":  "cancelled",
                       "priority":  "medium",
                       "tag":  "spec-008-a",
                       "dependencies":  [
@@ -148,7 +148,7 @@
                       "id":  "11",
                       "content":  "[SPEC-008-A] (Si opciÃ³n C) Helper sanitizeTextSearch + Ã­ndices $text + migraciÃ³n de texto largo",
                       "description":  "src/common/utils/text-search.util.ts (escapa operadores de $text: + - \" â€” distinto de escapeStringRegexp) + unit tests. Ãndices text en schemas (default_language \u0027es\u0027, pesos). Migrar $regex â†’ $text SOLO en campos de texto largo (vcard, petData, name si aplica, description...) manteniendo $regex ^ para IDs/PIN. $sort explÃ­cito para no romper orden del dashboard (CA-04). Ajustar $facet de favorites (SPEC-007 H3).",
-                      "status":  "pending",
+                      "status":  "cancelled",
                       "priority":  "high",
                       "tag":  "spec-008-a",
                       "dependencies":  [
@@ -163,7 +163,7 @@
                       "id":  "12",
                       "content":  "[SPEC-008-A] ValidaciÃ³n E2E bÃºsqueda (sin regresiÃ³n UX) + CAs 00-08 y cierre",
                       "description":  "E2E: search=qr (dashboard), search=123 (PIN parcial), search=pla (prefijo) devuelven resultados (CAs 02-03); orden del dashboard sin cambios (CA-04); operadores $text no inyectan (CA-05); unit 146+ verde (CA-06); tsc/eslint 0 (CA-07); Ã­ndices en dev/deploy (CA-08). Actualizar SPEC a implementado + historial.",
-                      "status":  "pending",
+                      "status":  "cancelled",
                       "priority":  "medium",
                       "tag":  "spec-008-a",
                       "dependencies":  [
