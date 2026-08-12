@@ -248,9 +248,9 @@ THROTTLE_LIMIT=10
 - [x] Implementar Capa 5 (ObjectId + PaginationDto en QR) — H5, commit `3bfd30d`
 - [x] (Opcional) Capa 5b: express-mongo-sanitize — H6, commit `73eabd0` (como interceptor, ver nota)
 - [x] Validación final: tsc, tests (144 suites / 1118), CAs cubiertos por tests — H7
-- [ ] Verificación manual con datos reales (CA-01..CA-10 contra instancia con datos)
-- [ ] Evaluar migración de búsquedas a índices `$text` (SPEC separada)
-- [ ] Considerar limpiar errores de lint preexistentes en main (tracking/user decorators spec, mongo-doc.ts, response-logger, auth.service, jwt-auth.guard, PlanRepositoryAdapter, storage, webpay, logger.util) — fuera de alcance de esta SPEC
+- [ ] Verificación manual con datos reales (CA-01..CA-10 contra instancia con datos) — parcialmente adelantada: auditoría estática FE↔BE completada (CA-08, ver historial)
+- [ ] Evaluar migración de búsquedas a índices `$text` → **[[SPEC-013]]** (borrador)
+- [ ] Considerar limpiar errores de lint preexistentes en main → **[[SPEC-014]]** (borrador)
 
 ## 11. Historial de cambios
 
