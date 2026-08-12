@@ -9,7 +9,7 @@ tags:
   - busqueda
   - text-index
   - backlog
-status: borrador
+status: implementado
 aliases:
   - SPEC-008-A
   - Índices $text búsqueda
@@ -22,7 +22,7 @@ parent: SPEC-008
 > **EVALUADA — NO ACCIONABLE HOY (medición CA-00, 2026-08-11)**: con los volúmenes reales (648 `qrs`, 762 `users`, 171 `pettagschemas`), las 5 búsquedas del frontend responden en **0-2 ms** (objetivo: < 100 ms). El full-collection scan existe pero es despreciable a este tamaño → **no se cambia nada** (la opción A `$text` puro rompería la UX del frontend; los índices de las opciones C/D no justifican su costo para ahorrar 1 ms). La spec queda como referencia de decisión para reabrir cuando las colecciones crezcan (ver §4.1).
 
 > [!info] Metadatos
-> - **Estado:** Evaluada — no accionable hoy (medición CA-00)
+> - **Estado:** Implementado (evaluada — no accionable hoy según medición CA-00)
 > - **Fecha:** 2026-08-11
 > - **Autor:** Equipo Plataforma QR
 > - **Componente destino:** `desarrollo-qr/backend-portaqr/`
