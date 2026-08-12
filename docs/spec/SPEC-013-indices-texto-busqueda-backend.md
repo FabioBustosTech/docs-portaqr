@@ -18,10 +18,10 @@ aliases:
 # SPEC-013: Índices de texto `$text` para búsquedas (`backend-portaqr`)
 
 > [!abstract] Decisión clave
-> Reemplazar la búsqueda por `$regex` (full-collection scan en ~50 campos sin índice) por **índices de texto MongoDB (`$text`)** en las colecciones principales. **Cambio de semántica**: substring match → búsqueda tokenizada con score de relevancia — requiere decisión de producto sobre qué debe encontrar el usuario. Nace del backlog de [[SPEC-008]] (§10): el ReDoS ya se eliminó con `escape-string-regexp`, pero el problema de rendimiento persiste.
+> La búsqueda actual (`$regex` sin anclaje sobre ~50 campos) hace full-collection scan. La candidata `$text` **cambia la semántica** (substring → tokenizado) y **afecta directamente a los 5 buscadores del frontend** — por eso el paso 0 es **medir la línea base con datos reales** y tomar la decisión con datos, no con teoría. Análisis de impacto FE incluido en §3 (completado 2026-08-11 tras revisar `qr-app`).
 
 > [!info] Metadatos
-> - **Estado:** Borrador (pendiente decisión de producto sobre semántica)
+> - **Estado:** Borrador (paso 0: medición de línea base + decisión de producto)
 > - **Fecha:** 2026-08-11
 > - **Autor:** Equipo Plataforma QR
 > - **Componente destino:** `desarrollo-qr/backend-portaqr/`
@@ -31,7 +31,7 @@ aliases:
 
 ## 1. Objetivo
 
-Eliminar el **full-collection scan** que hoy hace toda búsqueda `$regex` no anclada (patrón `/término/i` sobre ~50 campos sin índice), usando índices de texto de MongoDB. La búsqueda debe responder en tiempo constante respecto al tamaño de la colección y devolver resultados ordenados por relevancia.
+Eliminar el **full-collection scan** que hoy hace toda búsqueda `$regex` no anclada, **sin romper la experiencia de búsqueda que el frontend ya ofrece a los usuarios**. La búsqueda debe responder rápido y seguir encontrando lo que el usuario espera.
 
 ## 2. Contexto
 
@@ -48,7 +48,10 @@ Todas las búsquedas del monolito usan `$regex` con input escapado (`escapeStrin
 | `qrfreegenerations` | `email`, `information.data` | `getAll` |
 | `qractivates` | `descriptionAdministrator`, `WebpayTransaction.id` (+ parse booleano de `sendDocument`) | `getAll` |
 
-**Problema**: `$regex: /término/i` sin anclaje **no puede usar índices** → MongoDB escanea la colección completa por cada búsqueda. Con colecciones grandes (miles de QRs con `data` complejo), cada búsqueda degrada el rendimiento de toda la instancia.
+**Problema**: `$regex: /término/i` sin anclaje **no puede usar índices** → escaneo completo por búsqueda.
+
+> [!warning] Paso 0 obligatorio — MEDIR antes de decidir
+> **No se sabe cuánto tarda hoy una búsqueda con datos reales.** Si la colección `qrs` tiene 2.000 documentos, el full scan puede costar 50-100ms y el problema no existe todavía. Antes de implementar cualquier cambio de semántica hay que: (1) contar documentos por colección, (2) medir `GET /qr?search=X` con `explain()` sobre datos reales (tiempo + stage), (3) decidir con números. Si la línea base es aceptable, esta SPEC puede cerrarse como "no accionable hoy" y reabrirse cuando la colección crezca.
 
 ### 2.2 Lo que ya está resuelto (se preserva)
 
@@ -56,115 +59,105 @@ Todas las búsquedas del monolito usan `$regex` con input escapado (`escapeStrin
 - **Límite de longitud**: `@MaxLength(100)` en `PaginationDto.search` y `QueryReservedTagsDto` (SPEC-008 H3).
 - **Seguridad**: NoSQL injection bloqueada por DTOs + whitelist + `MongoSanitizeInterceptor` (SPEC-008 H2/H6).
 
-## 3. Cambio de semántica (decisión de producto REQUERIDA)
+## 3. Impacto en el frontend (la otra mitad de la película)
 
-`$text` **no hace substring match** — tokeniza el contenido e indexa tokens completos:
+Análisis de `qr-app` completado el 2026-08-11 — **todos los buscadores del frontend dependen de la semántica substring actual**:
 
-| Búsqueda | `$regex` (hoy) | `$text` (propuesto) |
+### 3.1 Inventario de buscadores reales
+
+| Buscador | Página | Qué busca el usuario hoy | Campos visibles | Dependencia de substring |
+|---|---|---|---|---|
+| **Mis Códigos QR** | `/dashboard/qr` | su QR por lo que recuerda: nombre, tipo, contenido (vcard, pet, red social…) | `QrCard` (nombre, tipo) | **ALTA**: escribe prefijos y fragmentos ("pla" para "Playa", "qr" para "QR 1") |
+| **QRs de cliente** | `/dashboard/users/[id]/qr` | idem (admin) | idem | ALTA (idem) |
+| **Placas (pet-tag)** | `/dashboard/admin/pet-tag` | **PINs parciales** ("123" para "12345"), idQr, nombre mascota, dueño | tabla (PIN, idQr, mascota) | **CRÍTICA**: buscar por fragmento de PIN es el caso de uso principal |
+| **Planes** | `/dashboard/plan` | nombre de plan | tabla | MEDIA |
+| **Activaciones** | `/dashboard/admin/qr/email` (y activate) | token Webpay (largo), descripción admin, bool `sendDocument` | tabla | MEDIA (tokens largos, pero se tipean parciales) |
+
+### 3.2 Regresiones concretas si se migra a `$text` puro
+
+| Caso real de usuario | Hoy (`$regex`) | Con `$text` | Impacto |
+|---|---|---|---|
+| Buscar `qr` (nombres tipo "QR 1", "QR casa") | ✅ encuentra | ❌ **tokens < 3 chars se ignoran** | Rojo |
+| Buscar `pla` (prefijo de "Playa") | ✅ encuentra | ❌ solo matchea el token completo "playa" | Rojo |
+| Buscar `123` (PIN parcial) | ✅ encuentra "12345" | ❌ no matchea token "12345" | Rojo (admin pet-tag) |
+| Buscar `jua` (prefijo de "Juan") | ✅ encuentra | ❌ | Rojo |
+| Buscar `hola mundo` | ✅ substring de la frase | ✅ tokens AND (documentos con ambos) | Ámbar (puede dar menos resultados) |
+| Orden de resultados | `createdAt desc` / `isFavorite+updatedAt` (SPEC-007 RF-6) | score por defecto | Ámbar (UX cambia: "Mis Códigos QR" ya no muestra los nuevos primero) |
+| Búsqueda con guiones/IDs UUID | `idQr` parcial "89302960" ✅ | tokenización rompe el UUID en fragmentos | Rojo |
+
+**Conclusión del análisis**: migrar la búsqueda a `$text` puro rompe el caso de uso principal del producto (encontrar el QR propio por nombre/fragmento) y el buscador de placas por PIN. **No es aceptable sin mecanismo de compatibilidad.**
+
+### 3.3 Orden de resultados que el frontend espera (sorts actuales del backend)
+
+| Endpoint | Sort actual | Con `$text` |
 |---|---|---|
-| `rex` | encuentra `Rex`, `rex-1`, `prex` (substring) | encuentra `Rex` como token (NO `prex`, NO `rex-1`) |
-| `ca` | encuentra `casa`, `carpeta` (prefijo) | **NO encuentra nada** (no es token completo) |
-| `juan pérez` | substring exacto de la frase | tokens AND: documentos con `juan` Y `pérez` |
-| `+web` / `-plan` | no soportado | operadores propios de `$text` (requieren escape propio) |
-| Orden | por fecha (`sort createdAt`) | **por score de relevancia** (o sort explícito) |
+| `GET /qr` (admin, findAll) | `updatedAt desc` (L50) | requiere `$sort: { score: { $meta: 'textScore' } }` o mantener sort → pierde relevancia |
+| `GET /qr/user/:id/paginated` (dashboard) | `createdAt desc` (L208) | idem |
+| `GET /qr/user/favorites` | `isFavorite desc, updatedAt desc` (L318, RF-6) + re-sort en memoria | idem — además el `$facet` por colección complica el `$text` |
 
-**Pregunta para el producto**: ¿el usuario espera que "re" encuentre "recepción"? Si sí, `$text` requiere un *text search fallback* (o se mantiene `$regex` para campos cortos tipo `idQr`/`userName` y `$text` solo para texto largo).
+El frontend no controla el orden: **cualquier cambio de sort se ve directamente en el grid del dashboard**.
 
-### 3.1 Recomendación de alcance (mínima viable)
+## 4. Opciones consideradas (con el impacto FE en la mesa)
 
-- **`$text` SOLO para campos de texto largo**: `data.vcard.*`, `data.petName`, `data.address`, `name`, `description`, `petData.*`, `email`, `information.data`, `descriptionAdministrator`.
-- **`$regex` anclado al inicio (`^término`) se mantiene para campos de identificación cortos**: `idQr`, `qrId`, `activationPin`, `userId`, `userName`, `WebpayTransaction.id` — donde el usuario escribe el ID exacto o prefijo (el patrón `^` SÍ usa índice regular).
-- Esto preserva el comportamiento esperado de "buscar por ID" y mejora el caso de texto libre.
+| Opción | Cómo funciona | Semántica FE | Rendimiento | Esfuerzo | Veredicto |
+|---|---|---|---|---|---|
+| **A. `$text` puro** | tokenizado, score | ❌ rompe prefijos/IDs/términos cortos | ✅ O(log n) | medio | ❌ No viable solo |
+| **B. Híbrido: `$text` + fallback `$regex`** | `$text` primero; si 0 resultados → `$regex` actual | ✅ compatible (fallback preserva todo) | ⚠️ el fallback es full scan, pero solo cuando `$text` no encuentra nada | medio | ⚠️ Mitiga pero el fallback se dispara justo en los casos frecuentes (términos cortos) |
+| **C. Híbrido por campo: `$regex ^` con índices regulares + `$text` para texto largo** | `name`/`idQr`/`userName`/`PIN` con índice + `^anclado` (usa índice, mantiene prefijo); vcard/petData/descripciones con `$text` | ✅ prefijos de los campos calientes funcionan; ❌ substring en medio de palabra ("re" en "recepción" — caso raro en la práctica) | ✅ índices para los campos calientes; `$text` para el resto | alto | ✅ **La mejor relación** |
+| **D. Status quo + índices regulares parciales** | mantener `$regex`, añadir índices en `name` y usar `^` donde el usuario escribe prefijos | ✅ 100% compatible | ⚠️ texto libre sigue full scan | bajo | ⚠️ Mejora sin riesgo; suficiente si la medición del paso 0 muestra tiempos aceptables |
+| **E. Atlas Search (Lucene)** | autocomplete, fuzzy, synonyms | ✅ puede replicar substring | ✅ | pago + infra | Fuera de alcance (evaluar si la búsqueda se vuelve feature) |
 
-## 4. Solución propuesta
+### 4.1 Recomendación (depende del paso 0)
 
-### 4.1 Índices por colección (un `text` index por colección)
+- **Si la medición muestra tiempos aceptables** (< 100ms con datos reales): opción **D** (índices parciales + `^` en campos calientes) — cero riesgo de UX, mejora los casos más usados.
+- **Si la medición muestra tiempos malos**: opción **C** (híbrido por campo) — preserva prefijos en los campos que la gente usa (nombre, ID, PIN) y usa `$text` solo para texto largo, con `default_language: 'es'` y `$sort` explícito para no romper el orden del dashboard.
+- **Nunca**: opción A (A $text puro) sin fallback — rompe el buscador de placas por PIN y la búsqueda por prefijo del dashboard.
 
-```ts
-// qr.schema.ts (índice compuesto: text + sort)
-qrSchema.index(
-  { 'data.vcard.fn': 'text', 'data.vcard.org': 'text', 'name': 'text',
-    'data.petName': 'text', 'data.address': 'text', 'data.username': 'text',
-    'data.platform': 'text', 'data.email': 'text', 'data.message': 'text',
-    'data.urlList.url': 'text' },
-  { name: 'search_text', default_language: 'es', weights: { name: 10, 'data.vcard.fn': 5 } },
-);
-```
+## 5. Criterios de aceptación (revisados)
 
-- `default_language: 'es'` → stemming español (evita el stemming inglés por defecto).
-- **Un solo text index por colección**: los campos no incluidos no serán buscables por `$text` (decisión de qué indexar por colección, ver §3.1).
-- Índices en schemas (patrón SPEC-007 RF-6/RF-11: `createIndex` en schema + verificación de existencia).
-
-### 4.2 Repositorios — de `$regex` a `$text`
-
-```ts
-// Antes (SPEC-008 H3):
-const safe = escapeStringRegexp(search);
-{ name: { $regex: safe, $options: 'i' } }
-
-// Después:
-{ $text: { $search: sanitizeTextSearch(search), $language: 'es' } }
-// + sort: { score: { $meta: 'textScore' } } o sort explícito según UX
-```
-
-- `sanitizeTextSearch`: escapa los **operadores de `$text`** (`+ - "`), no los de regex — helper nuevo en `src/common/utils/` con unit tests.
-- `$text` **no admite** `$regex` dentro de `$or` combinado con otros operadores de texto: cada query pasa a `{ $and: [ {$text: {...}}, ...filtros exactos ] }`.
-- El total de resultados con `countDocuments({ $text })` funciona (soporta text query).
-
-### 4.3 Casos especiales por colección
-
-| Colección | Nota |
-|---|---|
-| `qrs` | `findUserByFavorites` une `qrs` + `pettagschemas` en `$facet` (SPEC-007 H3): el `$match` de texto debe replicarse por colección con su propio `$text`; el índice de `qrs` debe incluir los campos de pet-tag si se busca unificado |
-| `pettagschemas` | `assignedStoreName` es filtro exacto (no search): queda como hoy |
-| `qractivates` | el parse booleano de `search` (`sendDocument`) es anterior al `$or` de texto: se preserva |
-| `users` | `userName` es identificación → `$regex` anclado; `email` → `$text` o `$regex` anclado (decisión UX) |
-
-## 5. Criterios de aceptación
-
-- [ ] **CA-01**: con 10.000 documentos de prueba en `qrs`, `GET /qr?search=término` responde en **< 100 ms** (medido con profiler, comparado contra línea base `$regex` actual)
-- [ ] **CA-02**: la búsqueda no degrada el servidor: `explain()` muestra `stage: TEXT_OR` / índice `search_text` (sin `COLLSCAN`)
-- [ ] **CA-03**: semántica documentada y aprobada por producto: qué encuentra `search=re` y `search=rex` en cada colección (ver §3)
-- [ ] **CA-04**: búsqueda por ID corto (`idQr`, `qrId`, `activationPin`, `userName`) sigue funcionando por prefijo (índice regular + `$regex` anclado)
-- [ ] **CA-05**: los operadores de `$text` no inyectan: `search='+"web" -plan'` no rompe ni altera resultados (escape propio)
-- [ ] **CA-06**: suite unit (146+) + suite E2E de búsqueda (favorites-union, admin search) verde con la nueva semántica
+- [ ] **CA-00 (paso 0)**: medición documentada — nº de documentos por colección + tiempo de `GET /qr?search=X` con `explain()` sobre datos reales (stage actual: `COLLSCAN` y duración) y decisión registrada (cerrar como no accionable o seguir)
+- [ ] **CA-01**: con datos reales, la búsqueda que elige producto responde en **< 100 ms** (o igual a la línea base si la opción es D) con `explain()` sin `COLLSCAN` en los campos con índice
+- [ ] **CA-02 (UX, crítico)**: `search=qr` y `search=123` (PIN parcial) **siguen devolviendo resultados** en el frontend (dashboard QR y admin pet-tag) — sin regresión de semántica
+- [ ] **CA-03**: `search=pla` (prefijo) encuentra "Playa" (dashboard QR) — sin regresión de prefijo
+- [ ] **CA-04**: el orden del dashboard no cambia: "Mis Códigos QR" mantiene `createdAt desc` y favorites mantiene `isFavorite+updatedAt` (SPEC-007 RF-6)
+- [ ] **CA-05**: los operadores de `$text` no inyectan (`+"web" -plan`) — escape propio si se usa `$text`
+- [ ] **CA-06**: suite unit (146+) + suite E2E de búsqueda (favorites-union, admin search, pet-tag PIN) verde
 - [ ] **CA-07**: `tsc --noEmit` sin errores; eslint sin errores nuevos
-- [ ] **CA-08**: índices creados y verificados en dev y en el pipeline de deploy (sin índice en prod = query falla o full scan con warning)
+- [ ] **CA-08**: índices creados y verificados en dev y deploy (sin índice en prod = warning o fallback)
 
 ## 6. No funcionales
 
-- **Rendimiento**: `$text` indexado → O(log n) por término vs O(n) hoy; tamaño del índice a medir (pesos y campos largos de `data`).
-- **Compatibilidad**: contrato de API sin cambios (misma query `search`); cambia el **orden y contenido de resultados** (score vs fecha) — requiere revisión UX del dashboard.
-- **Portabilidad**: patrón estándar MongoDB, aplicable a cualquier colección.
-- **Mantenibilidad**: `sanitizeTextSearch` + tabla de campos indexados por colección documentada en el schema.
+- **Rendimiento**: objetivo < 100ms con datos reales (CA-01); medición del paso 0 como línea base.
+- **Compatibilidad**: contrato de API sin cambios; **semántica y orden preservados por diseño** (CAs 02-04) — el frontend NO requiere cambios.
+- **Mantenibilidad**: la decisión por campo (tabla §2.1) documentada en el schema; helper `sanitizeTextSearch` con unit tests si se usa `$text`.
+- **Costos**: opción D ≈ 0 (solo índices); opción C requiere índice text + ajuste de repos.
 
 ## 7. Trade-offs
 
 | Decisión | Alternativa | Motivo |
 |---|---|---|
-| `$text` para texto largo | Mantener `$regex` (status quo) | Elimina full scan; a cambio cambia semántica (requiere decisión de producto) |
-| `$regex ^anclado` para IDs | `$text` también para IDs | El usuario busca IDs exactos/prefijos; `$text` no hace prefijo y tokeniza `rex-1` como `rex` `1` |
-| Un índice por colección | Múltiples índices | Mongo permite UN solo text index por colección; hay que elegir campos |
-| `default_language: 'es'` | `none` (sin stemming) | Stemming es útil para "correos"/"correo"; `none` si se quiere matching exacto de tokens |
-| Orden por score | Orden por fecha (actual) | Relevancia > recencia para búsqueda; se puede combinar con `sort: { score: { $meta } }` |
-| Atlas Search (Lucene) | `$text` nativo | `$text` es gratis y suficiente; Atlas Search solo si se necesitan synonyms/fuzzy (fuera de alcance) |
+| Medir primero (paso 0) | Implementar `$text` directamente | El análisis FE muestra regresiones de UX serias; sin medición no hay justificación para cambiar semántica |
+| Preservar substring/prefijo | Aceptar tokenización | El caso de uso real del producto (encontrar tu QR, buscar PIN parcial) depende de substring |
+| `$regex ^` + índice regular para campos calientes | `$text` para todo | `^anclado` usa índice y mantiene prefijos — el patrón que los usuarios usan de verdad |
+| Un text index por colección | Varios | Mongo permite UNO solo; la opción C limita `$text` a texto largo y deja IDs en `$regex` |
+| Orden explícito (`$sort`) al usar `$text` | Sort por score | No romper "Mis Códigos QR" (CA-04) |
+| Atlas Search | `$text` nativo | Solo si la búsqueda se vuelve feature (fuzzy/autocomplete) — fuera de alcance |
 
 ## 8. Plan de implementación (estimación)
 
-1. **Decisión de producto** sobre semántica (§3) + elección de campos por colección — 1 sesión
-2. Índices en schemas (`qrs`, `pettagschemas`, `users`, `plans`, `qrfreegenerations`, `qractivates`) — 1h
-3. Helper `sanitizeTextSearch` + unit tests — 30 min
-4. Migrar repositorios a `$text` + ajustar `$facet` de favorites — 2-3h
-5. Seed de 10k documentos de prueba + medición de CAs 01-02 — 1h
-6. Ajuste de E2E de búsqueda + validación final (CA-06/07/08) — 1-2h
+1. **Paso 0 — medición** (datos reales): contar docs por colección, `explain()` de las 5 búsquedas, decisión documentada — 1h
+2. (Si aplica) **Opción D**: índices regulares en `name`/`idQr`/`userName`/`activationPin` + anclar `$regex` a `^` en los campos con índice — 1-2h
+3. (Si aplica) **Opción C**: `sanitizeTextSearch` + índices text + migrar texto largo a `$text` con `$sort` explícito + `$facet` de favorites — 3-4h
+4. Validación: E2E de búsqueda + CAs 00-08 + actualizar SPEC — 1h
 
 ## 9. Trabajo futuro (backlog)
 
 - [ ] Evaluar Atlas Search (synonyms, fuzzy, autocomplete) si la búsqueda se vuelve feature de producto
-- [ ] Autocomplete/suggestions en el input de búsqueda del dashboard (fuera de alcance)
+- [ ] Autocomplete/suggestions en el input "Buscar..." del dashboard (fuera de alcance)
 
 ## 10. Historial de cambios
 
 | Fecha | Autor | Cambio |
 | :---------- | :----- | :---------- |
-| 2026-08-11 | Equipo | Borrador inicial — documenta el backlog de SPEC-008 §10 (índices `$text`): línea base de `$regex` post-hardening, cambio de semántica (decisión de producto pendiente), índices propuestos por colección, CAs medibles y plan |
+| 2026-08-11 | Equipo | Borrador inicial — documenta el backlog de SPEC-008 §10: línea base `$regex` post-hardening, CAs medibles y plan |
+| 2026-08-11 | Equipo | **Revisión con impacto en frontend** (análisis de `qr-app`): inventario de los 5 buscadores reales (dashboard QR, QRs de cliente, placas por PIN, planes, activaciones); regresiones concretas de `$text` puro (términos < 3 chars, prefijos, PIN parcial, IDs UUID, orden de resultados); **paso 0 obligatorio de medición**; 5 opciones evaluadas con veredicto (A `$text` puro ❌, B fallback ⚠️, C híbrido por campo ✅, D índices parciales ⚠️ según medición, E Atlas fuera); CAs revisados con foco en NO romper UX (02-04) |
