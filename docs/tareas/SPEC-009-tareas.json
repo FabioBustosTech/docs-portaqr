@@ -63,8 +63,8 @@
         {
             "id": "7",
             "content": "[SPEC-009] Bloque 5 (A5): códigos criptográficos + límite de intentos",
-            "description": "Reemplazar Math.random().toString(36).substring(2,8) por crypto.randomBytes(5).toString('hex') en create-user/forgot-password/resend-verification. Campo verificationAttempts en UserSchema: 5 fallos → invalidar código en verify-email y reset-password. Throttler en verify/reset (SPEC-008 ya cubre). CA-05. ~2h",
-            "status": "pending",
+            "description": "Helper generateVerificationCode (crypto.randomBytes(5).toString('hex').toUpperCase() = 10 chars hex ≈ 40 bits) en src/common/utils/code-generator.util.ts + VERIFICATION_MAX_ATTEMPTS=5; reemplazados los 3 generadores (create-user, forgot-password, resend-verification). UserSchema/entity/mapper: verificationAttempts + passwordResetAttempts (default 0). verify-email y reset-password: fallo → $inc en memoria (verificationAttempts+1); tras 5 → invalida el código (borra + responde 'expirado'); éxito → reset contador. CA-05: cero Math.random().toString(36) en código productivo (grep verificado). Tests: 1163 suite completa + tsc OK. E2E tras rebuild: 69 passed / 2 skipped (verify-email UI funciona con código de 10 chars).",
+            "status": "completed",
             "priority": "high",
             "tag": "spec-009",
             "dependencies": [],
