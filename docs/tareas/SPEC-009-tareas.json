@@ -13,8 +13,8 @@
         {
             "id": "2",
             "content": "[SPEC-009] Helper común assertOwnerOrAdmin + unit tests",
-            "description": "Crear src/common/utils/ownership.utils.ts con assertOwnerOrAdmin(ownerId, actor, message?) → ForbiddenException 403 si !isOwner && !isAdmin (patrón estándar de la sección 4). Unit tests. Usado por Bloques 1-4 y 7. ~30 min",
-            "status": "pending",
+            "description": "Crear src/common/utils/ownership.utils.ts con assertOwnerOrAdmin(ownerId, actor, message?) → ForbiddenException 403 si !isOwner && !isAdmin (patrón estándar de la sección 4). Unit tests: 6/6 passed (ownership.utils.spec.ts). tsc --noEmit OK. Usado por Bloques 1-4 y 7.",
+            "status": "completed",
             "priority": "high",
             "tag": "spec-009",
             "dependencies": [],
