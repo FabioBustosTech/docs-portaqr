@@ -1,0 +1,154 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-009] T0: Baseline de regresión E2E (ejecutar suite + 6 specs nuevos)",
+            "description": "Ejecutar la suite Playwright existente (e2e-tests-portaqr, 19 specs) ANTES de tocar nada y documentar el estado como punto de partida. Crear 6 specs nuevos (sección 9 - Tarea 0 de la SPEC): session-refresh (B8), verify-email (B5, UI), forgot-password (B4, API), pet-tag/public-status (A11, API), webpay/refund-admin (B2, API), webpay-commit (B3/B12, éxito VISA 4051 8856 0044 6623 + rechazo Mastercard 5186 0595 5959 0568, env WEBPAY_E2E=1). Credenciales integración: comercio 597055555532, RUT 11.111.111-1 / clave 123. ~3.5h",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-009] Helper común assertOwnerOrAdmin + unit tests",
+            "description": "Crear src/common/utils/ownership.utils.ts con assertOwnerOrAdmin(ownerId, actor, message?) → ForbiddenException 403 si !isOwner && !isAdmin (patrón estándar de la sección 4). Unit tests. Usado por Bloques 1-4 y 7. ~30 min",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-009] Bloque 1 (A1): ownership users en dos capas + DTO + strip role",
+            "description": "PATCH /users/:id: check en controller (403, bypass admin) + regla en UpdateUserUseCase.execute(id, data, actor, tracking). Quitar isEmailVerified de UpdateUserDto; isActive solo admin (403). Strip de role en $set de mongo-user.repository.update. Validación ObjectId → 400. Ajustar users.controller.spec y update-user.usecase.spec. CA-01. ~1.5h",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-009] Bloque 2 (A2): Webpay protegido (auth + sessionId del token + refund admin-only)",
+            "description": "JwtAuthGuard en create/status/transaction; refund → @Roles('admin'); sessionId se elimina del CreateTransactionDto (Opción A) e inyecta desde req.user.id; ownership con assertOwnerOrAdmin(tx.sessionId) en status/transaction; return público. Validación amount en commit-transaction.usecase. Frontend F1-F3 (Bearer en webpay.service.ts, quitar sessionId, UI refund solo admin). CA-02. ~2h + 30min qr-app",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-009] Bloque 3 (A3): qr-activate sin fraude (DTOs + ownership + userId por rol)",
+            "description": "Eliminar state/WebpayTransaction/TransferDate de CreateQrActivateDto (state lo fija el usecase: PENDING o ADMINCREATED); userId por rol: user → del token (403 si difiere), admin → acepta userId del cliente (activation.helpers.ts:55); ownership assertOwnerOrAdmin(activation.userId) en GET/PATCH; ObjectId → 400; PATCH /qr-activate/webpay/:token_ws público por diseño. Frontend F4-F5 (quitar state del payload). CA-03. ~2h",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "6",
+            "content": "[SPEC-009] Bloque 4 (A4): IDOR users + mensajes homogéneos",
+            "description": "GET /users/:id → assertOwnerOrAdmin en controller (no tocar GetUserUseCase); GET /users/search → solo admin; login → mensaje único 'Credenciales inválidas' (auth.service.ts); forgot-password → 200 genérico (forgot-password.usecase). Ajustar login.spec si el mensaje del frontend viene del backend. CA-04. ~1.5h",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "7",
+            "content": "[SPEC-009] Bloque 5 (A5): códigos criptográficos + límite de intentos",
+            "description": "Reemplazar Math.random().toString(36).substring(2,8) por crypto.randomBytes(5).toString('hex') en create-user/forgot-password/resend-verification. Campo verificationAttempts en UserSchema: 5 fallos → invalidar código en verify-email y reset-password. Throttler en verify/reset (SPEC-008 ya cubre). CA-05. ~2h",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "8",
+            "content": "[SPEC-009] Bloque 6 (A6): fail-fast llaves JWT en producción",
+            "description": "jwt-keys.ts: si NODE_ENV=production y no hay JWT_PRIVATE_KEY/JWT_PUBLIC_KEY válidas → throw en bootstrap; par efímero solo en development/test. Verificar que Railway/docker-compose inyectan las llaves PEM. CA-06. ~30 min",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "9",
+            "content": "[SPEC-009] Bloque 7 (A7/A9): scan ownership + validar QR existe",
+            "description": "scan.controller: en getStats/getRecentScans/getDailyStats/getLocationStats/getDeviceStats cargar QR → 404 si no existe → assertOwnerOrAdmin(qr.userId, actor). create-scan.usecase: validar QR existe → 404 (no crear doc); userId/userIdScan del body se ignoran (dueño real del QR). CA-07. ~1h",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "10",
+            "content": "[SPEC-009] Bloque 8 (A8): refresh tokens con rotación + detección de reuso",
+            "description": "Colección refresh_tokens { userId, tokenHash SHA-256, expiresAt, revokedAt, createdAt } + índice TTL. refreshToken(): buscar por hash → rotar (revocar + emitir); reuso de token revocado → revocar familia (tokenVersion++). logout: revocar refresh activos. change-password/reset-password: tokenVersion++. TTL 7d configurable (REFRESH_TOKEN_TTL_DAYS). CA-08. ~3h",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "11",
+            "content": "[SPEC-009] Bloque 9 (A10/A11/A12): superficie pública (idQr + 5 intentos pet-tag)",
+            "description": "get-public-qr.usecase: id → qr.idQr (coordinar QrRedirectClient.tsx:141 — F6). pet-tag status público: SE MANTIENE petData completo (decisión de negocio). PATCH /pet-tag/activate: activationAttempts + activationLockedUntil (5 fallos → bloqueo 30 min, PET_TAG_MAX_ATTEMPTS/PET_TAG_LOCK_MINUTES) + throttler IP. CA-09. ~1.5h",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "12",
+            "content": "[SPEC-009] Bloque 10 (A13): whitelist de campos en logs (default-deny)",
+            "description": "Helper sanitizeForLog(data, allowedFields) en src/common/utils/redact.utils.ts + unit tests; ResponseLoggerInterceptor con whitelist global + rutas restringidas (/auth/login, /auth/refresh, /webpay/*); token_ws truncado en webpay.controller (líneas 80/107/121/133). CA-10. ~1.5h",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "13",
+            "content": "[SPEC-009] Bloque 12 (B12): precio desde el plan con snapshot histórico",
+            "description": "QRElementDto: price → planId (getPlan → plan.price); backend calcula y congela snapshot en qractivates (price.TotalPrice/TotalTax, qrList[].price, qrList[].plan); amount de POST /webpay/create desde la activación persistida; commit valida amount Transbank == snapshot (si no → NO activar). Frontend F11-F12 (enviar planId, mostrar total del response). CA-14. ~3h",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": ["5"],
+            "subtasks": []
+        },
+        {
+            "id": "14",
+            "content": "[SPEC-009] Bloque 11: ajustes frontend qr-app (F1-F12)",
+            "description": "F1-F3 (Bearer webpay + quitar sessionId + refund admin UI) con B2; F4-F5 (quitar state/WebpayTransaction de payloads qr-activate) con B3; F6 (QrRedirectClient.tsx:141) con B9; F7 (manejo 404 scan) con B7; F8-F9 UX límites intentos con B5/B9; F10 verificar id del QR público con B9; F11-F12 (planId + total response) con B12. Tabla completa en sección 4 - Bloque 11. CA-13. ~2-3h",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": ["4", "5", "13"],
+            "subtasks": []
+        },
+        {
+            "id": "15",
+            "content": "[SPEC-009] Validación final: tsc + tests + CA-01..CA-14 + SPEC a implementado",
+            "description": "tsc --noEmit sin errores en backend-portaqr; suite unit tests verde; suite E2E (incl. webpay-commit con WEBPAY_E2E=1) verde; verificar CA-01..CA-14; actualizar SPEC-009 a status 'implementado' (frontmatter) y marcar tareas completadas. ~1h",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"],
+            "subtasks": []
+        }
+    ]
+}
