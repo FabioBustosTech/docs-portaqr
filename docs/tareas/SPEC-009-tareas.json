@@ -43,8 +43,8 @@
         {
             "id": "5",
             "content": "[SPEC-009] Bloque 3 (A3): qr-activate sin fraude (DTOs + ownership + userId por rol)",
-            "description": "Eliminar state/WebpayTransaction/TransferDate de CreateQrActivateDto (state lo fija el usecase: PENDING o ADMINCREATED); userId por rol: user → del token (403 si difiere), admin → acepta userId del cliente (activation.helpers.ts:55); ownership assertOwnerOrAdmin(activation.userId) en GET/PATCH; ObjectId → 400; PATCH /qr-activate/webpay/:token_ws público por diseño. Frontend F4-F5 (quitar state del payload). CA-03. ~2h",
-            "status": "pending",
+            "description": "Eliminar state/WebpayTransaction/TransferDate/activationDate/createdAt/updatedAt de CreateQrActivateDto + webpayToken nuevo (el usecase arma WebpayTransaction internamente — el commit busca por WebpayTransaction.id); state fijado por usecase (PENDING o ADMIN via ActivationState.ADMIN='ADMINCREATED'); userId por rol (user→token 403 si difiere, admin→acepta cliente); UpdateQrActivateDto solo description/descriptionAdministrator; ownership assertOwnerOrAdmin(activation.userId) en findOne/update + ObjectId 400; GET / filtra por userId salvo admin (nuevo param en port/usecase/repo/adapter). Frontend F4-F5: pay.helpers (state/WebpayTransaction/createdAt/updatedAt fuera + webpayToken) y activation.helpers (state fuera); interfaz QrActivate con state/createdAt/updatedAt opcionales + webpayToken?. Tests: qr-activate 14 suites/120 tests, suite completa 1156, tsc backend+frontend OK.",
+            "status": "completed",
             "priority": "high",
             "tag": "spec-009",
             "dependencies": ["2"],
