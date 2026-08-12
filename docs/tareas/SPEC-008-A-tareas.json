@@ -2,51 +2,51 @@
     "tasks": [
         {
             "id": "0",
-            "content": "[SPEC-013] Paso 0: medir línea base con datos reales antes de decidir",
+            "content": "[SPEC-008-A] Paso 0: medir línea base con datos reales antes de decidir",
             "description": "Contar documentos por colección (qrs, pettagschemas, users, plans, qrfreegenerations, qractivates) + explain() de las 5 búsquedas del frontend (dashboard QR, QRs cliente, pet-tag, planes, activaciones): stage COLLSCAN y duración real. Decidir: cerrar como no accionable (opción D) o seguir con opción C. Registrar números en la SPEC (CA-00).",
             "status": "pending",
             "priority": "high",
-            "tag": "spec-013",
+            "tag": "spec-008-a",
             "dependencies": [],
             "subtasks": []
         },
         {
             "id": "1",
-            "content": "[SPEC-013] Decisión de producto/semántica con base en la medición",
+            "content": "[SPEC-008-A] Decisión de producto/semántica con base en la medición",
             "description": "Validar §3-4 con los números del paso 0: qué debe encontrar la búsqueda (prefijos/IDs/PIN preservados — CAs 02-03), qué campos van a $text (texto largo) vs $regex ^ (IDs/nombres/PIN). Decisión documentada en la SPEC.",
             "status": "pending",
             "priority": "high",
-            "tag": "spec-013",
+            "tag": "spec-008-a",
             "dependencies": ["0"],
             "subtasks": []
         },
         {
             "id": "2",
-            "content": "[SPEC-013] (Si opción D) Índices regulares parciales + $regex anclado en campos calientes",
+            "content": "[SPEC-008-A] (Si opción D) Índices regulares parciales + $regex anclado en campos calientes",
             "description": "Índices en name/idQr/userName/activationPin + $regex ^ (anclado al inicio usa índice y mantiene prefijos). Sin cambio de semántica FE. CA-01, CA-08.",
             "status": "pending",
             "priority": "medium",
-            "tag": "spec-013",
+            "tag": "spec-008-a",
             "dependencies": ["1"],
             "subtasks": []
         },
         {
             "id": "3",
-            "content": "[SPEC-013] (Si opción C) Helper sanitizeTextSearch + índices $text + migración de texto largo",
+            "content": "[SPEC-008-A] (Si opción C) Helper sanitizeTextSearch + índices $text + migración de texto largo",
             "description": "src/common/utils/text-search.util.ts (escapa operadores de $text: + - \" — distinto de escapeStringRegexp) + unit tests. Índices text en schemas (default_language 'es', pesos). Migrar $regex → $text SOLO en campos de texto largo (vcard, petData, name si aplica, description...) manteniendo $regex ^ para IDs/PIN. $sort explícito para no romper orden del dashboard (CA-04). Ajustar $facet de favorites (SPEC-007 H3).",
             "status": "pending",
             "priority": "high",
-            "tag": "spec-013",
+            "tag": "spec-008-a",
             "dependencies": ["1", "2"],
             "subtasks": []
         },
         {
             "id": "4",
-            "content": "[SPEC-013] Validación E2E búsqueda (sin regresión UX) + CAs 00-08 y cierre",
+            "content": "[SPEC-008-A] Validación E2E búsqueda (sin regresión UX) + CAs 00-08 y cierre",
             "description": "E2E: search=qr (dashboard), search=123 (PIN parcial), search=pla (prefijo) devuelven resultados (CAs 02-03); orden del dashboard sin cambios (CA-04); operadores $text no inyectan (CA-05); unit 146+ verde (CA-06); tsc/eslint 0 (CA-07); índices en dev/deploy (CA-08). Actualizar SPEC a implementado + historial.",
             "status": "pending",
             "priority": "medium",
-            "tag": "spec-013",
+            "tag": "spec-008-a",
             "dependencies": ["3"],
             "subtasks": []
         }

@@ -1,5 +1,5 @@
 ---
-title: "SPEC-014: Limpieza de deuda de lint preexistente (backend-portaqr)"
+title: "SPEC-008-B: Limpieza de deuda de lint preexistente (backend-portaqr) — spec hija de SPEC-008"
 date: 2026-08-11
 tags:
   - spec
@@ -10,11 +10,12 @@ tags:
   - backlog
 status: borrador
 aliases:
-  - SPEC-014
+  - SPEC-008-B
   - Limpieza lint preexistente
+parent: SPEC-008
 ---
 
-# SPEC-014: Limpieza de deuda de lint preexistente (`backend-portaqr`)
+# SPEC-008-B: Limpieza de deuda de lint preexistente (`backend-portaqr`)
 
 > [!abstract] Decisión clave
 > Reducir a **cero** los errores de ESLint en `src/**/*.ts` (hoy: **17 errores en 12 archivos**, todos preexistentes a SPEC-008) sin cambiar comportamiento de runtime. Esto deja la línea base limpia para que las próximas SPEC (incluida la SPEC-013) no mezclen errores nuevos con deuda vieja, y habilita `eslint` como check de CI.

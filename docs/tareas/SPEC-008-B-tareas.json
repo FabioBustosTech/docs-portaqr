@@ -2,41 +2,41 @@
     "tasks": [
         {
             "id": "1",
-            "content": "[SPEC-014] Config eslint: argsIgnorePattern '^_' + imports sobrantes",
+            "content": "[SPEC-008-B] Config eslint: argsIgnorePattern '^_' + imports sobrantes",
             "description": ".eslintrc.js: '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }] (resuelve tracking.decorator.spec:10, user.decorator.spec:8, jwt-auth.guard:33 info→_info). Borrar imports: response-logger (tap:3), auth.service (RefreshTokenDto:7), PlanRepositoryAdapter (NotFoundException:1), storage.service.spec (PutObjectCommand/DeleteObjectCommand:1).",
             "status": "pending",
             "priority": "high",
-            "tag": "spec-014",
+            "tag": "spec-008-b",
             "dependencies": [],
             "subtasks": []
         },
         {
             "id": "2",
-            "content": "[SPEC-014] response-logger rest params + CustomLogger firmas",
+            "content": "[SPEC-008-B] response-logger rest params + CustomLogger firmas",
             "description": "response-logger.interceptor.ts:21: res.send = (...args) => { responseBody = args[0]; return originalSend.apply(this, args); }. logger.util.ts: quitar trace?: string de log/warn/debug/verbose (15,30,37,44) — solo error() lo usa; verificar grep que ningún caller pase 5º arg.",
             "status": "pending",
             "priority": "high",
-            "tag": "spec-014",
+            "tag": "spec-008-b",
             "dependencies": [],
             "subtasks": []
         },
         {
             "id": "3",
-            "content": "[SPEC-014] require sharp con disable correcto + mongo-doc + commit-transaction.spec",
+            "content": "[SPEC-008-B] require sharp con disable correcto + mongo-doc + commit-transaction.spec",
             "description": "image-processor.service(.spec).ts:4: el disable actual dice no-require-imports pero la regla activa es no-var-requires → corregir el comentario o desactivar regla. mongo-doc.ts:2: evaluar quitar generic (grep callers) o disable justificado. commit-transaction.usecase.spec.ts:17: quitar 'reader' sin uso.",
             "status": "pending",
             "priority": "medium",
-            "tag": "spec-014",
+            "tag": "spec-008-b",
             "dependencies": [],
             "subtasks": []
         },
         {
             "id": "4",
-            "content": "[SPEC-014] Validación final: eslint 0 + tsc 0 + suite verde + diff sin lógica",
+            "content": "[SPEC-008-B] Validación final: eslint 0 + tsc 0 + suite verde + diff sin lógica",
             "description": "npx eslint 'src/**/*.ts' → 0 errores (CA-01); tsc --noEmit 0 (CA-02); jest 146 suites/1139 (CA-03); revisar git diff: solo imports/params/config (CA-04); tests de decorators verdes (CA-05). Cerrar SPEC a implementado + historial.",
             "status": "pending",
             "priority": "high",
-            "tag": "spec-014",
+            "tag": "spec-008-b",
             "dependencies": ["1", "2", "3"],
             "subtasks": []
         }

@@ -1,5 +1,5 @@
 ---
-title: "SPEC-013: Índices de texto $text para búsquedas (backend-portaqr)"
+title: "SPEC-008-A: Índices de texto $text para búsquedas (backend-portaqr) — spec hija de SPEC-008"
 date: 2026-08-11
 tags:
   - spec
@@ -11,11 +11,12 @@ tags:
   - backlog
 status: borrador
 aliases:
-  - SPEC-013
+  - SPEC-008-A
   - Índices $text búsqueda
+parent: SPEC-008
 ---
 
-# SPEC-013: Índices de texto `$text` para búsquedas (`backend-portaqr`)
+# SPEC-008-A: Índices de texto `$text` para búsquedas (`backend-portaqr`)
 
 > [!abstract] Decisión clave
 > La búsqueda actual (`$regex` sin anclaje sobre ~50 campos) hace full-collection scan. La candidata `$text` **cambia la semántica** (substring → tokenizado) y **afecta directamente a los 5 buscadores del frontend** — por eso el paso 0 es **medir la línea base con datos reales** y tomar la decisión con datos, no con teoría. Análisis de impacto FE incluido en §3 (completado 2026-08-11 tras revisar `qr-app`).
