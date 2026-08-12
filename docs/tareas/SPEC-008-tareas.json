@@ -176,8 +176,8 @@
                   {
                       "id":  "13",
                       "content":  "[SPEC-008-B] Config eslint: argsIgnorePattern \u0027^_\u0027 + imports sobrantes",
-                      "description":  ".eslintrc.js: \u0027@typescript-eslint/no-unused-vars\u0027: [\u0027error\u0027, { argsIgnorePattern: \u0027^_\u0027 }] (resuelve tracking.decorator.spec:10, user.decorator.spec:8, jwt-auth.guard:33 infoâ†’_info). Borrar imports: response-logger (tap:3), auth.service (RefreshTokenDto:7), PlanRepositoryAdapter (NotFoundException:1), storage.service.spec (PutObjectCommand/DeleteObjectCommand:1).",
-                      "status":  "pending",
+                      "description":  "HECHO: argsIgnorePattern \u0027^_\u0027 en .eslintrc.js (resuelve _tracking/_user/_info); imports borrados: tap, RefreshTokenDto, NotFoundException, PutObjectCommand/DeleteObjectCommand. Commit 80c5257.",
+                      "status":  "completed",
                       "priority":  "high",
                       "tag":  "spec-008-b",
                       "dependencies":  [
@@ -190,8 +190,8 @@
                   {
                       "id":  "14",
                       "content":  "[SPEC-008-B] response-logger rest params + CustomLogger firmas",
-                      "description":  "response-logger.interceptor.ts:21: res.send = (...args) =\u003e { responseBody = args[0]; return originalSend.apply(this, args); }. logger.util.ts: quitar trace?: string de log/warn/debug/verbose (15,30,37,44) â€” solo error() lo usa; verificar grep que ningÃºn caller pase 5Âº arg.",
-                      "status":  "pending",
+                      "description":  "HECHO: response-logger arguments → rest params; CustomLogger trace quitado de log/warn/debug/verbose — validado contra bff/qr-service (nunca lo tuvieron) y user-service (muerto); trackingId intacto en formatMessage. Commit 80c5257.",
+                      "status":  "completed",
                       "priority":  "high",
                       "tag":  "spec-008-b",
                       "dependencies":  [
@@ -204,8 +204,8 @@
                   {
                       "id":  "15",
                       "content":  "[SPEC-008-B] require sharp con disable correcto + mongo-doc + commit-transaction.spec",
-                      "description":  "image-processor.service(.spec).ts:4: el disable actual dice no-require-imports pero la regla activa es no-var-requires â†’ corregir el comentario o desactivar regla. mongo-doc.ts:2: evaluar quitar generic (grep callers) o disable justificado. commit-transaction.usecase.spec.ts:17: quitar \u0027reader\u0027 sin uso.",
-                      "status":  "pending",
+                      "description":  "HECHO: disables sharp corregidos a no-var-requires (regla real); MongoDoc\u003cT\u003e generic sin callers quitado; reader sin uso en commit-transaction.spec eliminado. Commit 80c5257.",
+                      "status":  "completed",
                       "priority":  "medium",
                       "tag":  "spec-008-b",
                       "dependencies":  [
@@ -218,8 +218,8 @@
                   {
                       "id":  "16",
                       "content":  "[SPEC-008-B] ValidaciÃ³n final: eslint 0 + tsc 0 + suite verde + diff sin lÃ³gica",
-                      "description":  "npx eslint \u0027src/**/*.ts\u0027 â†’ 0 errores (CA-01); tsc --noEmit 0 (CA-02); jest 146 suites/1139 (CA-03); revisar git diff: solo imports/params/config (CA-04); tests de decorators verdes (CA-05). Cerrar SPEC a implementado + historial.",
-                      "status":  "pending",
+                      "description":  "VALIDADO: eslint 0 errores (primer run limpio), tsc 0, 146 suites/1139 tests verdes, diff +22/-23 sin logica (CA-01..05). SPEC-008-B implementada + historial. Commit 80c5257.",
+                      "status":  "completed",
                       "priority":  "high",
                       "tag":  "spec-008-b",
                       "dependencies":  [

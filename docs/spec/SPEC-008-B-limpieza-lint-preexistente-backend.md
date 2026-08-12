@@ -8,7 +8,7 @@ tags:
   - eslint
   - calidad
   - backlog
-status: borrador
+status: implementado
 aliases:
   - SPEC-008-B
   - Limpieza lint preexistente
@@ -21,7 +21,7 @@ parent: SPEC-008
 > Reducir a **cero** los errores de ESLint en `src/**/*.ts` (hoy: **17 errores en 12 archivos**, todos preexistentes a SPEC-008) sin cambiar comportamiento de runtime. Esto deja la línea base limpia para que las próximas SPEC (incluida la SPEC-013) no mezclen errores nuevos con deuda vieja, y habilita `eslint` como check de CI.
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado
 > - **Fecha:** 2026-08-11
 > - **Autor:** Equipo Plataforma QR
 > - **Componente destino:** `desarrollo-qr/backend-portaqr/`
@@ -93,11 +93,11 @@ Resuelve los casos 1, 2 y 7 (parámetros intencionalmente no usados pero necesar
 
 ## 4. Criterios de aceptación
 
-- [ ] **CA-01**: `npx eslint "src/**/*.ts"` → **0 errores** (exit code 0)
-- [ ] **CA-02**: `npx tsc --noEmit` → 0 errores
-- [ ] **CA-03**: suite completa verde (146 suites / 1139 tests) sin ajustes de tests por comportamiento
-- [ ] **CA-04**: el diff NO toca lógica de negocio (solo imports, parámetros, `require` tipado y config de eslint)
-- [ ] **CA-05**: los tests que usan decorators (`tracking`/`user`) siguen pasando (el prefijo `_` no altera la firma)
+- [x] **CA-01**: `npx eslint "src/**/*.ts"` → **0 errores** (primer run limpio del proyecto — antes 17 errores en 12 archivos)
+- [x] **CA-02**: `npx tsc --noEmit` → 0 errores
+- [x] **CA-03**: suite completa verde — **146 suites / 1139 tests** sin ajustes de comportamiento
+- [x] **CA-04**: diff solo toca imports, parámetros, `require` tipado y config de eslint — **+22/-23 líneas en 11 archivos**, cero lógica de negocio
+- [x] **CA-05**: tests de decorators (`tracking`/`user`) siguen pasando (prefijo `_` no altera la firma) — incluidos en la suite verde
 
 ## 5. No funcionales
 
@@ -125,3 +125,4 @@ Resuelve los casos 1, 2 y 7 (parámetros intencionalmente no usados pero necesar
 | Fecha | Autor | Cambio |
 | :---------- | :----- | :---------- |
 | 2026-08-11 | Equipo | Borrador inicial — documenta la deuda de lint preexistente detectada en la auditoría de SPEC-008: inventario completo (17 errores / 12 archivos / reglas / fixes propuestos), config `argsIgnorePattern`, CAs y plan de ~30-45 min |
+| 2026-08-11 | Equipo | **Implementada** en rama `feat/spec-008-sanitizacion` (commit `80c5257`): `argsIgnorePattern: '^_'` en eslintrc (resuelve `_tracking`/`_user`/`_info`); imports sobrantes borrados (tap, RefreshTokenDto, NotFoundException, PutObjectCommand/DeleteObjectCommand, ICanGetTransaction); `arguments` → rest params en response-logger; `trace` quitado de `log/warn/debug/verbose` de CustomLogger (**validado contra bff/qr-service que nunca lo tuvieron; user-service lo tenía muerto; trackingId intacto en `formatMessage`** — sin cambio de comportamiento); `MongoDoc<T>` generic sin callers; disable de sharp corregido a `no-var-requires` (la regla real); `reader` sin uso en commit-transaction.spec. Resultado: **eslint 0 errores (primer run limpio del proyecto), tsc 0, 146 suites / 1139 tests verdes**, diff +22/-23 sin lógica de negocio (CA-01..05) |
