@@ -348,7 +348,7 @@ PET_TAG_LOCK_MINUTES=30
 > - Autenticación de tarjetahabiente cuando el formulario lo pide: **RUT `11.111.111-1` / clave `123`**
 > - Estas credenciales ya son las que el SDK usa por defecto en `Environment.Integration` (verificar `WEBPAY_COMMERCE_CODE`/`WEBPAY_API_KEY` en el `.env` local)
 
-- [ ] Tarea 0 (baseline E2E: ejecutar suite, documentar estado, crear 6 specs: session-refresh, verify-email, forgot-password, pet-tag/public-status, webpay/refund-admin, webpay-commit) — ~3.5h
+- [x] Tarea 0 (baseline E2E: ejecutar suite, documentar estado, crear 6 specs: session-refresh, verify-email, forgot-password, pet-tag/public-status, webpay/refund-admin, webpay-commit) — ~3.5h
 - [ ] Crear helper común `assertOwnerOrAdmin` en `src/common/utils/ownership.utils.ts` + unit tests (usado por Bloques 1-4 y 7) — ~30 min
 - [ ] Implementar Bloque 1 (ownership users en controller + usecase con `actor`, DTO sin isEmailVerified, isActive admin-only, strip role en update, validación ObjectId) — ~1.5h
 - [ ] Implementar Bloque 2 (webpay: auth en create/status/transaction, sessionId del token, refund admin-only, validación amount en commit, coordinación qr-app Bearer) — ~2h + ~30 min qr-app
