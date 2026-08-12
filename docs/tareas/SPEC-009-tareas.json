@@ -53,8 +53,8 @@
         {
             "id": "6",
             "content": "[SPEC-009] Bloque 4 (A4): IDOR users + mensajes homogéneos",
-            "description": "GET /users/:id → assertOwnerOrAdmin en controller (no tocar GetUserUseCase); GET /users/search → solo admin; login → mensaje único 'Credenciales inválidas' (auth.service.ts); forgot-password → 200 genérico (forgot-password.usecase). Ajustar login.spec si el mensaje del frontend viene del backend. CA-04. ~1.5h",
-            "status": "pending",
+            "description": "GET /users/:id → assertOwnerOrAdmin en controller (no tocar GetUserUseCase) + ObjectId 400; GET /users/search → solo admin (decisión: endpoint pensado para dashboard/users de admin); login → mensaje único 'Credenciales inválidas' (auth.service.ts — unificado los 3 casos); forgot-password → NO lanza 404 (responde genérico, log interno). Frontend verificado: LoginForm muestra su propio texto hardcodeado → login.spec NO se rompe. Tests: 1158 suite completa + tsc OK. E2E tras rebuild: 69 passed / 2 skipped (refund-admin ahora corre siempre).",
+            "status": "completed",
             "priority": "high",
             "tag": "spec-009",
             "dependencies": ["2"],
