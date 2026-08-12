@@ -82,9 +82,23 @@ Stack: **NestJS 11 (Express) · Mongoose 8 · class-validator 0.15 + class-trans
 
 ## 4. Solución propuesta — defensa en capas
 
-### Capa 1 — Sanear la salida de correos (fix R1, crítico)
+### Capa 1 — Limpiar HTML en la entrada y escapar la salida de correos (fix R1, crítico)
 
-**a)** En `NodemailerContactAdapter`: escapar `nombre`, `email`, `asunto`, `mensaje` antes de interpolar en el HTML. Helper pequeño y probado:
+**a)** En `ContactFormDto`: `@Transform(stripHtml)` en `nombre`, `asunto` y `mensaje` — el HTML se **elimina en el punto de entrada** (anti XSS/HTML injection), de modo que el contenido se guarda/envía como **texto plano sin formato**. Helper probado:
+
+```ts
+const HTML_TAG_RE = /<[^>]*>/g;
+function stripHtml(value: string): string {
+  if (!value) return value ?? '';
+  return value.replace(HTML_TAG_RE, '').trim();
+}
+```
+
+- `</p><img src=x onerror=alert(1)>` → queda `''` (tags sin contenido interno se eliminan completos).
+- `<b>Quiero</b> los precios` → `Quiero los precios` (el texto interno de tags de contenido se conserva).
+- El `email` no se limpia (validado con `@IsEmail()`).
+
+**b)** En `NodemailerContactAdapter`: mantener `escapeHtml` sobre `nombre`, `email`, `asunto`, `mensaje` antes de interpolar en el HTML — **segunda capa de defensa** por si un caller no pasa por el DTO:
 
 ```ts
 function escapeHtml(value: string): string {
@@ -95,7 +109,17 @@ function escapeHtml(value: string): string {
 }
 ```
 
-**b)** Alternativa (preferida si el mensaje puede crecer): migrar el adapter a una plantilla **EJS** (`<%= %>`) como ya hacen `registerEmail.ejs`/`passwordReset.ejs` — patrón del proyecto, escape automático.
+**c) Saltos de línea del mensaje** (el formulario usa `<Textarea>` — multilínea): dentro de `<p>...</p>` los `\n` se colapsan como espacios, así que tras el escape se convierten en `<br>`:
+
+```ts
+const mensajeHtml = escapeHtml(message.mensaje).replace(/\r\n|\r|\n/g, '<br>');
+```
+
+- **Orden correcto**: escape primero → un `<br>` escrito por el usuario llega como texto `&lt;br&gt;` (no inyectable); el `<br>` generado es inofensivo y solo aparece por saltos reales del textarea.
+- `stripHtml` del DTO conserva los `\n` (solo elimina etiquetas) → el flujo completo preserva el formato del mensaje.
+
+> [!note] Diferencia con el diseño original
+> El borrador solo escapaba en el adapter (el correo mostraba `&lt;/p&gt;...`). El diseño final **limpia en la entrada** (DTO): si el mensaje se persistiera en BD mañana, ya llega sin HTML; y el escape en el adapter cubre el caso de callers directos.
 
 ### Capa 2 — Hardening del ValidationPipe global (fix R3)
 
@@ -187,7 +211,7 @@ THROTTLE_LIMIT=10
 
 ## 7. Criterios de aceptación
 
-- [ ] **CA-01 (R1)**: `POST /mail/contact` con `mensaje = '</p><img src=x onerror=alert(1)>'` → el correo recibido muestra el texto escapado (`&lt;/p&gt;`), sin HTML ejecutable
+- [x] **CA-01 (R1)**: `POST /mail/contact` con `mensaje = '</p><img src=x onerror=alert(1)>'` → el DTO lo limpia a texto plano (sin HTML) antes de guardar/enviar; el correo no contiene HTML ejecutable (doble capa: strip en entrada + escape en salida) — cubierto por tests del DTO y del adapter
 - [ ] **CA-02 (R2)**: búsqueda con `search=(a+)+$` responde en < 200ms (sin hang de CPU); `search=.*` no rompe
 - [ ] **CA-03 (R3)**: `POST /qr` con campo extra `"hack": true` → 400 (forbidNonWhitelisted); sin él, el campo no se persiste (whitelist)
 - [ ] **CA-04 (R3)**: `GET /qr?page=abc` → 400 (con DTO); `page=2&limit=50` funciona tipado (skip=50)
@@ -235,3 +259,5 @@ THROTTLE_LIMIT=10
 | 2026-08-09 | Equipo | Borrador inicial |
 | 2026-08-11 | Equipo | Revisión de alineación post-consolidación del repo (SPEC-001/005/007 cerradas; `backend-portaqr` ahora monolito). **Confirmado: 0 de 7 tareas implementadas** — todos los riesgos R1-R6 siguen presentes en el código actual. Líneas de código actualizadas: R2 → `mongo-qr` L266-295/L391-446, `mongo-pet-tag` :96,:101; R5 → `mongo-qr.repository.ts:233-255`; R6 → `qr.controller.ts:407-409, 452-455, 673-675`. Verificaciones: `PaginationDto` existe con `page`/`limit` tipados pero `search` sin `@MaxLength(100)` (nota añadida en Capa 3); `auth.service.ts` ya tiene `isValidObjectId` reutilizable (Capa 5); `escape-string-regexp`/`helmet`/`@nestjs/throttler`/`express-mongo-sanitize` ausentes de `package.json`; sin `CORS_ORIGINS`/`THROTTLE_*` en envs. Nota operativa: `backend-portaqr` es repo git independiente (gitignored del monorepo) — la rama `feat/spec-008-sanitizacion` se crea dentro de ese repo |
 | 2026-08-11 | Equipo | **Implementada** en rama `feat/spec-008-sanitizacion` (6 commits, repo git interno de backend-portaqr): **H1** `escapeHtml` en `common/utils` + `NodemailerContactAdapter` escapado (CA-01); **H2** ValidationPipe whitelist/forbidNonWhitelisted/transform en `validation-pipe.config.ts` + test integración (CA-03/04/10); **H3** `escape-string-regexp@4` (CJS `export=`, la v5 es ESM-only y rompe CommonJS) en 6 repos + `@MaxLength(100)` en `PaginationDto.search`/`QueryReservedTagsDto` (CA-02); **H4** helmet con CSP ajustado (`style-src 'unsafe-inline'` — los templates EJS usan `<style>` y el default los rompería), `CORS_ORIGINS` + `parseCorsOrigins`, `ThrottlerModule` global 10/min + `@Throttle` 5/min en login/refresh/`POST /users`/`POST /mail/contact` (CA-05/06); **H5** `Types.ObjectId.isValid` → 400 (CA-07) + `PaginationDto`/`FavoriteQueryDto` en los 3 endpoints de QR (CA-04); **H6** `express-mongo-sanitize` como **interceptor global** — el middleware oficial crashea en Express 5 (reasigna `req.query`, getter-only) y `app.use()` corre antes del body-parser de Nest (`req.body` undefined). Resultado: **144 suites / 1118 tests verdes** (+53 nuevos), `tsc` 0 errores, eslint sin errores nuevos (los listados son preexistentes en main). CAs 01-10 cubiertos por tests; verificación manual con datos reales pendiente (backlog §10) |
+| 2026-08-11 | Equipo | **Rediseño Capa 1 (H1)**: por decisión del producto, el enfoque cambia de "escapar en el adapter" a **limpiar en la entrada** — `stripHtml` (`src/common/utils/strip-html.util.ts`) aplicado con `@Transform` en `ContactFormDto` (`nombre`/`asunto`/`mensaje`): el contenido se guarda/envía como **texto plano sin formato HTML**. El adapter mantiene `escapeHtml` como segunda capa (callers que no pasen por el DTO). CA-01 redefinido: el payload `</p><img onerror=...>` se elimina completo (tags sin contenido interno); `<b>texto</b>` conserva el texto interno. Suite final: **146 suites / 1135 tests verdes** (+17 nuevos: stripHtml, DTO, adapter), `tsc` 0 errores |
+| 2026-08-11 | Equipo | **Capa 1 (H1 v3)**: el formulario `/contacto` usa `<Textarea>` (mensaje multilínea) — dentro de `<p>` los `\n` se colapsaban como espacios y el admin perdía el formato. Fix: `\n`/`\r\n`/`\r` → `<br>` **después** del escape en el adapter (un `<br>` del usuario llega como texto `&lt;br&gt;`, no inyectable). Tests: conversión, normalización Windows/Mac, no-inyección de `<br>`, payload XSS multilínea sin HTML ejecutable (solo tags del template + `<br>`). Suite: **146 suites / 1139 tests verdes** |

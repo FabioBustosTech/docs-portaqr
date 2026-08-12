@@ -2,8 +2,8 @@
     "tasks": [
         {
             "id": "1",
-            "content": "[SPEC-008] H1 P0: Escapar HTML en NodemailerContactAdapter (XSS correo contacto)",
-            "description": "src/common/utils/escape-html.util.ts (escapeHtml) + unit tests (16) y tests del adapter con payloads XSS (CA-01). Commit 127b614 en feat/spec-008-sanitizacion.",
+            "content": "[SPEC-008] H1 P0: Limpiar HTML en entrada + escapar salida + saltos de línea en contacto (XSS correo contacto)",
+            "description": "stripHtml en src/common/utils/strip-html.util.ts + @Transform en ContactFormDto (nombre/asunto/mensaje) → texto plano sin HTML (CA-01). NodemailerContactAdapter: escapeHtml (2da capa) + \\n→<br> para mensaje multilínea del Textarea. Tests: strip-html.util.spec (11), contact-form.dto.spec (6), adapter spec (14). Commits 127b614 (escape inicial), 107ff01 (limpieza en entrada), 62971ec (saltos de línea).",
             "status": "completed",
             "priority": "high",
             "tag": "spec-008",
