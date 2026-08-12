@@ -1,74 +1,177 @@
-{
-    "tasks": [
-        {
-            "id": "1",
-            "content": "[SPEC-008] H1 P0: Limpiar HTML en entrada + escapar salida + saltos de línea en contacto (XSS correo contacto)",
-            "description": "stripHtml en src/common/utils/strip-html.util.ts + @Transform en ContactFormDto (nombre/asunto/mensaje) → texto plano sin HTML (CA-01). NodemailerContactAdapter: escapeHtml (2da capa) + \\n→<br> para mensaje multilínea del Textarea. Tests: strip-html.util.spec (11), contact-form.dto.spec (6), adapter spec (14). Commits 127b614 (escape inicial), 107ff01 (limpieza en entrada), 62971ec (saltos de línea).",
-            "status": "completed",
-            "priority": "high",
-            "tag": "spec-008",
-            "dependencies": [],
-            "subtasks": []
-        },
-        {
-            "id": "2",
-            "content": "[SPEC-008] H2 P0: Hardening ValidationPipe global (whitelist + forbidNonWhitelisted + transform)",
-            "description": "Config extraída a src/common/config/validation-pipe.config.ts (usada por main.ts y tests). Test de integración src/validation-pipe.integration.spec.ts (CA-03, CA-04, CA-10): 11 tests. Suite completa sin regresiones. Commit 743117a.",
-            "status": "completed",
-            "priority": "high",
-            "tag": "spec-008",
-            "dependencies": [],
-            "subtasks": []
-        },
-        {
-            "id": "3",
-            "content": "[SPEC-008] H3 P0: escape-string-regexp en $regex de búsqueda (6 repositorios)",
-            "description": "escape-string-regexp@4 (CJS export=) aplicado en mongo-qr, mongo-pet-tag, mongo-user, mongo-plan, mongo-qr-free-generation, mongo-qr-activate. @MaxLength(100) en PaginationDto.search, QueryReservedTagsDto.search/storeName. Tests anti-ReDoS por repo (CA-02) + src/search-dto-maxlength.spec.ts. Commit 3078528.",
-            "status": "completed",
-            "priority": "high",
-            "tag": "spec-008",
-            "dependencies": [],
-            "subtasks": []
-        },
-        {
-            "id": "4",
-            "content": "[SPEC-008] H4 P1: Perimetral — helmet + CORS whitelist + @nestjs/throttler",
-            "description": "helmet con CSP ajustado (style-src unsafe-inline para templates EJS), CORS_ORIGINS (parseCorsOrigins), ThrottlerModule global 10/min + @Throttle 5/min en login/refresh/POST /users/POST /mail/contact. Tests src/perimeter.integration.spec.ts (CA-05, CA-06) + security.config.spec.ts. Envs documentados. Commit 1d5d94c.",
-            "status": "completed",
-            "priority": "medium",
-            "tag": "spec-008",
-            "dependencies": [],
-            "subtasks": []
-        },
-        {
-            "id": "5",
-            "content": "[SPEC-008] H5 P1: Validar ObjectId en findUserByFavorites + PaginationDto en QR",
-            "description": "Types.ObjectId.isValid → BadRequestException 400 (CA-07), re-lanzada sin envolver en 500. findAll/findPaginatedByUser con PaginationDto, findUserByFavorites con FavoriteQueryDto. Tests repo (400 sin tocar BD) + controller (9 tests). Commit 3bfd30d.",
-            "status": "completed",
-            "priority": "medium",
-            "tag": "spec-008",
-            "dependencies": ["2"],
-            "subtasks": []
-        },
-        {
-            "id": "6",
-            "content": "[SPEC-008] H6 P2: express-mongo-sanitize (defensa en profundidad opcional)",
-            "description": "MongoSanitizeInterceptor global (strip de $ y . en body/query/params antes del pipe). Interceptor y NO middleware: app.use() corre antes del body-parser de Nest (req.body undefined) y el middleware oficial crashea en Express 5 (req.query getter). Tests en perimeter.integration.spec.ts (3). Commit 73eabd0.",
-            "status": "completed",
-            "priority": "low",
-            "tag": "spec-008",
-            "dependencies": ["2"],
-            "subtasks": []
-        },
-        {
-            "id": "7",
-            "content": "[SPEC-008] Validación final: tsc, tests y criterios CA-01..CA-10",
-            "description": "144 suites / 1118 tests verdes, tsc --noEmit 0 errores, eslint sin errores nuevos (preexistentes en main: tracking.decorator.spec, user.decorator.spec, mongo-doc.ts, response-logger.interceptor, auth.service, jwt-auth.guard, PlanRepositoryAdapter, storage, webpay, logger.util). CAs: CA-01 (H1), CA-02 (H3), CA-03/04/10 (H2), CA-05/06 (H4), CA-07 (H5), CA-08/09 (runs). SPEC-008 marcada implementada + historial.",
-            "status": "completed",
-            "priority": "high",
-            "tag": "spec-008",
-            "dependencies": ["1", "2", "3", "4", "5"],
-            "subtasks": []
-        }
-    ]
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-008] H1 P0: Limpiar HTML en entrada + escapar salida + saltos de lÃ­nea en contacto (XSS correo contacto)",
+                      "description":  "stripHtml en src/common/utils/strip-html.util.ts + @Transform en ContactFormDto (nombre/asunto/mensaje) â†’ texto plano sin HTML (CA-01). NodemailerContactAdapter: escapeHtml (2da capa) + \\nâ†’\u003cbr\u003e para mensaje multilÃ­nea del Textarea. Tests: strip-html.util.spec (11), contact-form.dto.spec (6), adapter spec (14). Commits 127b614 (escape inicial), 107ff01 (limpieza en entrada), 62971ec (saltos de lÃ­nea).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-008",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-008] H2 P0: Hardening ValidationPipe global (whitelist + forbidNonWhitelisted + transform)",
+                      "description":  "Config extraÃ­da a src/common/config/validation-pipe.config.ts (usada por main.ts y tests). Test de integraciÃ³n src/validation-pipe.integration.spec.ts (CA-03, CA-04, CA-10): 11 tests. Suite completa sin regresiones. Commit 743117a.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-008",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-008] H3 P0: escape-string-regexp en $regex de bÃºsqueda (6 repositorios)",
+                      "description":  "escape-string-regexp@4 (CJS export=) aplicado en mongo-qr, mongo-pet-tag, mongo-user, mongo-plan, mongo-qr-free-generation, mongo-qr-activate. @MaxLength(100) en PaginationDto.search, QueryReservedTagsDto.search/storeName. Tests anti-ReDoS por repo (CA-02) + src/search-dto-maxlength.spec.ts. Commit 3078528.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-008",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-008] H4 P1: Perimetral â€” helmet + CORS whitelist + @nestjs/throttler",
+                      "description":  "helmet con CSP ajustado (style-src unsafe-inline para templates EJS), CORS_ORIGINS (parseCorsOrigins), ThrottlerModule global 10/min + @Throttle 5/min en login/refresh/POST /users/POST /mail/contact. Tests src/perimeter.integration.spec.ts (CA-05, CA-06) + security.config.spec.ts. Envs documentados. Commit 1d5d94c.",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-008",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-008] H5 P1: Validar ObjectId en findUserByFavorites + PaginationDto en QR",
+                      "description":  "Types.ObjectId.isValid â†’ BadRequestException 400 (CA-07), re-lanzada sin envolver en 500. findAll/findPaginatedByUser con PaginationDto, findUserByFavorites con FavoriteQueryDto. Tests repo (400 sin tocar BD) + controller (9 tests). Commit 3bfd30d.",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-008",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-008] H6 P2: express-mongo-sanitize (defensa en profundidad opcional)",
+                      "description":  "MongoSanitizeInterceptor global (strip de $ y . en body/query/params antes del pipe). Interceptor y NO middleware: app.use() corre antes del body-parser de Nest (req.body undefined) y el middleware oficial crashea en Express 5 (req.query getter). Tests en perimeter.integration.spec.ts (3). Commit 73eabd0.",
+                      "status":  "completed",
+                      "priority":  "low",
+                      "tag":  "spec-008",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-008] ValidaciÃ³n final: tsc, tests y criterios CA-01..CA-10",
+                      "description":  "144 suites / 1118 tests verdes, tsc --noEmit 0 errores, eslint sin errores nuevos (preexistentes en main: tracking.decorator.spec, user.decorator.spec, mongo-doc.ts, response-logger.interceptor, auth.service, jwt-auth.guard, PlanRepositoryAdapter, storage, webpay, logger.util). CAs: CA-01 (H1), CA-02 (H3), CA-03/04/10 (H2), CA-05/06 (H4), CA-07 (H5), CA-08/09 (runs). SPEC-008 marcada implementada + historial.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-008",
+                      "dependencies":  [
+                                           "1",
+                                           "2",
+                                           "3",
+                                           "4",
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "8",
+                      "content":  "[SPEC-008-A] Paso 0: medir lÃ­nea base con datos reales antes de decidir",
+                      "description":  "Contar documentos por colecciÃ³n (qrs, pettagschemas, users, plans, qrfreegenerations, qractivates) + explain() de las 5 bÃºsquedas del frontend (dashboard QR, QRs cliente, pet-tag, planes, activaciones): stage COLLSCAN y duraciÃ³n real. Decidir: cerrar como no accionable (opciÃ³n D) o seguir con opciÃ³n C. Registrar nÃºmeros en la SPEC (CA-00).",
+                      "status":  "pending",
+                      "priority":  "high",
+                      "tag":  "spec-008-a",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "9",
+                      "content":  "[SPEC-008-A] DecisiÃ³n de producto/semÃ¡ntica con base en la mediciÃ³n",
+                      "description":  "Validar Â§3-4 con los nÃºmeros del paso 0: quÃ© debe encontrar la bÃºsqueda (prefijos/IDs/PIN preservados â€” CAs 02-03), quÃ© campos van a $text (texto largo) vs $regex ^ (IDs/nombres/PIN). DecisiÃ³n documentada en la SPEC.",
+                      "status":  "pending",
+                      "priority":  "high",
+                      "tag":  "spec-008-a",
+                      "dependencies":  [
+                                           "8"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "10",
+                      "content":  "[SPEC-008-A] (Si opciÃ³n D) Ãndices regulares parciales + $regex anclado en campos calientes",
+                      "description":  "Ãndices en name/idQr/userName/activationPin + $regex ^ (anclado al inicio usa Ã­ndice y mantiene prefijos). Sin cambio de semÃ¡ntica FE. CA-01, CA-08.",
+                      "status":  "pending",
+                      "priority":  "medium",
+                      "tag":  "spec-008-a",
+                      "dependencies":  [
+                                           "9"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "11",
+                      "content":  "[SPEC-008-A] (Si opciÃ³n C) Helper sanitizeTextSearch + Ã­ndices $text + migraciÃ³n de texto largo",
+                      "description":  "src/common/utils/text-search.util.ts (escapa operadores de $text: + - \" â€” distinto de escapeStringRegexp) + unit tests. Ãndices text en schemas (default_language \u0027es\u0027, pesos). Migrar $regex â†’ $text SOLO en campos de texto largo (vcard, petData, name si aplica, description...) manteniendo $regex ^ para IDs/PIN. $sort explÃ­cito para no romper orden del dashboard (CA-04). Ajustar $facet de favorites (SPEC-007 H3).",
+                      "status":  "pending",
+                      "priority":  "high",
+                      "tag":  "spec-008-a",
+                      "dependencies":  [
+                                           "9",
+                                           "10"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "12",
+                      "content":  "[SPEC-008-A] ValidaciÃ³n E2E bÃºsqueda (sin regresiÃ³n UX) + CAs 00-08 y cierre",
+                      "description":  "E2E: search=qr (dashboard), search=123 (PIN parcial), search=pla (prefijo) devuelven resultados (CAs 02-03); orden del dashboard sin cambios (CA-04); operadores $text no inyectan (CA-05); unit 146+ verde (CA-06); tsc/eslint 0 (CA-07); Ã­ndices en dev/deploy (CA-08). Actualizar SPEC a implementado + historial.",
+                      "status":  "pending",
+                      "priority":  "medium",
+                      "tag":  "spec-008-a",
+                      "dependencies":  [
+                                           "11"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
 }
