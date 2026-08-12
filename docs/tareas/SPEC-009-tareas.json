@@ -33,8 +33,8 @@
         {
             "id": "4",
             "content": "[SPEC-009] Bloque 2 (A2): Webpay protegido (auth + sessionId del token + refund admin-only)",
-            "description": "JwtAuthGuard en create/status/transaction; refund → @Roles('admin'); sessionId se elimina del CreateTransactionDto (Opción A) e inyecta desde req.user.id; ownership con assertOwnerOrAdmin(tx.sessionId) en status/transaction; return público. Validación amount en commit-transaction.usecase. Frontend F1-F3 (Bearer en webpay.service.ts, quitar sessionId, UI refund solo admin). CA-02. ~2h + 30min qr-app",
-            "status": "pending",
+            "description": "JwtAuthGuard en create/status/transaction (se quitó @Public()); refund → @Roles('admin'); sessionId ELIMINADO del CreateTransactionDto (Opción A) e inyectado desde req.user.id (create-transaction.usecase.execute(dto, sessionId, tracking)); ownership assertOwnerOrAdmin(tx.sessionId) en status/transaction (404 si tx inexistente sin sessionId); return público (token truncado en logs — bonus A13). commit-transaction: valida tx existe en BD + amount Transbank == persistido (mismatch → error, no actualiza). Frontend: F1 YA estaba (route handlers webpay envían Bearer + 401 sin auth — verificado, incl. transaction/[token]); F2 hecho (quitar sessionId de webpay.service.ts + page.tsx:118); F3 sin UI de refund (solo método del servicio). Tests: webpay 12 suites/78 tests + suite completa 147/1156 + tsc backend y frontend OK.",
+            "status": "completed",
             "priority": "high",
             "tag": "spec-009",
             "dependencies": ["2"],
