@@ -123,8 +123,8 @@
         {
             "id": "13",
             "content": "[SPEC-009] Bloque 12 (B12): precio desde el plan con snapshot histórico",
-            "description": "QRElementDto: price → planId (getPlan → plan.price); backend calcula y congela snapshot en qractivates (price.TotalPrice/TotalTax, qrList[].price, qrList[].plan); amount de POST /webpay/create desde la activación persistida; commit valida amount Transbank == snapshot (si no → NO activar). Frontend F11-F12 (enviar planId, mostrar total del response). CA-14. ~3h",
-            "status": "pending",
+            "description": "B12: QRElementDto con planId (sin price); PriceDataDto fuera; create-qr-activate.usecase inyecta GetPlanUseCase+GetQrUseCase → calcula snapshot (price.TotalPrice/TotalTax=19%, qrList[].price=plan.price, qrList[].plan=plan.id) + verifica QR existe y pertenece al userId (403 si ajeno); update-webpay-qr-activate: si amount Transbank ≠ snapshot → FAILED (no activa). Frontend F11-F12: CartItem/Plan/cartAdmin con planId, payloads de qr-activate sin price (user y admin), interfaz QrActivate con price opcional. BUGFIX: el payload admin aún mandaba price raíz (400) — eliminado de ambos builders. Verificado: snapshot en BD (price 50/tax 10/plan ref) + QR activo. Suite 1179 tests + tsc backend/frontend OK. E2E: 71 passed / 0 skipped.",
+            "status": "completed",
             "priority": "medium",
             "tag": "spec-009",
             "dependencies": ["5"],
