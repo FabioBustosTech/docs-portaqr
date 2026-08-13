@@ -113,8 +113,8 @@
         {
             "id": "12",
             "content": "[SPEC-009] Bloque 10 (A13): whitelist de campos en logs (default-deny)",
-            "description": "Helper sanitizeForLog(data, allowedFields) en src/common/utils/redact.utils.ts + unit tests; ResponseLoggerInterceptor con whitelist global + rutas restringidas (/auth/login, /auth/refresh, /webpay/*); token_ws truncado en webpay.controller (líneas 80/107/121/133). CA-10. ~1.5h",
-            "status": "pending",
+            "description": "Helper sanitizeForLog(data, allowedFields?) en redact.utils.ts (default-deny): sensibles (password|token|token_ws|code|pin|refreshToken|accessToken|verificationCode) siempre redactados; con whitelist un sensible fuera de ella se OMITE; 5 unit tests. ResponseLoggerInterceptor: rutas sensibles (/auth/login, /auth/refresh, /webpay/) solo {status,message}; resto redacción recursiva. TraceService: JSON.stringify(sanitizeForLog(data)) en log/debug/warn. token_ws truncado ya hecho en B2. Suite 1179 tests + tsc OK. Verificado: logs sin accessToken/refreshToken/password/token_ws. E2E 70 passed/1 flaky.",
+            "status": "completed",
             "priority": "medium",
             "tag": "spec-009",
             "dependencies": [],
