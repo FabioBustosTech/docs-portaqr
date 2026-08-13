@@ -1,4 +1,4 @@
----
+﻿---
 title: "SPEC-009: Hardening de autorización y autenticación (backend-portaqr)"
 date: 2026-08-09
 tags:
@@ -11,7 +11,7 @@ tags:
   - jwt
   - idor
   - mass-assignment
-status: borrador
+status: implementado
 aliases:
   - SPEC-009
   - Hardening autorización backend
@@ -23,7 +23,7 @@ aliases:
 > Corregir los **3 hallazgos críticos de la auditoría OWASP 2026-08-09** que permiten: (1) **escalar a `admin` y editar usuarios ajenos** (`PATCH /users/:id` sin ownership check + `role` en el mapper de update), (2) **reembolsar pagos Webpay sin autenticación** (`webpay.controller.ts` con rutas `@Public()`), y (3) **manipular estados de pago/activación** (`qr-activate` con `state`/`userId` editables por el cliente y sin ownership). Complementa a [[SPEC-008]] (entradas/sanitización): esta SPEC cubre **autorización (broken access control), autenticación y criptografía**. Se endurecen además: IDOR en users/scan/pet-tag, códigos de verificación con `Math.random()`, fallback silencioso de llaves JWT, rotación de refresh tokens y redacción de datos sensibles en logs.
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado (2026-08-12)
 > - **Fecha:** 2026-08-09
 > - **Autor:** Equipo Plataforma QR (auditoría OWASP)
 > - **Componente destino:** `desarrollo-qr/backend-portaqr/`
@@ -261,20 +261,20 @@ PET_TAG_LOCK_MINUTES=30
 
 ## 6. Criterios de aceptación
 
-- [ ] **CA-01 (A1)**: `PATCH /users/{B}` autenticado como A (no admin) → 403; `PATCH /users/{A}` como A con `{isEmailVerified: true}` → el campo no cambia (fuera de DTO); `PATCH` con `{role:"admin"}` → 400/ignorado y rol intacto; admin edita a cualquier usuario (sin ser owner) → 200; `UpdateUserUseCase.execute` con `actor` ajeno (unit test) → 403
-- [ ] **CA-02 (A2)**: `POST /webpay/refund` sin token → 401; con token de usuario `user` → 403; con token `admin` → funciona; `POST /webpay/create` sin token → 401; `GET /webpay/status?token=X` donde la tx es de otro (usuario `user`) → 403; con token `admin` → 200 aunque la tx no sea suya; `GET /webpay/return?token_ws=X` **sin token de la app** → funciona (público, redirect)
-- [ ] **CA-03 (A3)**: `POST /qr-activate` con `state:"PAYED"` en body → 400 (campo fuera de DTO) o 403; con `userId` ajeno (usuario `user`) → 403; con `userId` de un cliente (usuario `admin`) → 201 y la activación queda a nombre del cliente; `PATCH /qr-activate/:id` de otro usuario → 403; `PATCH /qr-activate/:id` de otro usuario con token `admin` → 200 (bypass); `GET /qr-activate` solo muestra las propias (salvo admin)
-- [ ] **CA-04 (A4)**: `GET /users/{id-ajeno}` → 403 (no admin); `GET /users/{id-ajeno}` con token `admin` → 200 (bypass); login de usuario inexistente vs contraseña errónea → **mismo mensaje y mismo status**; forgot-password de email inexistente → 200 genérico
-- [ ] **CA-05 (A5)**: verificar en código que ya no existe `Math.random().toString(36)` en el proyecto; `verify-email` con 6 códigos errados → 7mo intento devuelve "código expirado/inválido" y el código fue borrado; verificación con código correcto → 200
-- [ ] **CA-06 (A6)**: `NODE_ENV=production` sin llaves JWT → el proceso **no arranca** (error claro); con llaves → arranca y firma RS256
-- [ ] **CA-07 (A7/A9)**: `GET /scan/{idQr-ajeno}/stats` → 403; `GET /scan/{idQr-ajeno}/stats` con token `admin` → 200 (bypass); `GET /scan/{idQr-inexistente}/stats` → 404; `POST /scan/stats` con `idQr` inexistente → 404 y **no se crea documento**; con `userIdScan` ajeno al dueño → se ignora
-- [ ] **CA-08 (A8)**: refrescar dos veces con el mismo refresh token → el 2º uso recibe 401 **y** el access token emitido previamente queda invalidado (tokenVersion bump); tras `change-password`, el refresh viejo → 401
-- [ ] **CA-09 (A10/A11/A12)**: `GET /qr/public/:id` no contiene el `userId` del dueño (sí contiene `idQr`); `GET /pet-tag/public/status/:idQr` **sigue devolviendo el `petData` completo** (decisión de negocio — solo se verifica que el endpoint no cambió de contrato); `PATCH /pet-tag/activate` con 6 PINs errados → el 6º intento recibe 429/403 y la placa queda bloqueada 30 min (verificar `activationLockedUntil`); con el PIN correcto antes del límite → 200 y contador reseteado
-- [ ] **CA-10 (A13)**: en logs de `/webpay/return`, el `token_ws` aparece truncado (≤ 8 chars); `POST /auth/login` no loguea la contraseña; un response con un campo **no whitelisted** (ej. `creditCard`) no aparece en el log del `ResponseLoggerInterceptor`
-- [ ] **CA-11**: suite de tests existente pasa (ajustar specs que asumían comportamiento viejo); `tsc --noEmit` sin errores
-- [ ] **CA-12**: flujo E2E feliz intacto: registro → verify → login → crear QR → crear activación WEBPAY → commit → QR activo (**automatizable** con tarjetas de prueba del ambiente de integración — `tests/qr/webpay-commit.spec.ts`)
-- [ ] **CA-13 (Frontend F1-F10)**: `webpay.service.ts` envía Bearer en las 4 llamadas y **ya no envía `sessionId` en create**; los payloads de qr-activate (`pay.helpers.ts` y `activation.helpers.ts`) ya no incluyen `state`/`WebpayTransaction` y el POST responde 201; `QrRedirectClient.tsx:141` ya no usa el `id` del response como userId; el flujo E2E de pago (create → Transbank → return → PAYED) y de activación admin funcionan end-to-end tras los cambios
-- [ ] **CA-14 (Precio snapshot, B12)**: `POST /qr-activate` con `price`/`qrList[].price` en el body → 400 (fuera del DTO); con `planId` → 201 y el `price` persistido es `plan.price` calculado por el backend (el monto del body no influye); `POST /webpay/create` sin `amount` → usa el snapshot de la activación; commit con `amount` de Transbank ≠ snapshot → la activación **NO** pasa a PAYED; compra con plan a $9.990 → el plan sube a $12.990 → el historial sigue mostrando $9.990
+- [x] **CA-01 (A1)**: `PATCH /users/{B}` autenticado como A (no admin) → 403; `PATCH /users/{A}` como A con `{isEmailVerified: true}` → el campo no cambia (fuera de DTO); `PATCH` con `{role:"admin"}` → 400/ignorado y rol intacto; admin edita a cualquier usuario (sin ser owner) → 200; `UpdateUserUseCase.execute` con `actor` ajeno (unit test) → 403
+- [x] **CA-02 (A2)**: `POST /webpay/refund` sin token → 401; con token de usuario `user` → 403; con token `admin` → funciona; `POST /webpay/create` sin token → 401; `GET /webpay/status?token=X` donde la tx es de otro (usuario `user`) → 403; con token `admin` → 200 aunque la tx no sea suya; `GET /webpay/return?token_ws=X` **sin token de la app** → funciona (público, redirect)
+- [x] **CA-03 (A3)**: `POST /qr-activate` con `state:"PAYED"` en body → 400 (campo fuera de DTO) o 403; con `userId` ajeno (usuario `user`) → 403; con `userId` de un cliente (usuario `admin`) → 201 y la activación queda a nombre del cliente; `PATCH /qr-activate/:id` de otro usuario → 403; `PATCH /qr-activate/:id` de otro usuario con token `admin` → 200 (bypass); `GET /qr-activate` solo muestra las propias (salvo admin)
+- [x] **CA-04 (A4)**: `GET /users/{id-ajeno}` → 403 (no admin); `GET /users/{id-ajeno}` con token `admin` → 200 (bypass); login de usuario inexistente vs contraseña errónea → **mismo mensaje y mismo status**; forgot-password de email inexistente → 200 genérico
+- [x] **CA-05 (A5)**: verificar en código que ya no existe `Math.random().toString(36)` en el proyecto; `verify-email` con 6 códigos errados → 7mo intento devuelve "código expirado/inválido" y el código fue borrado; verificación con código correcto → 200
+- [x] **CA-06 (A6)**: `NODE_ENV=production` sin llaves JWT → el proceso **no arranca** (error claro); con llaves → arranca y firma RS256
+- [x] **CA-07 (A7/A9)**: `GET /scan/{idQr-ajeno}/stats` → 403; `GET /scan/{idQr-ajeno}/stats` con token `admin` → 200 (bypass); `GET /scan/{idQr-inexistente}/stats` → 404; `POST /scan/stats` con `idQr` inexistente → 404 y **no se crea documento**; con `userIdScan` ajeno al dueño → se ignora
+- [x] **CA-08 (A8)**: refrescar dos veces con el mismo refresh token → el 2º uso recibe 401 **y** el access token emitido previamente queda invalidado (tokenVersion bump); tras `change-password`, el refresh viejo → 401
+- [x] **CA-09 (A10/A11/A12)**: `GET /qr/public/:id` no contiene el `userId` del dueño (sí contiene `idQr`); `GET /pet-tag/public/status/:idQr` **sigue devolviendo el `petData` completo** (decisión de negocio — solo se verifica que el endpoint no cambió de contrato); `PATCH /pet-tag/activate` con 6 PINs errados → el 6º intento recibe 429/403 y la placa queda bloqueada 30 min (verificar `activationLockedUntil`); con el PIN correcto antes del límite → 200 y contador reseteado
+- [x] **CA-10 (A13)**: en logs de `/webpay/return`, el `token_ws` aparece truncado (≤ 8 chars); `POST /auth/login` no loguea la contraseña; un response con un campo **no whitelisted** (ej. `creditCard`) no aparece en el log del `ResponseLoggerInterceptor`
+- [x] **CA-11**: suite de tests existente pasa (ajustar specs que asumían comportamiento viejo); `tsc --noEmit` sin errores
+- [x] **CA-12**: flujo E2E feliz intacto: registro → verify → login → crear QR → crear activación WEBPAY → commit → QR activo (**automatizable** con tarjetas de prueba del ambiente de integración — `tests/qr/webpay-commit.spec.ts`)
+- [x] **CA-13 (Frontend F1-F10)**: `webpay.service.ts` envía Bearer en las 4 llamadas y **ya no envía `sessionId` en create**; los payloads de qr-activate (`pay.helpers.ts` y `activation.helpers.ts`) ya no incluyen `state`/`WebpayTransaction` y el POST responde 201; `QrRedirectClient.tsx:141` ya no usa el `id` del response como userId; el flujo E2E de pago (create → Transbank → return → PAYED) y de activación admin funcionan end-to-end tras los cambios
+- [x] **CA-14 (Precio snapshot, B12)**: `POST /qr-activate` con `price`/`qrList[].price` en el body → 400 (fuera del DTO); con `planId` → 201 y el `price` persistido es `plan.price` calculado por el backend (el monto del body no influye); `POST /webpay/create` sin `amount` → usa el snapshot de la activación; commit con `amount` de Transbank ≠ snapshot → la activación **NO** pasa a PAYED; compra con plan a $9.990 → el plan sube a $12.990 → el historial sigue mostrando $9.990
 
 ## 7. No funcionales
 
@@ -349,20 +349,20 @@ PET_TAG_LOCK_MINUTES=30
 > - Estas credenciales ya son las que el SDK usa por defecto en `Environment.Integration` (verificar `WEBPAY_COMMERCE_CODE`/`WEBPAY_API_KEY` en el `.env` local)
 
 - [x] Tarea 0 (baseline E2E: ejecutar suite, documentar estado, crear 6 specs: session-refresh, verify-email, forgot-password, pet-tag/public-status, webpay/refund-admin, webpay-commit) — ~3.5h
-- [ ] Crear helper común `assertOwnerOrAdmin` en `src/common/utils/ownership.utils.ts` + unit tests (usado por Bloques 1-4 y 7) — ~30 min
-- [ ] Implementar Bloque 1 (ownership users en controller + usecase con `actor`, DTO sin isEmailVerified, isActive admin-only, strip role en update, validación ObjectId) — ~1.5h
-- [ ] Implementar Bloque 2 (webpay: auth en create/status/transaction, sessionId del token, refund admin-only, validación amount en commit, coordinación qr-app Bearer) — ~2h + ~30 min qr-app
-- [ ] Implementar Bloque 3 (qr-activate DTOs + ownership) — ~2h
-- [ ] Implementar Bloque 4 (IDOR users + mensajes homogéneos) — ~1.5h
-- [ ] Implementar Bloque 5 (códigos crypto + límite intentos) — ~2h
-- [ ] Implementar Bloque 6 (fail-fast llaves JWT) — ~30 min
-- [ ] Implementar Bloque 7 (scan ownership + validar QR existe) — ~1h
-- [ ] Implementar Bloque 8 (refresh tokens colección + rotación + detección de reuso; TTL se mantiene 7d configurable) — ~3h
-- [ ] Implementar Bloque 9 (idQr en QR público + verificar qr-app; límite 5 intentos activate con bloqueo 30 min + throttler IP; pet-tag status se mantiene completo por decisión de negocio) — ~1.5h
-- [ ] Implementar Bloque 10 (whitelist `sanitizeForLog` en logger + redact token_ws en webpay) — ~1.5h
-- [ ] Implementar Bloque 11 (ajustes frontend F1-F12 — ver tabla en sección 4; F1-F5 junto a Bloques 2-3, F11-F12 junto a Bloque 12, F6-F10 después) — ~2-3h
-- [ ] Implementar Bloque 12 (precio desde el plan + snapshot en `qractivates`; amount webpay desde la activación; validación amount en commit; frontend F11-F12) — ~3h
-- [ ] Validación final: tsc, tests, CA-01..CA-14, actualizar SPEC a `implementado`
+- [x] Crear helper común `assertOwnerOrAdmin` en `src/common/utils/ownership.utils.ts` + unit tests (usado por Bloques 1-4 y 7) — ~30 min
+- [x] Implementar Bloque 1 (ownership users en controller + usecase con `actor`, DTO sin isEmailVerified, isActive admin-only, strip role en update, validación ObjectId) — ~1.5h
+- [x] Implementar Bloque 2 (webpay: auth en create/status/transaction, sessionId del token, refund admin-only, validación amount en commit, coordinación qr-app Bearer) — ~2h + ~30 min qr-app
+- [x] Implementar Bloque 3 (qr-activate DTOs + ownership) — ~2h
+- [x] Implementar Bloque 4 (IDOR users + mensajes homogéneos) — ~1.5h
+- [x] Implementar Bloque 5 (códigos crypto + límite intentos) — ~2h
+- [x] Implementar Bloque 6 (fail-fast llaves JWT) — ~30 min
+- [x] Implementar Bloque 7 (scan ownership + validar QR existe) — ~1h
+- [x] Implementar Bloque 8 (refresh tokens colección + rotación + detección de reuso; TTL se mantiene 7d configurable) — ~3h
+- [x] Implementar Bloque 9 (idQr en QR público + verificar qr-app; límite 5 intentos activate con bloqueo 30 min + throttler IP; pet-tag status se mantiene completo por decisión de negocio) — ~1.5h
+- [x] Implementar Bloque 10 (whitelist `sanitizeForLog` en logger + redact token_ws en webpay) — ~1.5h
+- [x] Implementar Bloque 11 (ajustes frontend F1-F12 — ver tabla en sección 4; F1-F5 junto a Bloques 2-3, F11-F12 junto a Bloque 12, F6-F10 después) — ~2-3h
+- [x] Implementar Bloque 12 (precio desde el plan + snapshot en `qractivates`; amount webpay desde la activación; validación amount en commit; frontend F11-F12) — ~3h
+- [x] Validación final: tsc, tests, CA-01..CA-14, actualizar SPEC a `implementado`
 
 ### Fuera de alcance (trabajo futuro real)
 
@@ -386,3 +386,4 @@ Registro de decisiones aplicadas a esta SPEC después de la auditoría original 
 | 2026-08-12 | Bloque 4, Sección 2.1, Nota SPEC-008 | **Decisiones cerradas**: `GET /users/search` → solo admin (endpoint pensado para `dashboard/users`, página de admin; frontend no lo usa); `forgot-password` → 200 genérico definitivo (sin alternativa 404); notas corregidas — **SPEC-008 ya implementada** (whitelist + forbidNonWhitelisted + transform) |
 | 2026-08-12 | Sección 9 (Plan de implementación) | **Tarea 0 — Baseline de regresión E2E**: ejecutar la suite Playwright existente (`e2e-tests-portaqr`, 19 specs) antes de tocar nada y documentar el punto de partida; **matriz de cobertura validada** (lectura de los 19 specs); **6 gaps a crear**: `session-refresh` (B8), `verify-email` (B5, la UI no está cubierta — el fixture verifica en BD), `forgot-password` (B4, API), `pet-tag/public-status` (A11, API), `webpay/refund-admin` (B2, API), `webpay-commit` (B3/B12, **pago completo en Transbank con tarjetas de prueba** — opcional en CI vía `WEBPAY_E2E=1`); credenciales de integración documentadas (código comercio `597055555532`, VISA `4051 8856 0044 6623` CVV `123`, RUT `11.111.111-1`/`123`) |
 | 2026-08-12 | Bloque 12, CA-14, Bloque 11 (F11-F12), Trade-offs, Plan de implementación | **Nuevo Bloque 12 — precio desde el plan con snapshot histórico**: `QRElementDto` recibe `planId` (no `price`); el backend calcula y **congela** `price`/`qrList[].price`/`qrList[].plan` al crear (snapshot inmutable — el historial conserva lo pagado aunque el catálogo cambie); `amount` de Webpay sale de la activación persistida; el commit valida contra el snapshot |
+| 2026-08-12 | Toda la SPEC | **SPEC-009 IMPLEMENTADA (2026-08-12)** — validación final: suite backend 1179 tests verdes + tsc limpio en backend/qr-app/e2e; suite E2E completa verde (71 specs, incl. webpay real VISA aprobada/MC rechazada); **CA-01..CA-14 verificados** (A1 dos capas, A2 webpay protegido + refund admin-only, A3 qr-activate sin fraude, A4 mensajes homogéneos, A5 CSPRNG + 5 intentos, A6 fail-fast llaves, A7/A9 scan ownership + QR existe, A8 refresh rotación + detección reuso, A9 pet-tag 5 PINs + bloqueo 30 min, A10 idQr público, A13 logs whitelist, B12 precio snapshot, frontend F1-F12). Bugs encontrados en la validación: payload admin con price raíz (400 → quitado de ambos builders), CreateScanDto.userId requerido aunque el usecase lo ignora (→ opcional) |
