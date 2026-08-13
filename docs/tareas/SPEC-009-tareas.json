@@ -133,8 +133,8 @@
         {
             "id": "14",
             "content": "[SPEC-009] Bloque 11: ajustes frontend qr-app (F1-F12)",
-            "description": "F1-F3 (Bearer webpay + quitar sessionId + refund admin UI) con B2; F4-F5 (quitar state/WebpayTransaction de payloads qr-activate) con B3; F6 (QrRedirectClient.tsx:141) con B9; F7 (manejo 404 scan) con B7; F8-F9 UX límites intentos con B5/B9; F10 verificar id del QR público con B9; F11-F12 (planId + total response) con B12. Tabla completa en sección 4 - Bloque 11. CA-13. ~2-3h",
-            "status": "pending",
+            "description": "F1-F5, F11-F12 ya completados (B2/B3/B12). F6: userId eliminado de payloads scan (QrRedirectClient + PetTagClient) — el backend toma el dueño del QR; ScanStats.userId opcional. BUGFIX backend: CreateScanDto.userId era REQUERIDO (el usecase lo ignora) → 400 al no enviarlo → opcional (B7 incompleto). F7: 404 scan/stats no interrumpe (try/catch en 3 callers + page.tsx notFound). F8: verify-email/forgot-password muestran err.message (cubre 429 límite B5). F9: pet-tag activación muestra err.message en toast+form (cubre bloqueo). F10: página pública usa params.id (URL); response.id ya no se usa. Suite 1179 tests + tsc OK; E2E 69 passed / 0 failed / 2 flaky (logout + MC, pasaron en retry). CA-13.",
+            "status": "completed",
             "priority": "medium",
             "tag": "spec-009",
             "dependencies": ["4", "5", "13"],
