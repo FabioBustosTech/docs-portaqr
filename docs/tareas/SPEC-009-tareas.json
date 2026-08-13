@@ -103,8 +103,8 @@
         {
             "id": "11",
             "content": "[SPEC-009] Bloque 9 (A10/A11/A12): superficie pública (idQr + 5 intentos pet-tag)",
-            "description": "get-public-qr.usecase: id → qr.idQr (coordinar QrRedirectClient.tsx:141 — F6). pet-tag status público: SE MANTIENE petData completo (decisión de negocio). PATCH /pet-tag/activate: activationAttempts + activationLockedUntil (5 fallos → bloqueo 30 min, PET_TAG_MAX_ATTEMPTS/PET_TAG_LOCK_MINUTES) + throttler IP. CA-09. ~1.5h",
-            "status": "pending",
+            "description": "A10: get-public-qr.usecase id → qr.idQr (nunca userId del dueño). A11: pet-tag status público SE MANTIENE completo (decisión de negocio, sin cambio). A12: pet-tag schema con activationAttempts + activationLockedUntil; activate(): check de bloqueo (429), éxito resetea contador, PIN incorrecto incrementa (400), 5 fallos → bloqueo 30 min (PET_TAG_MAX_ATTEMPTS/PET_TAG_LOCK_MINUTES); diag findOne con exec() consistente. Throttler IP ya cubierto por el global 10/min de SPEC-008. Suite 1174 tests + tsc OK. E2E tras rebuild: 70 passed / 1 flaky (webpay RECHAZO retry OK).",
+            "status": "completed",
             "priority": "medium",
             "tag": "spec-009",
             "dependencies": ["2"],
