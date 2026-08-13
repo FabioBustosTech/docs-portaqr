@@ -1,0 +1,64 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-011] Capa A: rate-limit.ts + validación UUID v4 + fetchWithRetry en route handlers",
+            "description": "Crear src/lib/rate-limit.ts (Map por IP real: cf-connecting-ip → x-forwarded-for[0] → socket; ventana con limpieza perezosa; 429 + Retry-After + body JSON) y src/lib/fetch-with-retry.ts (2 reintentos, backoff 500/1000ms, SOLO 5xx/timeout; 4xx y 429 no reintentan). Aplicar en /api/qr/[id]/redirect/route.ts (validación UUID v4 estricta → 400 sin llamar al BFF; rate limit QR_PUBLIC_RATE_MAX=30/min; fetchWithRetry), /api/qr/seo-idqr/route.ts (QR_SEO_RATE_MAX=10/min) y /api/scan/stats/route.ts (QR_SCAN_STATS_RATE_MAX=20/min). Envs con fallback en constants. Test unitarios de ambos helpers.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-011",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-011] Fix V11: distinguir 429 de 404 en qr/[id]/page.tsx",
+            "description": "El server component debe diferenciar el error 429 (pantalla de espera con Retry-After: 'Demasiadas solicitudes. Intenta nuevamente en Xs.') del 404 real (notFound). El error del route handler propaga status — getPublicRedirectUrl o el route handler deben incluir el status en el throw para que page.tsx lo lea.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-011",
+            "dependencies": ["1"],
+            "subtasks": []
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-011] Contador de reintentos manuales en QrRedirectClient (por idQr, sessionStorage)",
+            "description": "sessionStorage clave 'qr-retry-counter-{idQr}' con {count, windowStart}. QR_MANUAL_RETRY_MAX=3 por ventana QR_MANUAL_RETRY_WINDOW_MS=300000 (5 min). Al agotar: botón deshabilitado + cuenta regresiva QR_MANUAL_RETRY_BLOCK_MS=60000 con mensaje 'Has alcanzado el límite de intentos. Verifica la URL o escanea el código QR nuevamente.'. Aplicar al ErrorScreen de error de carga y al de 'Tipo de contenido no renderizable' (QrRedirectClient.tsx:205,213). El reload NO resetea el contador.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-011",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-011] Capa B: QrPublicThrottlerGuard + reglas @Throttle por idQr",
+            "description": "Backend-portaqr. Crear src/common/guards/qr-public-throttler.guard.ts extends ThrottlerGuard con getTracker = params.idQr ?? body.idQr ?? IP (validando formato/longitud del idQr, máx 64 chars). Reglas en throttle.config.ts (configurables por env): QR_PUBLIC 60/min por idQr (GET /qr/public/:id), QR_SCAN 120/min por idQr (POST /scan/stats), QR_SEO 10/min por IP interna (GET /qr/seo-idqr), TTL 60000ms. Aplicar @UseGuards(QrPublicThrottlerGuard) + @Throttle({idqr}) + @SkipThrottle({default:true}) en las 3 rutas públicas (qr.controller.ts:380, scan.controller.ts:54, qr.controller.ts:379). Tests del guard con getTracker mockeado (idQr de params/body, fallback IP).",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-011",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-011] Envs y .env.example (qr-app + backend-portaqr)",
+            "description": "qr-app/.env.example: QR_VALIDATION_RETRY_COUNT=2, QR_VALIDATION_RETRY_BASE_MS=500, QR_MANUAL_RETRY_MAX=3, QR_MANUAL_RETRY_WINDOW_MS=300000, QR_MANUAL_RETRY_BLOCK_MS=60000, QR_PUBLIC_RATE_MAX=30, QR_SCAN_STATS_RATE_MAX=20, QR_SEO_RATE_MAX=10, QR_RATE_WINDOW_MS=60000. backend-portaqr/.env.example: THROTTLE_QR_PUBLIC_IDQR_MAX=60, THROTTLE_QR_SCAN_IDQR_MAX=120, THROTTLE_QR_SEO_MAX=10, THROTTLE_QR_TTL_MS=60000. CORREGIR V13: THROTTLE_TTL=60 → 60000 (ms en v6). Actualizar backendPortaqr.env dev si aplica.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-011",
+            "dependencies": ["4"],
+            "subtasks": []
+        },
+        {
+            "id": "6",
+            "content": "[SPEC-011] Validación final: tsc + tests + CAs + SPEC a implementado",
+            "description": "tsc --noEmit sin errores en qr-app y backend-portaqr; suite de unit tests verde (backend suite completa sin regresiones); verificar criterios de aceptación §7 de la spec (rate limits, reintentos, contador, validación UUID); actualizar SPEC-011 a status 'implementado' en frontmatter + entrada en changelog; marcar tareas completadas. Pendiente operativo documentado en §9: desregistrar dominio público Railway, definir THROTTLE_* en panel, regla WAF Cloudflare, deploy en 2 fases con test de humo.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-011",
+            "dependencies": ["1", "2", "3", "4", "5"],
+            "subtasks": []
+        }
+    ]
+}
