@@ -1,0 +1,154 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-009] T0: Baseline de regresión E2E (ejecutar suite + 6 specs nuevos)",
+            "description": "Baseline E2E capturado y specs de regresión creados. RESULTADO: suite completa **67 passed / 0 failed / 4 skipped** (2.6 min). Specs nuevos: session-refresh.spec (B8, 3 tests verdes), verify-email.spec (B5, 2 tests verdes — UI real con código de BD), forgot-password.spec (B4, 1 test verde), pet-tag/public-status.spec (A11, 2 tests verdes — contrato petData), webpay/refund-admin.spec (B2, gated WEBPAY_E2E=1 — valida 401/403 tras B2), qr/webpay-commit.spec (B3/B12, gated — éxito VISA 4051 8856 0044 6623 + rechazo MC 5186 0595 5959 0568). Helper nuevo getUserField en utils/db.ts. Entorno: rebuild de qr-app requerido (GET /signup 404 con contenedor viejo) + restarts mongo_qr/backend-portaqr. LOS TESTS GATED se activan en B2/B3 (WEBPAY_E2E=1).",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-009] Helper común assertOwnerOrAdmin + unit tests",
+            "description": "Crear src/common/utils/ownership.utils.ts con assertOwnerOrAdmin(ownerId, actor, message?) → ForbiddenException 403 si !isOwner && !isAdmin (patrón estándar de la sección 4). Unit tests: 6/6 passed (ownership.utils.spec.ts). tsc --noEmit OK. Usado por Bloques 1-4 y 7.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-009] Bloque 1 (A1): ownership users en dos capas + DTO + strip role",
+            "description": "PATCH /users/:id: check en controller (403, bypass admin) + regla en UpdateUserUseCase.execute(id, data, actor, tracking). Quitar isEmailVerified de UpdateUserDto; isActive solo admin (403). Strip de role en $set de mongo-user.repository.update. Validación ObjectId → 400. Ajustar users.controller.spec y update-user.usecase.spec. CA-01. Suite users: 19 suites/192 tests; suite completa backend: 147 suites/1152 tests; tsc OK. Nota: isActive vive solo en el DTO (la entidad/schema no lo persisten) — check con cast.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-009] Bloque 2 (A2): Webpay protegido (auth + sessionId del token + refund admin-only)",
+            "description": "JwtAuthGuard en create/status/transaction (se quitó @Public()); refund → @Roles('admin'); sessionId ELIMINADO del CreateTransactionDto (Opción A) e inyectado desde req.user.id (create-transaction.usecase.execute(dto, sessionId, tracking)); ownership assertOwnerOrAdmin(tx.sessionId) en status/transaction (404 si tx inexistente sin sessionId); return público (token truncado en logs — bonus A13). commit-transaction: valida tx existe en BD + amount Transbank == persistido (mismatch → error, no actualiza). Frontend: F1 YA estaba (route handlers webpay envían Bearer + 401 sin auth — verificado, incl. transaction/[token]); F2 hecho (quitar sessionId de webpay.service.ts + page.tsx:118); F3 sin UI de refund (solo método del servicio). Tests: webpay 12 suites/78 tests + suite completa 147/1156 + tsc backend y frontend OK.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-009] Bloque 3 (A3): qr-activate sin fraude (DTOs + ownership + userId por rol)",
+            "description": "Eliminar state/WebpayTransaction/TransferDate/activationDate/createdAt/updatedAt de CreateQrActivateDto + webpayToken nuevo (el usecase arma WebpayTransaction internamente — el commit busca por WebpayTransaction.id); state fijado por usecase (PENDING o ADMIN via ActivationState.ADMIN='ADMINCREATED'); userId por rol (user→token 403 si difiere, admin→acepta cliente); UpdateQrActivateDto solo description/descriptionAdministrator; ownership assertOwnerOrAdmin(activation.userId) en findOne/update + ObjectId 400; GET / filtra por userId salvo admin (nuevo param en port/usecase/repo/adapter). Frontend F4-F5: pay.helpers (state/WebpayTransaction/createdAt/updatedAt fuera + webpayToken) y activation.helpers (state fuera); interfaz QrActivate con state/createdAt/updatedAt opcionales + webpayToken?. Tests: qr-activate 14 suites/120 tests, suite completa 1156, tsc backend+frontend OK.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "6",
+            "content": "[SPEC-009] Bloque 4 (A4): IDOR users + mensajes homogéneos",
+            "description": "GET /users/:id → assertOwnerOrAdmin en controller (no tocar GetUserUseCase) + ObjectId 400; GET /users/search → solo admin (decisión: endpoint pensado para dashboard/users de admin); login → mensaje único 'Credenciales inválidas' (auth.service.ts — unificado los 3 casos); forgot-password → NO lanza 404 (responde genérico, log interno). Frontend verificado: LoginForm muestra su propio texto hardcodeado → login.spec NO se rompe. Tests: 1158 suite completa + tsc OK. E2E tras rebuild: 69 passed / 2 skipped (refund-admin ahora corre siempre).",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "7",
+            "content": "[SPEC-009] Bloque 5 (A5): códigos criptográficos + límite de intentos",
+            "description": "Helper generateVerificationCode (crypto.randomBytes(5).toString('hex').toUpperCase() = 10 chars hex ≈ 40 bits) en src/common/utils/code-generator.util.ts + VERIFICATION_MAX_ATTEMPTS=5; reemplazados los 3 generadores (create-user, forgot-password, resend-verification). UserSchema/entity/mapper: verificationAttempts + passwordResetAttempts (default 0). verify-email y reset-password: fallo → $inc en memoria (verificationAttempts+1); tras 5 → invalida el código (borra + responde 'expirado'); éxito → reset contador. CA-05: cero Math.random().toString(36) en código productivo (grep verificado). Tests: 1163 suite completa + tsc OK. E2E tras rebuild: 69 passed / 2 skipped (verify-email UI funciona con código de 10 chars).",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "8",
+            "content": "[SPEC-009] Bloque 6 (A6): fail-fast llaves JWT en producción",
+            "description": "jwt-keys.ts: si NODE_ENV=production y no hay llaves válidas (env PEM o archivos) → throw con mensaje claro; par efímero SOLO en development/test. Validación temprana en constructor de JwtAuthService (crash en bootstrap). Verificado: docker-compose usa NODE_ENV=development (dev OK con archivos keys/*.pem o efímero); .env.example documenta PEM inline. Tests: jwt-keys.spec (4 casos CA-06: PEM ok, prod sin llaves → throw, dev sin llaves → efímero, NODE_ENV ausente → efímero). Suite completa 1167 tests + tsc OK. E2E tras rebuild: 71 passed / 0 skipped.",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "9",
+            "content": "[SPEC-009] Bloque 7 (A7/A9): scan ownership + validar QR existe",
+            "description": "scan.controller: los 5 GETs (stats/recent/daily/locations/devices) cargan el QR con GetQrUseCase (404 si no existe) + assertOwnerOrAdmin(qr.userId, actor) → 403 si ajeno. create-scan.usecase: inyecta GetQrUseCase → 404 si el QR no existe (NO crea doc — anti-flood); userId del body se IGNORA (el dueño real se toma del QR — anti-inflado). ScanModule importa QrModule. Ajustados specs (controller: mock GetQrUseCase + user en llamadas; usecase: mock QR + casos nuevos 404/ignorar userId). Suite 1168 tests + tsc OK. E2E tras rebuild: 71 passed / 0 skipped (scan-stats E2E validado).",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "10",
+            "content": "[SPEC-009] Bloque 8 (A8): refresh tokens con rotación + detección de reuso",
+            "description": "Colección refresh_tokens { userId, tokenHash SHA-256, expiresAt, revokedAt, createdAt } + índice TTL + index compuesto. refreshToken(): findByHash → si no existe 401; rotación (revoca + emite + persiste); REUSO: ventana de gracia 60s (race del cliente con refreshes concurrentes → rota de nuevo) y fuera de ventana → revoca familia (tokenVersion++ + revokeAll) + 401. logout: tokenVersion++ + revokeAllByUser. change-password/reset-password: tokenVersion++. TTL 7d (REFRESH_TOKEN_TTL_DAYS). BUGFIXES encontrados en validación: (1) refreshes concurrentes generaban el MISMO token en el mismo segundo (mismo iat/hash) → E11000 duplicate key → create con upsert idempotente; (2) sin la ventana de gracia, el frontend (2 refreshes paralelos) mataba la familia. Suite 1170 tests + tsc OK. E2E tras rebuild: 70 passed + 1 flaky (retry OK) — sesión persiste.",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "11",
+            "content": "[SPEC-009] Bloque 9 (A10/A11/A12): superficie pública (idQr + 5 intentos pet-tag)",
+            "description": "A10: get-public-qr.usecase id → qr.idQr (nunca userId del dueño). A11: pet-tag status público SE MANTIENE completo (decisión de negocio, sin cambio). A12: pet-tag schema con activationAttempts + activationLockedUntil; activate(): check de bloqueo (429), éxito resetea contador, PIN incorrecto incrementa (400), 5 fallos → bloqueo 30 min (PET_TAG_MAX_ATTEMPTS/PET_TAG_LOCK_MINUTES); diag findOne con exec() consistente. Throttler IP ya cubierto por el global 10/min de SPEC-008. Suite 1174 tests + tsc OK. E2E tras rebuild: 70 passed / 1 flaky (webpay RECHAZO retry OK).",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "12",
+            "content": "[SPEC-009] Bloque 10 (A13): whitelist de campos en logs (default-deny)",
+            "description": "Helper sanitizeForLog(data, allowedFields?) en redact.utils.ts (default-deny): sensibles (password|token|token_ws|code|pin|refreshToken|accessToken|verificationCode) siempre redactados; con whitelist un sensible fuera de ella se OMITE; 5 unit tests. ResponseLoggerInterceptor: rutas sensibles (/auth/login, /auth/refresh, /webpay/) solo {status,message}; resto redacción recursiva. TraceService: JSON.stringify(sanitizeForLog(data)) en log/debug/warn. token_ws truncado ya hecho en B2. Suite 1179 tests + tsc OK. Verificado: logs sin accessToken/refreshToken/password/token_ws. E2E 70 passed/1 flaky.",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "13",
+            "content": "[SPEC-009] Bloque 12 (B12): precio desde el plan con snapshot histórico",
+            "description": "B12: QRElementDto con planId (sin price); PriceDataDto fuera; create-qr-activate.usecase inyecta GetPlanUseCase+GetQrUseCase → calcula snapshot (price.TotalPrice/TotalTax=19%, qrList[].price=plan.price, qrList[].plan=plan.id) + verifica QR existe y pertenece al userId (403 si ajeno); update-webpay-qr-activate: si amount Transbank ≠ snapshot → FAILED (no activa). Frontend F11-F12: CartItem/Plan/cartAdmin con planId, payloads de qr-activate sin price (user y admin), interfaz QrActivate con price opcional. BUGFIX: el payload admin aún mandaba price raíz (400) — eliminado de ambos builders. Verificado: snapshot en BD (price 50/tax 10/plan ref) + QR activo. Suite 1179 tests + tsc backend/frontend OK. E2E: 71 passed / 0 skipped.",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": ["5"],
+            "subtasks": []
+        },
+        {
+            "id": "14",
+            "content": "[SPEC-009] Bloque 11: ajustes frontend qr-app (F1-F12)",
+            "description": "F1-F5, F11-F12 ya completados (B2/B3/B12). F6: userId eliminado de payloads scan (QrRedirectClient + PetTagClient) — el backend toma el dueño del QR; ScanStats.userId opcional. BUGFIX backend: CreateScanDto.userId era REQUERIDO (el usecase lo ignora) → 400 al no enviarlo → opcional (B7 incompleto). F7: 404 scan/stats no interrumpe (try/catch en 3 callers + page.tsx notFound). F8: verify-email/forgot-password muestran err.message (cubre 429 límite B5). F9: pet-tag activación muestra err.message en toast+form (cubre bloqueo). F10: página pública usa params.id (URL); response.id ya no se usa. Suite 1179 tests + tsc OK; E2E 69 passed / 0 failed / 2 flaky (logout + MC, pasaron en retry). CA-13.",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-009",
+            "dependencies": ["4", "5", "13"],
+            "subtasks": []
+        },
+        {
+            "id": "15",
+            "content": "[SPEC-009] Validación final: tsc + tests + CA-01..CA-14 + SPEC a implementado",
+            "description": "tsc --noEmit sin errores en backend-portaqr; suite unit tests verde; suite E2E (incl. webpay-commit con WEBPAY_E2E=1) verde; verificar CA-01..CA-14; actualizar SPEC-009 a status 'implementado' (frontmatter) y marcar tareas completadas. ~1h",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-009",
+            "dependencies": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"],
+            "subtasks": []
+        }
+    ]
+}
