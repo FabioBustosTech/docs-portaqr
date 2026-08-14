@@ -1,0 +1,132 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-014] Rama feat/spec-014-perfil-usuario-admin",
+                      "description":  "Rama creada en desarrollo-qr/qr-app y desarrollo-qr/backend-portaqr desde main. bff-service deprecado: NO se toca. Enfoque final (decision del usuario 2026-08-13): experiencia admin de soporte, SIN impersonacion. Trabajo nuevo de backend: endpoint de desactivacion + endurecer stats. Resto reutiliza lo existente (vista de QRs admin, flujo de activacion con plan).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-014",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-014] Backend: desactivacion de QR (repo + usecase + controller + motivo)",
+                      "description":  "backend-portaqr: (1) qr.schema.ts: 3 campos nuevos opcionales deactivatedAt/deactivatedBy/deactivationReason (RF-1b) + mapper los expone; (2) mongo-qr.repository.ts: metodo deactivate(id, reason, actor) -\u003e findOneAndUpdate({ idQr }, { $set: { active: false, expiration: null, deactivatedAt: now, deactivatedBy: actor.id, deactivationReason: reason } }) (inverso de activateMany L147-177); (3) qr.port.ts ICanUpdateQr.deactivate + QrRepositoryAdapter; (4) nuevo DeactivateQrUseCase.execute(id, reason, actor, tracking) que valida existencia (404) y reason obligatorio 5-500 chars (400) y delega; (5) qr.controller.ts: POST /admin/qr/:id/deactivate con @Roles(\u0027admin\u0027), DTO { reason } validado, isValidObjectId -\u003e 400, log sanitizeForLog (adminId + idQr + reason). NO toca qractivates/transactions (snapshot inmutable). Al reactivar se limpian los campos de desactivacion. Unit tests CA-01, CA-01b, CA-02, CA-03, CA-04.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-014",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-014] Backend: endurecer GET /statistics/user/:userId a admin-only",
+                      "description":  "backend-portaqr/src/modules/statistics/presentation/controllers/statistics.controller.ts:24: @Roles(\u0027admin\u0027,\u0027user\u0027) -\u003e @Roles(\u0027admin\u0027) (IDOR latente: cualquier autenticado ve stats de cualquiera; el dashboard del usuario usa sus propios endpoints de scan/qr, verificado). Ajustar statistics.controller.spec: rol user -\u003e 403 (CA-05).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-014",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-014] Frontend API routes: deactivate + statistics/user/[id]",
+                      "description":  "qr-app: (1) nuevo src/app/api/admin/qr/[id]/deactivate/route.ts (POST, proxy al monolito, validacion 401/403 con adminGuardError patron SPEC-013); (2) nuevo src/app/api/statistics/user/[id]/route.ts (GET, admin-only, proxy al monolito); (3) qr.service.ts: deactivateQr(id); (4) user.service.ts: getUserStats(userId). Unit tests (CA-08).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-014",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-014] Frontend UI: pagina de perfil del usuario",
+                      "description":  "qr-app: (1) nuevo src/app/dashboard/users/[userIdClient]/page.tsx: header con datos del usuario (firstName, apellidos, @userName, email, rol, verificado, activo, creado, ultimo acceso via GET /api/users/[id]) + tarjetas stats (total/activos/inactivos via GET /api/statistics/user/[id]) + grid QRs admin (QrGrid existente con getMyQrsPaginated) + boton Volver a usuarios; (2) dashboard/users/page.tsx redirectToUser -\u003e /dashboard/users/${userIdClient} (antes /qr); (3) dashboard/users/[userIdClient]/qr/page.tsx redirige a ../ (unificacion). Unit tests.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-014",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-014] Frontend UI: boton Desactivar con motivo en QrCard (modo admin)",
+                      "description":  "qr-app/src/components/qr/QrCard.tsx: cuando isQrActive(qr) \u0026\u0026 isAdmin -\u003e boton \u0027Desactivar\u0027 (rojo) que abre dialogo con campo de texto OBLIGATORIO del motivo (textarea, min 5 chars; boton confirmar deshabilitado hasta escribir): \u0027Desactivar este QR? Indica el motivo:\u0027. Al confirmar -\u003e qrService.deactivateQr(idQr, reason) -\u003e refrescar grid (onQrUpdated) + toast. QR inactivo con deactivationReason -\u003e mostrar motivo en la card (tooltip/inline \u0027Desactivado: \u003cmotivo\u003e - \u003cfecha\u003e\u0027). Unit tests.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-014",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-014] Validacion: tsc/lint/build + suites unit en qr-app y backend-portaqr",
+                      "description":  "Ejecutar tsc --noEmit, lint y build en ambos repos; correr suites unit (backend ~1196 tests, qr-app unit tests) y verificar sin regresiones (especialmente users-pagination de SPEC-013 por el cambio de redirectToUser y statistics controller).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-014",
+                      "dependencies":  [
+                                           "2",
+                                           "3",
+                                           "6"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "8",
+                      "content":  "[SPEC-014] E2E: spec de perfil admin + desactivacion en e2e-tests-portaqr",
+                      "description":  "Nuevo spec (ej. tests/admin/user-profile-soporte.spec.ts): admin (fixture baseline-c01@test.cl) abre /dashboard/users -\u003e click usuario -\u003e pagina de perfil con datos + stats + grid QRs; desactiva un QR activo con motivo (dialogo -\u003e grid muestra Inactivo con tooltip del motivo solo admin); verifica que publicamente el QR desactivado se comporta igual que uno no activado (GET /qr/public/:id -\u003e 404 \u0027QR inactivo\u0027 sin motivo, RN-3b/RN-3c); reactiva con flujo de plan (o verifica boton Activar presente y campos de desactivacion limpiados); rol user -\u003e POST /admin/qr/:id/deactivate 403 y GET /statistics/user/:id 403 (CA-01..10). Suite completa verde (CA-11).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-014",
+                      "dependencies":  [
+                                           "7"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "9",
+                      "content":  "[SPEC-014] Cierre: SPEC implementada, tareas done, commits y merges",
+                      "description":  "Actualizar SPEC-014 a status implementado con historial completo; tareas done; commits en qr-app, backend-portaqr y e2e-tests-portaqr; merges a main; commit docs + ADR (endpoint de desactivacion vs. PATCH).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-014",
+                      "dependencies":  [
+                                           "8"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}
