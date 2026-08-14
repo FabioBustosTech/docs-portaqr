@@ -1,0 +1,90 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-015] Rama feat/spec-015-vista-admin-qrs",
+                      "description":  "Rama creada en desarrollo-qr/backend-portaqr y desarrollo-qr/qr-app desde main. bff-service deprecado: NO se toca. Enfoque: vista global de todos los QRs para admin (sin depender del userId). Backend: extender GET /qr existente (lookup usuario dueño + búsqueda por dueño + filtro estado). Frontend: API route GET /api/admin/qr + página tabla /dashboard/admin/qrs. Reutiliza lo existente (PATCH /qr/:id sin ownership check = admin ya edita cualquier QR, desactivación SPEC-014, EditQrForm, stats).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-015",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-015] Backend: AdminQrsQueryDto + aggregate findAllWithSearch con lookup de usuario, búsqueda ampliada y filtros",
+                      "description":  "backend-portaqr: (1) nuevo src/modules/qr/application/dto/admin-qrs-query.dto.ts: AdminQrsQueryDto extends PaginationDto con active?: \u0027all\u0027|\u0027active\u0027|\u0027inactive\u0027|\u0027deactivated\u0027 (@IsIn), type?: QrType (@IsEnum: dynamic/static/whatsapp/email/call/wifi/texto/list/vcard/pet/phone/map) y userId?: string (@IsMongoId); (2) mongo-qr.repository.ts: reescribir findAllWithSearch como aggregate: $match filtros combinados $and (estado active + typeQr + userId) → $addFields userIdObj ($convert to objectId, onError null) → $lookup users (localField userIdObj, foreignField _id, as userInfo) → $unwind preserveNullAndEmptyArrays → $match search (ampliado: idQr, typeQr, data.url, data.text, data.whatsappUrl, data.emailUrl, data.phoneUrl, data.wifiData.ssid, data.petData.petName, data.petData.ownerName, name, description, urlList, vcard, username/platform, petName/petBreed/ownerPhone, lat/long/address + userInfo.firstName/paternalLastName/userName/email con safeSearch) → $facet (data sort skip limit + count) — preservar contrato { data, pagination } y añadir user: { firstName, paternalLastName, maternalLastName, userName, email } | null; (3) qr.port.ts ICanGetAllQr.findAllWithSearch(page, limit, search, active, type, userId, tracking) + QrRepositoryAdapter; (4) get-all-qr.usecase.ts: execute(page, limit, search, active, type, userId, tracking); (5) qr.controller.ts findAll usa AdminQrsQueryDto y pasa active/type/userId. Unit tests CA-01, CA-02 (id/datos internos/tipo/dueño), CA-03, CA-03b, CA-03c (filtros combinados, 400 inválidos).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-015",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-015] Frontend API: GET /api/admin/qr + qrService.getAllQrsPaginated",
+                      "description":  "qr-app: (1) nuevo src/app/api/admin/qr/route.ts (GET proxy al monolito /qr pasando page/limit/search/active/type/userId, adminGuardError 401/403 patrón SPEC-013, mapeo { items, pagination }); (2) src/services/qr.service.ts: getAllQrsPaginated(page, limit, search, active, type, userId) → PaginatedResponse\u003cQrResponseAdmin\u003e; (3) src/interfaces/qr.ts: QrResponseAdmin = QrResponse \u0026 { user?: AdminQrOwner | null } + AdminQrOwner { firstName, paternalLastName, maternalLastName, userName, email }. Unit tests CA-04 (401 sin token, 403 rol user, 200 admin, pasa filtros).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-015",
+                      "dependencies":  [
+                                           "1",
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-015] Frontend UI: página /dashboard/admin/qrs con tabla + filtros + acciones + sidebar",
+                      "description":  "qr-app: (1) nuevo src/app/dashboard/admin/qrs/page.tsx (admin-only, Suspense, URL como fuente de verdad ?page=\u0026itemsPerPage=\u0026search=\u0026active=\u0026type=\u0026userId=, debounce 500ms, ItemsPerPageSelect + PaginationNav); (2) barra de filtros: búsqueda (id QR, datos internos, tipo, usuario dueño) + Select de usuarios (poblado con userService.getUsers(1,100,\u0027\u0027,\u0027all\u0027)) + Select estado (Todos/Activos/Inactivos/Desactivados) + Select tipo (enum QrType); (3) tabla con columnas QR (nombre+tipo+idQr corto) | Usuario dueño (nombre, @userName, email, click → perfil; \u0027Usuario eliminado\u0027 si user null) | Estado (badge + tooltip motivo admin-only) | Contenido (resumen por typeQr) | Actualizado | Acciones (Editar→/dashboard/qr/edit/[id], Perfil→/dashboard/users/[userId], Stats→/dashboard/qr/stats/[id], Desactivar→DeactivateQrDialog, Eliminar→confirm DELETE /api/qr?id=); (4) extraer src/components/qr/DeactivateQrDialog.tsx si el diálogo de SPEC-014 está inline en QrCard y reutilizarlo; (5) Sidebar.tsx: item \u0027Todos los QRs\u0027 → /dashboard/admin/qrs (admin). Unit tests CA-05..08.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-015",
+                      "dependencies":  [
+                                           "3"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-015] Validación: tsc, lint, build, unit + E2E + regresión SPEC-013/014",
+                      "description":  "tsc --noEmit + lint + build en backend-portaqr y qr-app. Suites unit completas. E2E nuevo spec (admin tabla: paginación, búsqueda por id del QR/datos internos/tipo/usuario dueño, filtros combinados estado+tipo+usuario, editar, desactivar, perfil, 403 rol user). Verificar sin regresión en users pagination (SPEC-013) y perfil/desactivación (SPEC-014).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-015",
+                      "dependencies":  [
+                                           "2",
+                                           "4"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-015] Cierre: SPEC a implementado, commits y merge",
+                      "description":  "SPEC-015 a status implementado, tareas done, commits en español por tarea, merge de la rama. Verificar en navegador: tabla con QRs de distintos usuarios, búsqueda por nombre/email, filtros de estado, edición end-to-end, desactivación con motivo.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-015",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}
