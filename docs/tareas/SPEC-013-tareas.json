@@ -1,0 +1,117 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-013] Rama feat/spec-013-paginacion-users-admin",
+                      "description":  "Rama creada en desarrollo-qr/qr-app y desarrollo-qr/backend-portaqr desde main (ambos limpios, 2026-08-13). bff-service deprecado: NO se toca (verificado: no corre, docker-compose comentado).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-013",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-013] Bloque B: API route Next GET /api/users -> 403 si no admin",
+                      "description":  "qr-app/src/app/api/users/route.ts GET: tras if (!auth?.id) return 401, agregar if (auth?.role !== 'admin') return 403 (mismo patron que el POST del mismo archivo). Verificar sin cambios que el monolito backend-portaqr ya devuelve 403 para rol user en /users, /users/paginated y /users/search (SPEC-009). GET /api/users/[id] NO se toca (perfil propio, owner-or-admin).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-013",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-013] Bloque C backend: filtro de rol en GET /users/paginated",
+                      "description":  "backend-portaqr: (1) mongo-user.repository.ts getAll: filtro hardcodeado { role: 'user' } -> dinamico (role valido user/admin -> { role }; all/ausente/invalido -> sin filtro de rol = TODOS); (2) get-all-user.usecase.ts: firma execute(page, limit, search, role, tracking) con default 'all' (cambio de comportamiento aceptado: GET /users plano tambien devuelve todos los roles); (3) users.controller.ts findPaginatedByUser: @Query('role') opcional; (4) UserRepositoryAdapter.ts + port ICanGetAllUser: propagar role. Ajustar los 4 spec (mongo-user.repository.spec, get-all-user.usecase.spec, users.controller.spec, UserRepositoryAdapter.spec) + casos nuevos role=admin, role=all, role ausente -> todos, role invalido -> lista vacia sin error.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-013",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-013] Bloque A1: extraer PaginationControls compartido de QrGrid",
+                      "description":  "Crear src/components/ui/PaginationControls.tsx con props { currentPage, totalPages, itemsPerPage, onPageChange, onItemsPerPageChange, loading? }: select itemsPerPage (10/25/50) + prev/next + 'Pagina X de Y' + disabled. Mover el JSX del footer de QrGrid.tsx (lineas ~172-255) al componente. QrGrid lo importa y usa (refactor estructural, sin cambio de comportamiento ni props publicas).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-013",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-013] Bloque A2 + C frontend: conectar dashboard/users/page.tsx",
+                      "description":  "Replicar patron de dashboard/qr/page.tsx: valores derivados de useSearchParams (page/itemsPerPage/search/role), normalizacion con history.replaceState, unico effect de datos con userService.getUsers(currentPage, itemsPerPage, searchTerm, role), handlers handlePageChange/handleSearch/handleItemsPerPageChange/handleRoleChange con router.push + limpieza de params vacios, Suspense boundary. UI: input de busqueda con debounce + select de rol (Todos/Usuarios/Administradores -> ?role=, resetea page=1) + cards actuales + PaginationControls. userService.getUsers agrega role a URLSearchParams (solo si viene) y el API route /api/users lo reenvia a /users/paginated. Eliminar getAllUsers() de src/services/user.service.ts (queda sin consumidores; verificado: unica llamada era esta pagina).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-013",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-013] Validacion: tsc, lint, build + navegador (CA-01..05, CA-07, CA-08, CA-10, CA-11)",
+                      "description":  "tsc --noEmit, lint, build en qr-app y backend-portaqr. Navegador en /dashboard/users (admin): pagina 1 con 10 items, next/prev + URL, itemsPerPage 25/50 resetea a pag 1, busqueda 'juan' filtra y resetea, limpiar busca restaura, URL compartida reproduce filtro, filtro de rol (default TODOS): Administradores muestra solo admins, Usuarios solo users, Todos ambos + ?role= en URL (CA-10), sin ?role= se ven todos los roles (CA-11). Dashboard/qr sin regresion (paginacion/busqueda/itemsPerPage). Revisar E2E existentes que asuman solo role user en el listado.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-013",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-013] E2E: spec users-admin-pagination + 403 rol user (CA-06, CA-09)",
+                      "description":  "Nuevo spec en e2e-tests-portaqr: (a) admin ve listado paginado y navega next/prev; (b) busqueda filtra; (c) filtro de rol (Todos/Usuarios/Administradores); (d) rol user -> 403 en GET /api/users (API route Next). El monolito ya devuelve 403 directo (verificado). Suite E2E completa verde.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-013",
+                      "dependencies":  [
+                                           "6"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "8",
+                      "content":  "[SPEC-013] Cierre: spec implementado + changelog + tareas done + merge a main",
+                      "description":  "Actualizar SPEC-013 a status implementado, changelog, tareas done. Commit qr-app + backend-portaqr + merge a main (ff). Commit docs.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-013",
+                      "dependencies":  [
+                                           "7"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}
+
