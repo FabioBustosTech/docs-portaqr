@@ -19,9 +19,9 @@ aliases:
 > La página admin `/dashboard/users` carga hoy **todos los usuarios sin paginar** y el backend `GET /users` devuelve un **máximo de 100** (`execute(1, 100, undefined)`), dejando el resto del sistema invisible. La **infraestructura de paginación ya existe end-to-end** (backend `GET /users/paginated`, BFF, API route Next y `userService.getUsers()`) pero la página usa `getAllUsers()` (sin paginar). Esta SPEC: (1) conecta la página al servicio paginado con búsqueda por userName/email, siguiendo el patrón canónico de `dashboard/qr` (URL como fuente de verdad) y extrayendo un componente compartido `PaginationControls` desde `QrGrid`; y (2) **endurece a admin-only** los servicios de listado de usuarios, que hoy permiten a cualquier rol `user` enumerar la base completa de usuarios (IDOR de listado) porque el **BFF** (`@Roles('admin','user')`) y el **API route Next** (solo exige `auth?.id`) filtran mal aunque el monolito ya sea admin-only.
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado
 > - **Fecha:** 2026-08-13
-> - **Componente destino:** `desarrollo-qr/qr-app/src/app/dashboard/users/`, `desarrollo-qr/qr-app/src/components/ui/PaginationControls.tsx`, `desarrollo-qr/qr-app/src/app/api/users/route.ts`, `desarrollo-qr/bff-service/src/users/users.controller.ts`
+> - **Componente destino:** `desarrollo-qr/qr-app/src/app/dashboard/users/`, `desarrollo-qr/qr-app/src/components/ui/PaginationControls.tsx`, `desarrollo-qr/qr-app/src/app/api/users/route.ts`, `desarrollo-qr/backend-portaqr/src/modules/users/`
 > - **Rama:** `feat/spec-013-paginacion-users-admin`
 > - **Origen:** Requerimiento del usuario (2026-08-13) — verificar servicios usados por `/dashboard/users` y restringir su consumo a admins. Relacionada con [[SPEC-009-hardening-autorizacion-autenticacion-backend-portaqr]] (patrón owner-or-admin, `assertOwnerOrAdmin`).
 
