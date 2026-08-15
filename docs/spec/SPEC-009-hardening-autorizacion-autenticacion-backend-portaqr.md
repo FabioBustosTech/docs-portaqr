@@ -1,4 +1,4 @@
-﻿---
+---
 title: "SPEC-009: Hardening de autorización y autenticación (backend-portaqr)"
 date: 2026-08-09
 tags:
