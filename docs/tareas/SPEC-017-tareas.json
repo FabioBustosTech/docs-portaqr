@@ -1,0 +1,144 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-017] Crear rama feat/spec-017-react-doctor-ronda-2 + baseline",
+                      "description":  "Crear rama feat/spec-017-react-doctor-ronda-2 en qr-app. EjecuciÃ³n 1 de npm run doctor documentada en SPEC-017 Â§3.1 (score 69/100, 24 issues, 332 archivos). ClasificaciÃ³n: 22 corregibles, 2 no-corregibles heredados, 3 a verificar.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-017] Quick wins A: unused-export x3 + static-value x1",
+                      "description":  "H-01: eliminar calculateTax y calculateTotal de activation.helpers.ts (verificado: nadie los importa, CartSummary usa calculateSubtotal) y calculateTax de pay.helpers.ts (calculateTotal SI se usa en page.tsx:119,226 y PayCartSummary:46). H-13: mover array \u0027allowed\u0027 de api/admin/qr/route.ts:42 a module scope. Validar tsc/lint/build.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-017] Quick wins B: lazy-state-init x3 + pure-function x2 + only-export-components x2",
+                      "description":  "H-03: useState(searchParams?.get(\u0027x\u0027) || \u0027\u0027) -\u003e useState(() =\u003e ...) en admin/qrs/page.tsx:59,61 y users/page.tsx:49. H-04: mover cleanParams a module scope en ambos archivos. H-07: mover isQrStatus (QrsAdminTable.tsx:34) y DEFAULT_ITEMS_PER_PAGE_OPTIONS (PaginationControls.tsx:18) a archivo helpers. Validar tsc/lint/build.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-017] Fixes render: no-locale-format QrCard + verificar createObjectURL",
+                      "description":  "H-12: toLocaleDateString(\u0027es-ES\u0027) en QrCard.tsx:47 -\u003e formatter module-scope (patrÃ³n ActivationSuccess SPEC-004-B C-04). H-09: verificar manualmente no-create-object-url-without-revoke en PetTagActivateForm.tsx:88 (el revoke YA existe en cleanup 54-59, reemplazo 86, remociÃ³n 92 - probable falso positivo; si el doctor insiste, reestructurar con useRef). Validar tsc/lint/build.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+                                           "3"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-017] PetTagActivateForm: state-only-in-handlers + no-giant-component (396 a \u003c300)",
+                      "description":  "H-08: petImageFile (PetTagActivateForm.tsx:49) solo se usa en handlers -\u003e mover a useRef. G-02: refactor no-giant-component 396 lineas -\u003e extraer validacion a PetTagActivateForm.helpers.ts (timing onBlur/onChange como SignUpForm C-01) + campos a subcomponentes (Datos DueÃ±o/Datos Mascota/Foto). Baseline funcional pre/post en navegador. Validar tsc/lint/build + doctor.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-017] CreateQrForm: async-await-in-loop + no-giant-component (373 a \u003c300)",
+                      "description":  "H-10: for...of con await uploadListPdf (CreateQrForm.tsx:143) -\u003e Promise.allSettled + toasts por fallo (comportamiento identico). G-03: refactor no-giant-component 373 lineas (regresion SPEC-005) -\u003e extraer bloque de subida de PDFs (~140-153) a helper uploadPendingPdfs + pendingPdfFilesRef. PRODUCTO PRINCIPAL: baseline funcional pre/post (patrÃ³n SPEC-004 Â§3.4). Validar tsc/lint/build + doctor.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-017] ListUrlForm: no-giant-component (353 a \u003c300)",
+                      "description":  "G-04: refactor no-giant-component 353 lineas (regresion SPEC-005). Ya tiene ListUrlForm.helpers.ts + ListUrlRow. Extraer logica de filas PDF (SPEC-005) a helpers. PRODUCTO PRINCIPAL: baseline funcional pre/post. Validar tsc/lint/build + doctor.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+                                           "6"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+"id":  "8",
+                      "content":  "[SPEC-017] admin/qrs/page.tsx: no-giant-component (410 a \u003c300)",
+                      "description":  "G-05: refactor no-giant-component 410 lineas (SPEC-015). Extraer: header+filtros a QrsAdminFilters, dialogos (desactivar/eliminar) a QrsAdminDialogs, fetch a hook useQrsAdmin (URL fuente de verdad). PRODUCTO PRINCIPAL: baseline funcional pre/post. Validar tsc/lint/build + doctor.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+                                           "7"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+"id":  "9",
+                      "content":  "[SPEC-017] Verificaciones manuales: url-prefilled + PetInfo img",
+                      "description":  "H-06: url-prefilled-privileged-action (users/page.tsx:55) - verificar que el backend valida admin-only (adminGuardError SPEC-013 Bloque B) -> documentar como aceptado con justificacion. H-11: PetInfo.tsx:17 img - mismo caso que UrlList (SPEC-002, URL firmada S3/R2) -> documentar decision mantener. Documentar veredictos en SPEC-017 §3.3.",
+                      "status":  "done",
+                      "priority":  "low",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+                                           "8"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+"id":  "10",
+                      "content":  "[SPEC-017] Validacion final y cierre de spec",
+                      "description":  "Validacion final: tsc --noEmit, lint, build, re-ejecucion de npm run doctor (CA-01: 0 no-giant-component + 0 unused-export). Actualizar SPEC-017 a estado implementado + changelog §11 + Taskmaster done. Score proyectado ~85-90/100 con solo no-corregibles restantes.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-017",
+                      "dependencies":  [
+                                           "9"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}
