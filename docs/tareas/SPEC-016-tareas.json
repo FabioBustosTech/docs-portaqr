@@ -1,0 +1,145 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-016] Rama feat/spec-016-imagen-pet-tag",
+                      "description":  "Rama creada en desarrollo-qr/backend-portaqr y desarrollo-qr/qr-app desde main. Objetivo: foto de la mascota en QR PetTag subida a Cloudflare R2 (carpeta pet-tag/). Reutiliza pipeline SPEC-002 (ImageProcessorService + StorageService + variables CLOUDFLARE_R2_* ya existentes). NO se toca bff-service. Backend: StorageService.uploadPetImage + setPetImageUrl + endpoints POST/DELETE /pet-tag/:idQr/image. Frontend: API route + PetTagActivateForm con preview + PetInfo muestra foto. ProducciÃ³n: extender polÃ­tica R2 al prefijo pet-tag/*.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-016] Backend: campo petImageUrl en PetData + setPetImageUrl en repo",
+                      "description":  "backend-portaqr: (1) pet-tag.schema.ts PetDataSchema: @Prop({ type: String, default: null }) petImageUrl?: string | null; (2) pet-tag.entity.ts PetData: petImageUrl?: string | null; (3) pet-tag-mongo.mapper.ts: mapear el campo nuevo; (4) pet-tag.port.ts ICanUpdatePetTag: setPetImageUrl(idQr: string, userId: string, url: string | null, tracking: TrackingContext): Promise\u003cunknown\u003e; (5) mongo-pet-tag.repository.ts: implementar con findOneAndUpdate({ idQr, userId }, { $set: { \u0027petData.petImageUrl\u0027: url } }, { new: true }) - 1 round-trip (patron SPEC-007), actualiza sub-campo sin pisar el resto de petData (diferencia clave con update() que reemplaza petData completo). Unit tests: repo spec (setea solo el sub-campo, 404 si no encuentra, no pisa resto del petData) + mapper spec. IMPORTANTE (RF-2): NO agregar petImageUrl a CreatePetTagDto/UpdatePetTagDto/ActivatePetTagDto - forbidNonWhitelisted lo rechaza por JSON.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-016] Backend: StorageService.uploadPetImage + extractKeyFromUrl pet-tag/",
+                      "description":  "backend-portaqr/src/modules/storage/storage.service.ts: (1) nuevo metodo uploadPetImage({ idQr, buffer, width, height }) -\u003e key \u0027pet-tag/{idQr}.webp\u0027, ContentType \u0027image/webp\u0027, CacheControl \u0027public, max-age=31536000, immutable\u0027, log r2_object_put { idQr, size, width, height }, retorna { publicUrl, key, size } (sobrescribe el mismo objeto al re-subir - RF-7); (2) extender extractKeyFromUrl al prefijo pet-tag/: regex (qr-multilink(?:-pdf)?|pet-tag)\\/[\\w-]+\\.(?:webp|pdf)$ para que deleteObject funcione con URLs pet-tag/. Unit tests storage.service.spec.ts: key correcta, ContentType, CacheControl, sobrescritura (misma key), deleteObject extrae key de URL pet-tag/ y llama DeleteObjectCommand con el key correcto.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-016] Backend: use cases + controller POST/DELETE /pet-tag/:idQr/image + module",
+                      "description":  "backend-portaqr/modules/pet-tag: (1) nuevo application/use-cases/pet-tag-image.usecase.ts con UploadPetImageUseCase (ownership admin||userId -\u003e imageProcessor.process -\u003e storageService.uploadPetImage -\u003e repo.setPetImageUrl -\u003e retorna { petImageUrl, size, width, height }) y DeletePetImageUseCase (ownership -\u003e leer petImageUrl actual -\u003e setPetImageUrl(null) -\u003e deleteObject mejor esfuerzo -\u003e { petImageUrl: null }); inyectar StorageService + ImageProcessorService; (2) pet-tag.controller.ts: POST :idQr/image con FileInterceptor(\u0027file\u0027, memoryStorage, limits.fileSize: getPetTagMaxUploadSize() default 5242880 (PET_TAG_MAX_UPLOAD_SIZE), fileFilter allowlist image/jpeg|image/png|image/webp -\u003e 415, 400 si no llega file, 404 placa inexistente, 403 no propietario, 422 imagen corrupta) y DELETE :idQr/image (404/403); (3) pet-tag.module.ts: importar StorageModule; (4) constantes de tamaÃ±o con tecnica getListImageMaxUploadSize de SPEC-002. Unit tests controller spec (CA-01, CA-04, CA-05, CA-06, CA-07, CA-09 con mocks de storage/imageProcessor) + use case specs.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+                                           "2",
+                                           "3"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-016] Backend: env PET_TAG_MAX_UPLOAD_SIZE + tsc/jest verdes",
+                      "description":  "backend-portaqr: agregar PET_TAG_MAX_UPLOAD_SIZE=5242880 en .env, backendPortaqr.env (env_file compose) y .env.example (opcional con default en codigo). NOTA (verificado 2026-08-14): las claves CLOUDFLARE_R2_* YA existen en los 3 archivos - NO agregar ni duplicar. Cerrar validacion: npx tsc --noEmit sin errores + suite jest de pet-tag y storage verde (cubriendo CA-01/04-09).",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-016] Frontend: API route /api/pet-tag/[idQr]/image + pet-tag.service",
+                      "description":  "qr-app: (1) nuevo src/app/api/pet-tag/[idQr]/image/route.ts: POST (proxy multipart al monolito POST /pet-tag/:idQr/image, FormData sin setear Content-Type manualmente para que el boundary se genere solo, propagar errores 403/404/413/415/422) y DELETE (proxy, 200 { petImageUrl: null }); (2) src/services/pet-tag.service.ts: uploadPetImage(idQr, file: File) -\u003e POST /api/pet-tag/${idQr}/image con FormData { file } -\u003e { petImageUrl, size, width, height } y deletePetImage(idQr) -\u003e DELETE; ambos con x-tracking-id. Unit tests: API route (401 sin sesion, 403 rol user, 200 admin/dueÃ±o, propaga errores) + servicio.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-016] Frontend: PetTagActivateForm con foto (preview + submit 2 pasos)",
+                      "description":  "qr-app/src/components/pet-tag/PetTagActivateForm.tsx: (1) nueva seccion \u0027Foto de la Mascota (Opcional)\u0027: input file accept=\u0027image/png,image/jpeg,image/webp\u0027, preview con URL.createObjectURL (thumbnail circular ~96-128px, revocar objeto en cleanup), boton \u0027Quitar foto\u0027, validacion client-side tamaÃ±o \u003c= 5MB y tipo permitido (toast si excede); (2) submit en 2 pasos: primero onSubmit(petTagData, pin) (flujo existente JSON); si success y hay archivo seleccionado -\u003e petTagService.uploadPetImage(qrId, file); si la subida falla tras activacion exitosa -\u003e toast warning NO bloqueante (\u0027Placa activada, pero la foto no se pudo subir - puedes reintentar\u0027); (3) estado petImageFile: File | null + loading parcial del upload. Unit tests: preview, validacion tamaÃ±o/tipo, submit 2 pasos con mocks (activacion ok + upload ok / activacion ok + upload falla -\u003e warning / activacion falla -\u003e no se llama upload).",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+                                           "6"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "8",
+                      "content":  "[SPEC-016] Frontend: PetInfo muestra foto + interfaz PetData",
+                      "description":  "qr-app: (1) src/interfaces/qr.ts: PetData.petImageUrl?: string | null; (2) src/components/qr/PetInfo.tsx: si data.petImageUrl existe -\u003e \u003cimg src={data.petImageUrl} alt={data.petName} loading=\u0027lazy\u0027 className=\u0027w-32 h-32 rounded-full object-cover mx-auto mb-4 border-4 border-accent-500 shadow-lg\u0027 /\u003e centrado sobre el titulo \u0027Informacion de la Mascota\u0027; sin foto -\u003e layout identico al actual (sin placeholder). NOTA: PetInfo es compartido con /qr/[id] (QRs pet legacy) - si un QR legacy tuviera petImageUrl lo mostraria (efecto colateral aceptado, out of scope). Unit tests: con foto renderiza img con src/alt correctos, sin foto render actual.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "9",
+                      "content":  "[SPEC-016] E2E: flujo foto pet-tag (e2e-tests-portaqr)",
+                      "description":  "e2e-tests-portaqr (rama feat/spec-016-imagen-pet-tag): spec E2E del flujo: (1) activar placa con foto -\u003e POST /pet-tag/:idQr/image -\u003e 200 con petImageUrl; (2) pagina publica /pet-tag/:idQr muestra \u003cimg\u003e con la URL; (3) re-subir foto -\u003e mismo key (LastModified cambia, no hay segundo objeto); (4) DELETE /pet-tag/:idQr/image -\u003e 200 { petImageUrl: null } y URL R2 responde 404; (5) 403 para usuario NO dueno; (6) 413 con archivo \u003e 5MB y 415 con .svg. Suite completa verde + unit/tsc sin regresiones.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+                                           "7"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "10",
+                      "content":  "[SPEC-016] Produccion: politica R2 pet-tag/* + nota de despliegue + verificacion",
+                      "description":  "1) Cloudflare R2: extender politica de solo lectura publica al prefijo pet-tag/* en bucket portaqr-assets (junto a qr-multilink/* y qr-multilink-pdf/*) - sin esto la URL persistida dara 404; (2) (opcional) lifecycle rule cubre pet-tag/ para huerfanos; (3) crear docs/produccion/NOTA-despliegue-produccion-SPEC-016.md siguiendo patron de NOTA-despliegue-produccion-SPEC-002/005 (pasos: politica, secrets opcional PET_TAG_MAX_UPLOAD_SIZE, verificacion post-despliegue: URL 200 image/webp, logs r2_object_put/r2_object_deleted, borrado -\u003e 404); (4) Railway: verificar CLOUDFLARE_R2_* presentes (no agregar, ya existen desde SPEC-002); (5) prueba manual post-despliegue segun seccion 7 de la spec.",
+                      "status":  "pending",
+                      "priority":  "medium",
+                      "tag":  "spec-016",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}
