@@ -142,10 +142,10 @@
                                    ]
                   },
                   {
-                      "id":  "11",
+"id":  "11",
                       "content":  "[SPEC-022] Validacion: tsc, lint, build, suites + verificacion navegador",
-                      "description":  "tsc --noEmit + lint + build en backend-portaqr y qr-app. Suites de tests completas verdes (backend + frontend + E2E). Verificar sin regresion en SPEC-005 (PDF multilink: subida, reemplazo, eliminacion, landing) y SPEC-008 (whitelist DTOs). Verificacion en navegador: crear QR con PDF + title -\u003e landing muestra el title; editar title -\u003e landing actualizado; item sin title -\u003e \u0027Descargar PDF\u0027; title \u003e 60 chars bloqueado en el input; QR con 2 PDFs muestra titles independientes.",
-                      "status":  "pending",
+                      "description":  "tsc --noEmit + lint + build en backend-portaqr y qr-app. Suites de tests completas verdes (backend + frontend + E2E). Verificar sin regresion en SPEC-005 (PDF multilink: subida, reemplazo, eliminacion, landing) y SPEC-008 (whitelist DTOs). Verificacion en navegador: crear QR con PDF + title -> landing muestra el title; editar title -> landing actualizado; item sin title -> 'Descargar PDF'; title > 60 chars bloqueado en el input; QR con 2 PDFs muestra titles independientes. EXTRA (hallazgo): bug de orden titulo->archivo en creacion (el titulo escrito antes de adjuntar el PDF se perdia) -> fix en qr-app (commit 83eaa10) + test de regresion unitario y E2E (test 1 ahora usa ese orden).",
+                      "status":  "done",
                       "priority":  "medium",
                       "tag":  "spec-022",
                       "dependencies":  [
