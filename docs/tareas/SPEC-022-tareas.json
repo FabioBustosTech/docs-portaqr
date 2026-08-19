@@ -1,9 +1,9 @@
-{
+﻿{
     "tasks":  [
                   {
                       "id":  "1",
                       "content":  "[SPEC-022] Rama feat/spec-022-title-pdf-multilink + archivo de tareas",
-                      "description":  "Crear rama feat/spec-022-title-pdf-multilink en desarrollo-qr (backend-portaqr y qr-app) desde main. Registrar tareas en docs/tareas/SPEC-022-tareas.json (formato Taskmaster-compatible). Enfoque: campo title opcional (max 60 chars) en items PDF de QR multilink (SPEC-005) que se muestra en la landing en lugar del texto fijo 'Descargar PDF' (UrlList.tsx L360). El QR acepta hasta 2 PDFs (MAX_PDF_ITEMS_PER_QR) y cada item es INDEPENDIENTE: el title es por PDF, no por QR. Backend: entity, DTOs, schema, validador, POST /qr/list-pdf. Frontend: tipos, helpers, row, form, sync, uploader, landing, flujo creacion.",
+                      "description":  "Crear rama feat/spec-022-title-pdf-multilink en desarrollo-qr (backend-portaqr y qr-app) desde main. Registrar tareas en docs/tareas/SPEC-022-tareas.json (formato Taskmaster-compatible). Enfoque: campo title opcional (max 60 chars) en items PDF de QR multilink (SPEC-005) que se muestra en la landing en lugar del texto fijo \u0027Descargar PDF\u0027 (UrlList.tsx L360). El QR acepta hasta 2 PDFs (MAX_PDF_ITEMS_PER_QR) y cada item es INDEPENDIENTE: el title es por PDF, no por QR. Backend: entity, DTOs, schema, validador, POST /qr/list-pdf. Frontend: tipos, helpers, row, form, sync, uploader, landing, flujo creacion.",
                       "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-022",
@@ -12,12 +12,12 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "2",
                       "content":  "[SPEC-022] Backend: entity QrUrlListItem.title + DTOs + schema + validador",
-                      "description":  "backend-portaqr/src/modules/qr/: (1) domain/entities/qr.entity.ts L9-15 agregar title?: string a QrUrlListItem; (2) application/dto/create-qr.dto.ts ListUrlData L154-178 agregar title con @ValidateIf((o) => o.typeUrl === 'pdf') + @IsOptional + @IsString + @MaxLength(60); (3) application/dto/url-item.dto.ts agregar title con @ApiProperty (Swagger); (4) infrastructure/repository/mongo/schemas/qr.schema.ts: campo title en urlList L117-130, tipo TS L242-248, y en validateQrDataFields case 'list' L41-65 extender exclusividad: pdf permite title (opcional), vcard/URL lo PROHIBEN (si viene -> invalido). OBLIGATORIO por whitelist:true de SPEC-008: declarar title en los DTOs o el PATCH lo eliminara silenciosamente. El title es por item (cada uno de los 2 PDFs tiene el suyo).",
+                      "description":  "backend-portaqr/src/modules/qr/: (1) domain/entities/qr.entity.ts L9-15 agregar title?: string a QrUrlListItem; (2) application/dto/create-qr.dto.ts ListUrlData L154-178 agregar title con @ValidateIf((o) =\u003e o.typeUrl === \u0027pdf\u0027) + @IsOptional + @IsString + @MaxLength(60); (3) application/dto/url-item.dto.ts agregar title con @ApiProperty (Swagger); (4) infrastructure/repository/mongo/schemas/qr.schema.ts: campo title en urlList L117-130, tipo TS L242-248, y en validateQrDataFields case \u0027list\u0027 L41-65 extender exclusividad: pdf permite title (opcional), vcard/URL lo PROHIBEN (si viene -\u003e invalido). OBLIGATORIO por whitelist:true de SPEC-008: declarar title en los DTOs o el PATCH lo eliminara silenciosamente. El title es por item (cada uno de los 2 PDFs tiene el suyo).",
                       "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-022",
@@ -26,12 +26,12 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "3",
                       "content":  "[SPEC-022] Backend: controller POST /qr/list-pdf acepta title",
-                      "description":  "backend-portaqr/src/modules/qr/presentation/controllers/qr.controller.ts uploadListPdf L258-387: (1) agregar @Body('title') title?: string a la firma; (2) helper sanitizePdfTitle(raw) usando escapeHtml de common/utils/escape-html.util.ts (patron SPEC-008): trim + vacio -> undefined; (3) append: [...urlList, { itemId, typeUrl: 'pdf', documentUrl: publicUrl, title: sanitizedTitle }]; (4) reemplazo: title: sanitizedTitle !== undefined ? sanitizedTitle : it.title (si el body trae title reemplaza, si no conserva el existente); (5) incluir title en el return y en Swagger @ApiBody/@ApiResponse. Sin cambios en PATCH /qr/:id (cambiar solo title no dispara operaciones R2). Cada PDF (hasta 2) mantiene su title independiente por itemId.",
+                      "description":  "backend-portaqr/src/modules/qr/presentation/controllers/qr.controller.ts uploadListPdf L258-387: (1) agregar @Body(\u0027title\u0027) title?: string a la firma; (2) helper sanitizePdfTitle(raw) usando escapeHtml de common/utils/escape-html.util.ts (patron SPEC-008): trim + vacio -\u003e undefined; (3) append: [...urlList, { itemId, typeUrl: \u0027pdf\u0027, documentUrl: publicUrl, title: sanitizedTitle }]; (4) reemplazo: title: sanitizedTitle !== undefined ? sanitizedTitle : it.title (si el body trae title reemplaza, si no conserva el existente); (5) incluir title en el return y en Swagger @ApiBody/@ApiResponse. Sin cambios en PATCH /qr/:id (cambiar solo title no dispara operaciones R2). Cada PDF (hasta 2) mantiene su title independiente por itemId.",
                       "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-022",
@@ -40,12 +40,12 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "4",
                       "content":  "[SPEC-022] Frontend: tipos + helpers + sync",
-                      "description":  "qr-app/src/: (1) interfaces/qr.ts L137-152 agregar title?: string a ListUrlData y UrlListItem; (2) components/qr/forms/ListUrlForm.helpers.ts: agregar title?: string a ListUrlRow L35-49, emitir title en buildUrlList L209-251 (title: row.title?.trim() || undefined, solo si el item tiene documentUrl), agregar constante PDF_TITLE_MAX_LENGTH = 60; (3) components/qr/forms/useListUrlSync.ts L33-47 preservar title en el mapeo urlList -> rows (si no, se pierde al editar un QR existente).",
+                      "description":  "qr-app/src/: (1) interfaces/qr.ts L137-152 agregar title?: string a ListUrlData y UrlListItem; (2) components/qr/forms/ListUrlForm.helpers.ts: agregar title?: string a ListUrlRow L35-49, emitir title en buildUrlList L209-251 (title: row.title?.trim() || undefined, solo si el item tiene documentUrl), agregar constante PDF_TITLE_MAX_LENGTH = 60; (3) components/qr/forms/useListUrlSync.ts L33-47 preservar title en el mapeo urlList -\u003e rows (si no, se pierde al editar un QR existente).",
                       "status":  "pending",
                       "priority":  "high",
                       "tag":  "spec-022",
@@ -54,13 +54,13 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "5",
                       "content":  "[SPEC-022] Frontend: ListUrlRow + ListUrlForm + ListPdfUploader",
-                      "description":  "qr-app/src/components/qr/: (1) ListUrlRow.tsx L118-131: en el bloque row.type === 'pdf' agregar Input de texto arriba del ListPdfUploader (contenedor flex-col gap-2) con placeholder 'Ej: Menu, Catalogo...', maxLength={PDF_TITLE_MAX_LENGTH}, value={row.title ?? ''}, onChange -> nueva prop onPdfTitleChange(index, value); pasar title={row.title} al ListPdfUploader; (2) ListUrlForm.tsx: nueva prop opcional onPdfTitleChange?: (itemId, title) => void, handler handlePdfTitleChange(index, value) que actualiza la row, llama updateUrlList y si hay pdfFile pendiente notifica al padre (flujo creacion); (3) ListPdfUploader.tsx: nueva prop title?: string y displayName con prioridad title?.trim() || fileName ?? sessionFileName ?? 'Descargar PDF' (L128). Cada fila PDF (hasta 2) tiene su propio input de titulo independiente.",
-                      "status":  "pending",
+                      "description":  "qr-app/src/components/qr/: (1) ListUrlRow.tsx L118-131: en el bloque row.type === \u0027pdf\u0027 agregar Input de texto arriba del ListPdfUploader (contenedor flex-col gap-2) con placeholder \u0027Ej: Menu, Catalogo...\u0027, maxLength={PDF_TITLE_MAX_LENGTH}, value={row.title ?? \u0027\u0027}, onChange -\u003e nueva prop onPdfTitleChange(index, value); pasar title={row.title} al ListPdfUploader; (2) ListUrlForm.tsx: nueva prop opcional onPdfTitleChange?: (itemId, title) =\u003e void, handler handlePdfTitleChange(index, value) que actualiza la row, llama updateUrlList y si hay pdfFile pendiente notifica al padre (flujo creacion); (3) ListPdfUploader.tsx: nueva prop title?: string y displayName con prioridad title?.trim() || fileName ?? sessionFileName ?? \u0027Descargar PDF\u0027 (L128). Cada fila PDF (hasta 2) tiene su propio input de titulo independiente.",
+                      "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-022",
                       "dependencies":  [
@@ -68,13 +68,13 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "6",
                       "content":  "[SPEC-022] Frontend: flujo de creacion con title",
-                      "description":  "qr-app/src/components/qr/: (1) CreateQrForm.tsx L44-65: pendingPdfFilesRef pasa de Map<string, File> a Map<string, { file: File; title?: string }>; handlePdfFileSelected guarda { file, title: '' }; nuevo handlePdfTitleChange(itemId, title) que actualiza el title del Map si existe (el usuario puede escribir el titulo despues de elegir el archivo); pasar onPdfTitleChange a CreateQrFormFields -> ListUrlForm; (2) CreateQrForm.helpers.ts uploadPendingPdfs L318-329: firma con Map<string, { file, title }> y upload(qrId, itemId, file, title); (3) services/qr.service.ts uploadListPdf L211-250: parametro title?: string y formData.append('title', title) si existe. API route /api/qr/list-pdf/route.ts sin cambios (reenvia FormData). Cada entrada del Map es por itemId: los 2 PDFs pendientes mantienen sus titles independientes.",
-                      "status":  "pending",
+                      "description":  "qr-app/src/components/qr/: (1) CreateQrForm.tsx L44-65: pendingPdfFilesRef pasa de Map\u003cstring, File\u003e a Map\u003cstring, { file: File; title?: string }\u003e; handlePdfFileSelected guarda { file, title: \u0027\u0027 }; nuevo handlePdfTitleChange(itemId, title) que actualiza el title del Map si existe (el usuario puede escribir el titulo despues de elegir el archivo); pasar onPdfTitleChange a CreateQrFormFields -\u003e ListUrlForm; (2) CreateQrForm.helpers.ts uploadPendingPdfs L318-329: firma con Map\u003cstring, { file, title }\u003e y upload(qrId, itemId, file, title); (3) services/qr.service.ts uploadListPdf L211-250: parametro title?: string y formData.append(\u0027title\u0027, title) si existe. API route /api/qr/list-pdf/route.ts sin cambios (reenvia FormData). Cada entrada del Map es por itemId: los 2 PDFs pendientes mantienen sus titles independientes.",
+                      "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-022",
                       "dependencies":  [
@@ -82,13 +82,13 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "7",
                       "content":  "[SPEC-022] Frontend: landing UrlList.tsx muestra title",
-                      "description":  "qr-app/src/components/qr/UrlList.tsx L346-363: en el boton ancla del item pdf reemplazar el span fijo 'Descargar PDF' por {item.title?.trim() || 'Descargar PDF'} (fallback para items existentes sin title). React escapa el texto automaticamente. Sin cambios en el resto del render (color bg-rose-600, icono pdf, target _blank). Cada uno de los 2 PDFs muestra su propio title.",
-                      "status":  "pending",
+                      "description":  "qr-app/src/components/qr/UrlList.tsx L346-363: en el boton ancla del item pdf reemplazar el span fijo \u0027Descargar PDF\u0027 por {item.title?.trim() || \u0027Descargar PDF\u0027} (fallback para items existentes sin title). React escapa el texto automaticamente. Sin cambios en el resto del render (color bg-rose-600, icono pdf, target _blank). Cada uno de los 2 PDFs muestra su propio title.",
+                      "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-022",
                       "dependencies":  [
@@ -96,12 +96,12 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "8",
                       "content":  "[SPEC-022] Tests backend",
-                      "description":  "backend-portaqr: (1) DTO ListUrlData: title <= 60 pasa, > 60 error @MaxLength, title en item no-pdf ignorado por @ValidateIf; (2) validador schema case 'list': item pdf con title valido, item vcard/URL con title invalido (exclusividad), items legacy sin title siguen pasando; (3) controller POST /qr/list-pdf (unitario + integracion): append con title persiste title, append sin title -> undefined, reemplazo con title reemplaza, reemplazo sin title conserva, title con <script> persistido escapado (escapeHtml), title solo espacios -> undefined; (4) PATCH /qr/:id cambiando solo title NO invoca deleteObject (mock StorageService). Criterios CA-01..11.",
+                      "description":  "backend-portaqr: (1) DTO ListUrlData: title \u003c= 60 pasa, \u003e 60 error @MaxLength, title en item no-pdf ignorado por @ValidateIf; (2) validador schema case \u0027list\u0027: item pdf con title valido, item vcard/URL con title invalido (exclusividad), items legacy sin title siguen pasando; (3) controller POST /qr/list-pdf (unitario + integracion): append con title persiste title, append sin title -\u003e undefined, reemplazo con title reemplaza, reemplazo sin title conserva, title con \u003cscript\u003e persistido escapado (escapeHtml), title solo espacios -\u003e undefined; (4) PATCH /qr/:id cambiando solo title NO invoca deleteObject (mock StorageService). Criterios CA-01..11.",
                       "status":  "done",
                       "priority":  "medium",
                       "tag":  "spec-022",
@@ -110,13 +110,13 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "9",
                       "content":  "[SPEC-022] Tests frontend",
-                      "description":  "qr-app: (1) buildUrlList: row pdf con documentUrl + title emite title, title vacio -> undefined, row pdf sin documentUrl sigue excluida (regresion SPEC-005); (2) useListUrlSync: item pdf con title preserva title en la row; (3) UrlList: item con title muestra el title, sin title muestra 'Descargar PDF', title con HTML renderizado como texto plano; (4) ListPdfUploader: displayName prioriza title > fileName > sessionFileName > 'Descargar PDF'; (5) uploadPendingPdfs: pasa title al upload (mock verificando 4to argumento); (6) CreateQrForm: handlePdfTitleChange actualiza el Map pendiente, handlePdfFileSelected guarda { file, title: '' }; (7) independencia por PDF (CA-11): QR con 2 items PDF con titles distintos -> cada fila conserva su propio title en sync y buildUrlList.",
-                      "status":  "pending",
+                      "description":  "qr-app: (1) buildUrlList: row pdf con documentUrl + title emite title, title vacio -\u003e undefined, row pdf sin documentUrl sigue excluida (regresion SPEC-005); (2) useListUrlSync: item pdf con title preserva title en la row; (3) UrlList: item con title muestra el title, sin title muestra \u0027Descargar PDF\u0027, title con HTML renderizado como texto plano; (4) ListPdfUploader: displayName prioriza title \u003e fileName \u003e sessionFileName \u003e \u0027Descargar PDF\u0027; (5) uploadPendingPdfs: pasa title al upload (mock verificando 4to argumento); (6) CreateQrForm: handlePdfTitleChange actualiza el Map pendiente, handlePdfFileSelected guarda { file, title: \u0027\u0027 }; (7) independencia por PDF (CA-11): QR con 2 items PDF con titles distintos -\u003e cada fila conserva su propio title en sync y buildUrlList.",
+                      "status":  "done",
                       "priority":  "medium",
                       "tag":  "spec-022",
                       "dependencies":  [
@@ -125,12 +125,12 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "10",
                       "content":  "[SPEC-022] Tests E2E (e2e-tests-portaqr)",
-                      "description":  "Playwright: (1) crear QR multilink con item PDF + title 'Menu' -> la landing /qr/[id] muestra el boton con 'Menu' (mock de /api/qr/list-pdf); (2) editar el QR y cambiar el title a 'Carta' -> la landing muestra 'Carta'; (3) crear item PDF sin title -> la landing muestra 'Descargar PDF' (sin regresion); (4) QR con 2 PDFs con titles 'Menu' y 'Catalogo' -> la landing muestra ambos titles en sus botones respectivos (CA-11).",
+                      "description":  "Playwright: (1) crear QR multilink con item PDF + title \u0027Menu\u0027 -\u003e la landing /qr/[id] muestra el boton con \u0027Menu\u0027 (mock de /api/qr/list-pdf); (2) editar el QR y cambiar el title a \u0027Carta\u0027 -\u003e la landing muestra \u0027Carta\u0027; (3) crear item PDF sin title -\u003e la landing muestra \u0027Descargar PDF\u0027 (sin regresion); (4) QR con 2 PDFs con titles \u0027Menu\u0027 y \u0027Catalogo\u0027 -\u003e la landing muestra ambos titles en sus botones respectivos (CA-11).",
                       "status":  "pending",
                       "priority":  "medium",
                       "tag":  "spec-022",
@@ -139,12 +139,12 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "11",
                       "content":  "[SPEC-022] Validacion: tsc, lint, build, suites + verificacion navegador",
-                      "description":  "tsc --noEmit + lint + build en backend-portaqr y qr-app. Suites de tests completas verdes (backend + frontend + E2E). Verificar sin regresion en SPEC-005 (PDF multilink: subida, reemplazo, eliminacion, landing) y SPEC-008 (whitelist DTOs). Verificacion en navegador: crear QR con PDF + title -> landing muestra el title; editar title -> landing actualizado; item sin title -> 'Descargar PDF'; title > 60 chars bloqueado en el input; QR con 2 PDFs muestra titles independientes.",
+                      "description":  "tsc --noEmit + lint + build en backend-portaqr y qr-app. Suites de tests completas verdes (backend + frontend + E2E). Verificar sin regresion en SPEC-005 (PDF multilink: subida, reemplazo, eliminacion, landing) y SPEC-008 (whitelist DTOs). Verificacion en navegador: crear QR con PDF + title -\u003e landing muestra el title; editar title -\u003e landing actualizado; item sin title -\u003e \u0027Descargar PDF\u0027; title \u003e 60 chars bloqueado en el input; QR con 2 PDFs muestra titles independientes.",
                       "status":  "pending",
                       "priority":  "medium",
                       "tag":  "spec-022",
@@ -154,7 +154,7 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   },
                   {
                       "id":  "12",
@@ -168,7 +168,7 @@
                                        ],
                       "subtasks":  [
 
-                                    ]
+                                   ]
                   }
               ]
 }
