@@ -108,7 +108,7 @@ aliases:
 
 **Bloque E — Frontend: botón Google (`qr-app`)**
 
-- **RF-19 (botón en login y signup)**. `LoginForm` y `SignUpForm`: botón "Continuar con Google" (estilo outline, icono G multicolor inline SVG — sin dependencias nuevas) **sobre** el formulario, separado por divisor "o". Visible solo si `NEXT_PUBLIC_GOOGLE_ENABLED === 'true'` (default `'false'` — sin credenciales no se muestra). Click → `window.location.href = '/api/auth/google'`.
+- **RF-19 (botón en login y signup)**. `LoginForm` y `SignUpForm`: botón "Continuar con Google" (estilo outline, icono G multicolor inline SVG — sin dependencias nuevas) **sobre** el formulario, separado por divisor "o". **Siempre visible** (decisión usuario 2026-08-18: se eliminó el flag `NEXT_PUBLIC_GOOGLE_ENABLED` — si el backend no tiene credenciales, `GET /auth/google` responde 503 con mensaje claro, CA-07). Click → `window.location.href = '/api/auth/google'`.
 - **RF-20 (proxies Google)**. Nuevos en `qr-app/src/app/api/auth/`:
   - `google/route.ts` (GET): `302` a `{NEXT_PUBLIC_BFF_URL}/auth/google` (el navegador sigue el redirect; la cookie `oauth_state` la setea el backend en esa respuesta).
   - `google/callback/route.ts` (GET): recibe `?code=...&state=...` de Google → reenvía a `{NEXT_PUBLIC_BFF_URL}/auth/google/callback?code=...&state=...` (forward de cookies del request para validar `oauth_state`) → si OK: `setAuthCookies(accessToken, refreshToken)` (reutiliza `src/lib/auth.ts`) y `302` a `/dashboard` (o `/onboarding` si perfil incompleto — el proxy puede decidir con `data.user`); si error: `302` a `/login?error=google` (LoginForm muestra mensaje genérico).
@@ -151,7 +151,7 @@ aliases:
 - **RN-7**. Un usuario Google **no puede** iniciar sesión con contraseña (hash aleatorio inutilizable → `'Credenciales inválidas'`, sin revelar existencia).
 - **RN-8**. El `state` de OAuth es obligatorio (CSRF): el callback sin `state` válido responde 400 y **no** crea/vincula nada.
 - **RN-9**. Los tokens JWT **nunca** se exponen en query strings ni en el body al navegador (solo cookies httpOnly vía proxy — patrón existente).
-- **RN-10**. El botón Google se muestra solo si `NEXT_PUBLIC_GOOGLE_ENABLED=true` (frontend) y el backend tiene `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` configurados (si faltan, `GET /auth/google` responde 503 con mensaje claro en logs).
+- **RN-10**. El botón Google se muestra **siempre** (decisión usuario 2026-08-18: se eliminó el flag `NEXT_PUBLIC_GOOGLE_ENABLED`); el backend debe tener `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` configurados (si faltan, `GET /auth/google` responde 503 con mensaje claro en logs).
 
 ### 2.3 Criterios de aceptación (CA)
 
@@ -167,7 +167,7 @@ aliases:
 - **CA-10**: callback con code válido y email **existente** (cuenta local) → se vincula `googleId` (sin tocar password/role), login exitoso con tokens.
 - **CA-11**: login local (password) de un usuario Google → 401 `'Credenciales inválidas'`.
 - **CA-12**: `/api/auth/google/callback` (proxy) con respuesta OK → cookies httpOnly seteadas + 302 a `/dashboard` (o `/onboarding` si perfil incompleto); con error → 302 a `/login?error=google`. **Sin tokens en la URL**.
-- **CA-13**: `/signup` muestra solo email/password/confirmPassword/términos (sin "Datos Personales", sin userName, sin confirmEmail); el botón Google aparece solo con `NEXT_PUBLIC_GOOGLE_ENABLED=true`.
+- **CA-13**: `/signup` muestra solo email/password/confirmPassword/términos (sin "Datos Personales", sin userName, sin confirmEmail); el botón Google aparece **siempre** (sin flag configurable — decisión usuario 2026-08-18).
 - **CA-14**: `tsc --noEmit` + suites jest verdes en backend-portaqr y qr-app (sin regresión en SPEC-009/011/012/019).
 - **CA-15** (integración manual): flujo completo — signup email+password → verify-email → login → onboarding → dashboard; y flujo Google — botón → consentimiento → callback → dashboard (o onboarding si Google no trajo `family_name`).
 - **CA-16**: auditoría de correos — `registerEmail.ejs` **no contiene nombre** (saludo genérico, sin cambios); `passwordReset.ejs` y `qrActivated.ejs` usan nombre pero con fallback a email vía `getFullName`/`getDisplayName` (RF-22/RF-26): usuario sin onboarding que pide reset → "Hola {email}!" (nunca "Hola  !"); activación de QR con firstName vacío → "Hola {email}, tus códigos...".
@@ -386,7 +386,6 @@ export async function GET(request: Request) {
 | `src/components/dashboard/DashboardHeader.tsx` / `Sidebar.tsx` | `getDisplayName(user)` (RF-18) |
 | `src/components/SettingsAccordion/index.tsx` | + sección "Datos Personales" con `EditProfileForm` (RF-25) |
 | `src/components/EditProfileForm/` (nuevo) | Form nombre/apellidos/userName → `PATCH /api/users/:id` → `SET_USER` (RF-25) |
-| `qrApp.env` / `.env.local` | + `NEXT_PUBLIC_GOOGLE_ENABLED` (default `'false'`) (RF-19) |
 | Tests | `SignUpForm` spec (CA-13), `OnboardingPageClient` spec (CA-05), `LoginForm` spec (CA-04/19), proxy callback spec (CA-12), `EditProfileForm` spec (CA-18) |
 
 ### 4.6 ADRs
@@ -494,7 +493,7 @@ export async function GET(request: Request) {
 ## 7. Producción
 
 1. **Variables nuevas (Railway, backend-portaqr)**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL=https://portaqr.cl/api/auth/google/callback`. **Requisito previo**: crear credenciales OAuth en Google Cloud Console (OAuth 2.0 Client ID, tipo "Web application", Authorized redirect URIs = `https://portaqr.cl/api/auth/google/callback` y `http://localhost:3000/api/auth/google/callback` para dev).
-2. **Variables nuevas (qr-app)**: `NEXT_PUBLIC_GOOGLE_ENABLED=true` en producción (default `'false'` — sin la variable el botón no se muestra).
+2. **qr-app**: sin variables nuevas — el botón Google se muestra **siempre** (decisión usuario 2026-08-18: se eliminó el flag `NEXT_PUBLIC_GOOGLE_ENABLED`).
 3. **Railway**: redeploy de `backend-portaqr` (npm install incluirá `passport-google-oauth20`) y de `qr-app` (nuevos proxies + onboarding). Sin cambios de CORS (todo pasa por el mismo dominio) ni de Mongo (campos nuevos opcionales; sin migración).
 4. **Verificación post-despliegue**: flujo completo signup→verify→login→onboarding; flujo Google (consentimiento → callback → dashboard); `mongosh`: usuarios Google con `provider: 'google'`, `googleId`, `isEmailVerified: true`; usuarios nuevos locales con `userName` `user_*` y nombres vacíos hasta completar onboarding.
 

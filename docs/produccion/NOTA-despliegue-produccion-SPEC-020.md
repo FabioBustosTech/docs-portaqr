@@ -17,7 +17,7 @@ aliases:
 # Nota: Paso a producción — SPEC-020 (Registro simplificado + onboarding + login con Google)
 
 > [!abstract] Resumen
-> La SPEC-020 (1) reduce el registro a **solo email + contraseña** (el backend genera el `userName` automáticamente — ADR-020.1), (2) captura **nombre, apellido paterno y materno** (obligatorios) + **userName opcional** en una **pantalla de bienvenida universal** (`/onboarding`) en el primer login (por correo o por Google — RF-24), (3) agrega **login con Google** (OAuth 2.0, `passport-google-oauth20`) con botón en login/signup, (4) permite **editar esos datos** en `/dashboard/settings` (RF-25), (5) distingue **login vs signup** en el flujo Google (el login NO crea cuentas; el signup exige aceptar términos — ADR-020.10), y (6) permite a cuentas Google **agregar contraseña** para loguear con email (flag `hasPassword` — ADR-020.11). **4 variables nuevas en `backend-portaqr`** (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, `WELCOME_EMAIL_ENABLED`) y **1 en `qr-app`** (`NEXT_PUBLIC_GOOGLE_ENABLED`). Requiere **crear credenciales OAuth en Google Cloud Console** (requisito previo) y **2 migraciones one-off** (`welcomeEmailSent` y `hasPassword`). Se despliegan **ambos** repos (backend-portaqr y qr-app).
+> La SPEC-020 (1) reduce el registro a **solo email + contraseña** (el backend genera el `userName` automáticamente — ADR-020.1), (2) captura **nombre, apellido paterno y materno** (obligatorios) + **userName opcional** en una **pantalla de bienvenida universal** (`/onboarding`) en el primer login (por correo o por Google — RF-24), (3) agrega **login con Google** (OAuth 2.0, `passport-google-oauth20`) con botón en login/signup, (4) permite **editar esos datos** en `/dashboard/settings` (RF-25), (5) distingue **login vs signup** en el flujo Google (el login NO crea cuentas; el signup exige aceptar términos — ADR-020.10), y (6) permite a cuentas Google **agregar contraseña** para loguear con email (flag `hasPassword` — ADR-020.11). **4 variables nuevas en `backend-portaqr`** (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, `WELCOME_EMAIL_ENABLED`) y **0 en `qr-app`** (el flag `NEXT_PUBLIC_GOOGLE_ENABLED` se eliminó — decisión usuario 2026-08-18: el botón se muestra siempre). Requiere **crear credenciales OAuth en Google Cloud Console** (requisito previo) y **2 migraciones one-off** (`welcomeEmailSent` y `hasPassword`). Se despliegan **ambos** repos (backend-portaqr y qr-app).
 
 ## Requisito previo: credenciales OAuth en Google Cloud Console
 
@@ -47,7 +47,7 @@ aliases:
      { $set: { hasPassword: false } }
    );
    ```
-4. **`qr-app`**: merge de `feat/spec-020-registro-simplificado-google-oauth` → deploy en Railway. Configurar `NEXT_PUBLIC_GOOGLE_ENABLED=true`.
+4. **`qr-app`**: merge de `feat/spec-020-registro-simplificado-google-oauth` → deploy en Railway. **Sin variables nuevas** (el flag `NEXT_PUBLIC_GOOGLE_ENABLED` se eliminó — decisión usuario 2026-08-18: el botón se muestra siempre).
 
 ## Variables de entorno
 
@@ -57,7 +57,6 @@ aliases:
 | `GOOGLE_CLIENT_SECRET`       | Client Secret de la app OAuth (**secreto**)                                                                                                                                              | **Sí**  | backend-portaqr (Railway) |
 | `GOOGLE_CALLBACK_URL`        | `https://portaqr.cl/api/auth/google/callback` — apunta al **proxy del frontend** (ADR-020.3: las cookies httpOnly se setean en el dominio del frontend; los tokens nunca viajan en URLs) | **Sí**  | backend-portaqr (Railway) |
 | `WELCOME_EMAIL_ENABLED`      | `true` (default) envía el correo de bienvenida en el primer login verificado; solo `'false'` explícito lo desactiva (patrón `EMAIL_ACTIVATION_ENABLED` de SPEC-019)                      | **Sí**  | backend-portaqr (Railway) |
-| `NEXT_PUBLIC_GOOGLE_ENABLED` | `true` muestra el botón "Continuar con Google" (default `false` — sin la variable no se muestra)                                                                                         | **Sí**  | qr-app (Railway)          |
 
 > [!note] Sin cambios de infraestructura
 > No hay cambios de CORS, R2 ni Mongo (los campos nuevos `googleId`/`provider`/`avatarUrl`/`welcomeEmailSent`/`hasPassword` son opcionales — sin migración de schema, solo las 2 migraciones de datos one-off). El callback de Google pasa por el mismo dominio (`portaqr.cl/api/auth/google/callback`), así que no hay CORS cross-origin.
@@ -68,7 +67,7 @@ aliases:
 2. **backend-portaqr**: merge + deploy + 4 variables configuradas.
 3. **Migración one-off #1** `welcomeEmailSent` ejecutada.
 4. **Migración one-off #2** `hasPassword` (cuentas Google existentes) ejecutada.
-5. **qr-app**: merge + deploy + `NEXT_PUBLIC_GOOGLE_ENABLED=true`.
+5. **qr-app**: merge + deploy (sin variables nuevas — el botón se muestra siempre).
 6. Verificar en logs: `GET /auth/google` responde 302 (no 503) — confirma que las credenciales están configuradas.
 
 ## Verificación post-despliegue
@@ -87,7 +86,7 @@ aliases:
 - **Seguridad del callback**: el `state` CSRF se valida contra la cookie httpOnly `oauth_state` (10 min) — un callback con `state` manipulado responde 400 sin crear nada (ADR-020.6). Los tokens JWT **nunca** viajan en query strings (ADR-020.3).
 - **Mode login/signup**: el `mode` viaja en cookie httpOnly `oauth_mode` (seteada al iniciar el flujo). El proxy `/api/auth/google` reenvía el `mode` al backend y **todas** las Set-Cookie (`oauth_state` + `oauth_mode`) — si solo se reenvía una, el login con cuenta no creada crearía la cuenta (bug corregido en v13).
 - **Best-effort del welcomeEmail**: si SMTP falla, el flag `welcomeEmailSent` queda `false` y se reintenta en el próximo login (RF-27). Un fallo de SMTP nunca rompe el login ni el callback OAuth.
-- **`/auth/google` sin credenciales** → 503 con log claro (no 500). Si el botón no aparece, verificar `NEXT_PUBLIC_GOOGLE_ENABLED=true` (se compila en build time — requiere redeploy tras cambiarla).
+- **`/auth/google` sin credenciales** → 503 con log claro (no 500). El botón se muestra **siempre** (decisión usuario 2026-08-18: se eliminó el flag `NEXT_PUBLIC_GOOGLE_ENABLED` — ya no depende de variables de entorno).
 - **Rate limiting**: `GET /auth/google` y `GET /auth/google/callback` usan `SENSITIVE_ENDPOINT_THROTTLE` (5 req/min por IP — anti-bruteforce, SPEC-008 H4).
 - **JWT con claims nuevos**: el access token ahora incluye `provider` y `hasPassword` — el frontend los usa para decidir si muestra "Agregar contraseña". Los tokens emitidos antes del deploy no los traen (el frontend usa fallback del perfil completo del backend en `/api/auth/session`).
 - **Proxy `change-password` (fix v15)**: el backend responde 200 con body vacío (controller `Promise<void>`) — el proxy debe leer `response.text()` y devolver `{ success: true }` si está vacío (antes hacía `response.json()` → 500 "Error al cambiar la contraseña" SIEMPRE). Afecta el cambio de contraseña normal y el flujo "Agregar contraseña" de cuentas Google.
