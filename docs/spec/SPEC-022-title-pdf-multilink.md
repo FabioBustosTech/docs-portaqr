@@ -10,7 +10,7 @@ tags:
   - multilink
   - pdf
   - title
-status: borrador
+status: implementado
 aliases:
   - SPEC-022
   - Título PDF Multilink
