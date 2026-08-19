@@ -1,0 +1,348 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-020] Rama feat/spec-020-registro-simplificado-google-oauth",
+                      "description":  "Rama creada en desarrollo-qr/backend-portaqr desde main. Objetivo: (A) registro simplificado - CreateUserDto relajado (userName/firstName/paternalLastName/maternalLastName opcionales, RF-1), userName generado automaticamente user_\u003c8 hex\u003e si no se provee (ADR-020.1, RF-3), schema con nombres/apellidos required:false default \u0027\u0027 (RF-4); (B) Google OAuth - passport-google-oauth20 (ADR-020.2, RF-6), GET /auth/google + GET /auth/google/callback con state CSRF en cookie httpOnly oauth_state (ADR-020.6, RF-7), GoogleAuthService que crea (provider google, isEmailVerified true, password hash aleatorio ADR-020.7) o vincula por email (ADR-020.4, RF-8), schema + googleId unique sparse + provider default local + avatarUrl (RF-9). NO se toca qr-app (tareas 8-11), ni bff-service/user-service/qr-service (SPEC-001). Dependencia nueva: passport-google-oauth20 ^2.0.0 + @types/passport-google-oauth20 (devDeps). Sin cambios de contrato en POST /users ni POST /auth/login (backward compatible).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-020] Backend: CreateUserDto relajado + validaciones + userName generado + schema nombres opcionales",
+                      "description":  "backend-portaqr: (1) src/modules/users/application/dto/create-user.dto.ts (RF-1): userName, firstName, paternalLastName, maternalLastName pasan de @IsNotEmpty() a @IsOptional() (mantienen @IsString()/@MinLength/@MaxLength cuando aplican); email y password siguen obligatorios con las mismas reglas (IsEmail, MinLength 8, MaxLength 20); (2) src/modules/users/domain/validators/user-validation.rules.ts (RF-2): validateForCreate NO exige userName/nombres/apellidos; normalize() normaliza (trim+lowercase) solo si vienen presentes; (3) src/modules/users/application/use-cases/create-user.usecase.ts (RF-3): si dto.userName vacio/ausente -\u003e generar `user_${randomBytes(4).toString(\u0027hex\u0027)}` (CSPRNG, mismo patron de code-generator.util.ts); ante E11000 por userName reintentar una vez con otro valor (defensa en profundidad); E11000 por email sigue -\u003e ConflictException \u0027El correo electronico ya esta registrado\u0027; NO dispara welcomeEmail (RF-23 - la bienvenida va en el primer login verificado, tarea 16); (4) src/modules/users/infrastructure/repository/mongo/schemas/user.schema.ts (RF-4): firstName/paternalLastName/maternalLastName pasan de required:true a required:false con default:\u0027\u0027 y trim:true; userName SIGUE required:true + unique:true (siempre se genera - ADR-020.1); el indice name_index (sparse) no se ve afectado. Unit tests: create-user.usecase.spec.ts (CA-01: POST con solo {email,password} -\u003e 201 con userName user_\u003c8 hex\u003e y nombres \u0027\u0027; CA-02: payload completo legacy -\u003e 201 igual que hoy; CA-03: email duplicado -\u003e 409; sendWelcomeEmail NO llamado en creacion), user-validation.rules.spec.ts (RF-2).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-020] Backend: schema/entidad/mapper con campos Google (googleId, provider, avatarUrl)",
+                      "description":  "backend-portaqr: (1) src/modules/users/infrastructure/repository/mongo/schemas/user.schema.ts (RF-9/RF-27): + @Prop({ unique: true, sparse: true }) googleId?: string (multiple usuarios sin googleId conviven); + @Prop({ default: \u0027local\u0027, enum: [\u0027local\u0027,\u0027google\u0027] }) provider: string; + @Prop() avatarUrl?: string; + @Prop({ default: false }) welcomeEmailSent: boolean; (2) src/modules/users/domain/entities/user.entity.ts: + googleId?, provider, avatarUrl?, welcomeEmailSent; (3) src/modules/users/infrastructure/repository/mongo/mappers/user-mongo.mapper.ts: mapear los 4 campos nuevos en toEntity y toSchemaData. Unit tests: user.schema.spec.ts (RF-9: googleId unique sparse, provider default \u0027local\u0027, enum valido, welcomeEmailSent default false) y mapper spec (round-trip de los 4 campos).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-020] Backend: dependencia passport-google-oauth20 + GoogleStrategy",
+                      "description":  "backend-portaqr: (1) package.json: + passport-google-oauth20 ^2.0.0 (CommonJS) y @types/passport-google-oauth20 en devDeps (RF-6); (2) NUEVO src/modules/auth/infrastructure/strategies/google.strategy.ts (patron de jwt.strategy.ts): clientID = GOOGLE_CLIENT_ID, clientSecret = GOOGLE_CLIENT_SECRET, callbackURL = GOOGLE_CALLBACK_URL, scope [\u0027profile\u0027,\u0027email\u0027], passReqToCallback: true (para leer la cookie oauth_state - ADR-020.6), session: false (el proyecto no usa express-session); validate(req, accessToken, refreshToken, profile, done) -\u003e done(null, { email: profile.emails[0].value, googleId: profile.id, givenName: profile.name?.givenName, familyName: profile.name?.familyName, picture: profile.photos?.[0]?.value }); si el email falta -\u003e done(new UnauthorizedException(\u0027No se pudo obtener el correo de Google\u0027), false).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-020] Backend: GoogleAuthService (crear o vincular + tokens)",
+                      "description":  "backend-portaqr: NUEVO src/modules/auth/domain/ports/in/google-auth-service.port.ts con IGoogleAuthService { authenticate(profile: GoogleProfile, tracking): Promise\u003cAuthResponse\u003e } y GoogleProfile { email, googleId, givenName?, familyName?, picture? } (patron IAuthService/AUTH_SERVICE_PORT - RF-8); NUEVO src/modules/auth/domain/services/google-auth.service.ts que implementa IGoogleAuthService (RF-8, ADR-020.4/020.7): (1) getUserUseCase.executeByEmail(email): NO existe -\u003e crear via CreateUserUseCase con email, userName generado (RF-3), firstName = givenName ?? \u0027\u0027, paternalLastName = familyName ?? \u0027\u0027, maternalLastName = \u0027\u0027, password = hash aleatorio inutilizable (bcrypt.hash(randomBytes(16).hex, 10) - ADR-020.7), provider \u0027google\u0027, googleId, avatarUrl = picture, isEmailVerified: true (Google ya verifico el email - RN-5); NO enviar correo de verificacion; SI existe -\u003e vincular: si no tiene googleId, updateUserUseCase.update con googleId + provider \u0027google\u0027 + avatarUrl (si viene) SIN tocar email/password/role (el repo ya destruye role del $set); (2) updateUserUseCase.updateLastLogin(user.id); (3) jwtAuthService.generateTokens(user) + persistRefreshToken (sha256) - mismo flujo que AuthService.login (SPEC-009 A8); (4) retorna { user: Omit\u003cUser,\u0027password\u0027\u003e, accessToken, refreshToken } (mismo shape que POST /auth/login); (5) al CREAR cuenta nueva (email no existe - su primer login, email ya verificado) invocar sendWelcomeEmail(email) best-effort via puerto AUTH_EMAIL_PORT (RF-23/RF-27, ADR-020.9 - saludo generico, try/catch + log, NO re-throw) y si el envio fue exitoso marcar welcomeEmailSent: true via updateUserUseCase.update; NO enviar al vincular cuenta existente. Unit tests google-auth.service.spec.ts: CA-09 (email nuevo -\u003e usuario creado con provider google, googleId, isEmailVerified true, firstName/paternalLastName de Google, password hash aleatorio que NO matchea ninguna password conocida), CA-10 (email existente local -\u003e googleId vinculado, password/role intactos, login exitoso con tokens), CA-11 (login local con password de usuario Google -\u003e 401 \u0027Credenciales invalidas\u0027 - comparePassword falla), CA-17 (email nuevo -\u003e sendWelcomeEmail llamado + welcomeEmailSent marcado; vinculacion -\u003e NO llamado; SMTP falla -\u003e no re-throw y flag NO marcado), email sin verificar pre-existente NO se marca verificado (ADR-020.4).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "3",
+                                           "4"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-020] Backend: endpoints GET /auth/google y GET /auth/google/callback + wiring auth.module",
+                      "description":  "backend-portaqr: (1) src/modules/auth/domain/constants/auth.tokens.ts: + GOOGLE_AUTH_SERVICE_PORT y AUTH_EMAIL_PORT (RF-11); (2) src/modules/auth/presentation/controllers/auth.controller.ts (RF-7): GET /auth/google con @Public() + SENSITIVE_ENDPOINT_THROTTLE -\u003e si faltan GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET -\u003e 503 con log claro (CA-07); si no: state = randomBytes(8).toString(\u0027hex\u0027), Set-Cookie oauth_state=\u003cstate\u003e (httpOnly, SameSite=Lax, maxAge 600s, secure en prod) y passport.authenticate(\u0027google\u0027, { state }) (redirect a accounts.google.com); GET /auth/google/callback con @Public() + SENSITIVE_ENDPOINT_THROTTLE -\u003e validar state contra cookie oauth_state (ausente/incorrecto -\u003e 400 \u0027Estado de autenticacion invalido\u0027, sin crear nada - CA-08, RN-8), luego passport.authenticate(\u0027google\u0027, { session: false }) y GoogleAuthService.authenticate(profile) -\u003e 200 JSON { user, accessToken, refreshToken } (los tokens NUNCA viajan en query strings - ADR-020.3); el controller inyecta GoogleAuthService directo (patron real del controller que inyecta AuthService directo); (3) src/modules/auth/auth.module.ts (RF-11): importar EmailModule (shared/email); registrar GoogleStrategy y GoogleAuthService como providers; bindings { provide: GOOGLE_AUTH_SERVICE_PORT, useClass: GoogleAuthService } y { provide: AUTH_EMAIL_PORT, useExisting: EmailService } (EmailService implementa estructuralmente ICanSendWelcomeEmail - patron SPEC-019 QR_ACTIVATE_EMAIL_PORT/ADR-019.8: la capa de aplicacion/auth NUNCA inyecta EmailService directo); AuthModule ya importa UsersModule (GetUserUseCase/CreateUserUseCase/UpdateUserUseCase). Unit tests auth.controller.spec.ts: CA-07 (sin credenciales -\u003e 503; con credenciales -\u003e 302 a accounts.google.com con state y Set-Cookie oauth_state), CA-08 (callback con state invalido -\u003e 400 sin crear usuario), callback OK -\u003e 200 con { user, accessToken, refreshToken }.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-020] Backend: wiring final + tsc/jest verdes",
+                      "description":  "backend-portaqr: cerrar validacion - npx tsc --noEmit sin errores + suites jest de users, auth, webpay y email verdes (sin regresion en SPEC-009/011/012/019); verificar que POST /users con payload completo legacy sigue pasando (CA-02) y que el flujo de verificacion de email (SPEC-007 H7) no cambio; documentar en backendPortaqr.env (no versionado) las variables GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL (={FRONTEND_URL}/api/auth/google/callback) y en .env.example si existe.",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "6"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "8",
+                      "content":  "[SPEC-020] Frontend: SignUpForm reducido a email/password/confirmPassword/terminos",
+                      "description":  "qr-app: (1) src/components/SignUpForm/state.ts (RF-12): SignUpFormData queda con { email, password, confirmPassword, acceptTerms } (se eliminan userName, confirmEmail, firstName, paternalLastName, maternalLastName); (2) src/components/SignUpForm/helpers.ts: validateFieldValue/isFieldValid/isFormValid/buildSubmitData sin los campos eliminados; buildSubmitData retorna { email, password }; (3) src/components/SignUpForm/index.tsx: eliminar seccion \u0027Datos Personales\u0027 y los campos userName/confirmEmail; mantener email (con check de existencia async en blur), password (con PasswordStrengthMeter y tooltip), confirmPassword y terminos; boton \u0027Crear Cuenta\u0027 habilitado con la validacion reducida; (4) src/app/signup/SignUpPageClient.tsx y src/app/api/auth/signup/route.ts (RF-13): payload whitelist { email, password } (SPEC-008 forbidNonWhitelisted); redirect a /verify-email?userId=...\u0026email=... se mantiene; (5) src/services/auth.service.ts (RF-14): SignUpData -\u003e { email: string; password: string }. Unit tests: SignUpForm spec (CA-13: solo 4 campos, validacion email/password/confirmPassword/terminos, buildSubmitData sin campos extra). NOTA: end-to-end requiere la tarea 2 del backend (el payload reducido debe ser aceptado por POST /users).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "9",
+                      "content":  "[SPEC-020] Frontend: pagina /onboarding (perfil post-primer-login)",
+                      "description":  "qr-app: (1) NUEVO src/app/onboarding/page.tsx (server, metadata index:false) + src/app/onboarding/OnboardingPageClient.tsx (RF-15): header/footer iguales a /signup (misma linea visual); formulario con firstName (obligatorio), paternalLastName (obligatorio), maternalLastName (obligatorio) y userName (OPCIONAL con hint \u0027Si lo dejas vacio, generaremos uno automaticamente\u0027 y check de disponibilidad async en blur reutilizando authService.checkUsernameExists); submit -\u003e PATCH /api/users/:id (proxy existente) con { firstName, paternalLastName, maternalLastName, userName? } -\u003e dispatch({ type: \u0027SET_USER\u0027, payload: user }) -\u003e window.location.href = \u0027/dashboard\u0027 (navegacion completa, patron del LoginForm); si el perfil ya esta completo -\u003e redirect a /dashboard (useEffect); manejar errores 409 de userName duplicado mostrando mensaje en el campo. Unit tests: OnboardingPageClient spec (CA-05: submit PATCH con payload correcto, SET_USER dispatch, redirect a /dashboard; perfil completo -\u003e redirect inmediato).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "8"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "10",
+                      "content":  "[SPEC-020] Frontend: guard de onboarding en dashboard + redirect condicional en LoginForm + display name",
+                      "description":  "qr-app: (1) src/app/dashboard/DashboardLayoutClient.tsx (RF-16): tras status === \u0027authenticated\u0027, si !state.user?.firstName || !state.user?.paternalLastName || !state.user?.maternalLastName -\u003e router.replace(\u0027/onboarding\u0027) (useEffect, sin render del layout) - protege TODAS las rutas del dashboard (CA-06); (2) src/components/LoginForm/index.tsx (RF-17): tras login exitoso, si perfil incompleto (misma condicion) -\u003e window.location.href = \u0027/onboarding\u0027; si no -\u003e /dashboard (comportamiento actual); (3) helper getDisplayName(user) (RF-18, ADR-020.8): firstName si existe, si no email (nunca el userName generado user_xxx); aplicarlo en DashboardHeader/Sidebar y donde se muestre el userName. Unit tests: LoginForm spec (CA-04: usuario sin perfil -\u003e redirect /onboarding; con perfil -\u003e /dashboard), DashboardLayoutClient spec (CA-06: perfil incompleto -\u003e replace /onboarding).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "9"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "11",
+                      "content":  "[SPEC-020] Frontend: boton Google + proxies /api/auth/google y /api/auth/google/callback + AuthUser",
+                      "description":  "qr-app: (1) src/app/api/auth/google/route.ts (NUEVO, RF-20): GET -\u003e 302 a {NEXT_PUBLIC_BFF_URL}/auth/google (el navegador sigue el redirect; la cookie oauth_state la setea el backend); (2) src/app/api/auth/google/callback/route.ts (NUEVO, RF-20): recibe ?code=...\u0026state=... -\u003e reenvia a {NEXT_PUBLIC_BFF_URL}/auth/google/callback?code=...\u0026state=... con forward de cookies del request (oauth_state) y x-tracking-id; si OK -\u003e setAuthCookies(accessToken, refreshToken) (reutiliza src/lib/auth.ts) y 302 a /dashboard (o /onboarding si !firstName || !paternalLastName || !maternalLastName); si error -\u003e 302 a /login?error=google; los tokens NUNCA viajan en query strings (ADR-020.3, CA-12); (3) boton \u0027Continuar con Google\u0027 (RF-19): en LoginForm y SignUpForm, estilo outline con icono G multicolor inline SVG (sin dependencias nuevas), sobre el formulario separado por divisor \u0027o\u0027; visible solo si NEXT_PUBLIC_GOOGLE_ENABLED === \u0027true\u0027 (default \u0027false\u0027 - sin credenciales no se muestra); click -\u003e window.location.href = \u0027/api/auth/google\u0027; LoginForm muestra mensaje generico si ?error=google; (4) src/interfaces/user.ts y src/lib/auth.ts (RF-21): AuthUser + provider?: \u0027local\u0027 | \u0027google\u0027, googleId?: string, avatarUrl?: string (firstName/apellidos ya son opcionales); getAuthUser() (claims JWT) sin cambios; (5) .env.local: + NEXT_PUBLIC_GOOGLE_ENABLED. Unit tests: proxy google/callback spec (CA-12: OK -\u003e cookies seteadas + redirect /dashboard o /onboarding; error -\u003e /login?error=google; sin tokens en URL), LoginForm/SignUpForm spec (CA-13: boton visible solo con NEXT_PUBLIC_GOOGLE_ENABLED=true).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "10"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "12",
+                      "content":  "[SPEC-020] Backend: correo de bienvenida Google (welcomeEmail.ejs + sendWelcomeEmail)",
+                      "description":  "backend-portaqr: (1) NUEVO src/templateEmail/welcomeEmail.ejs (RF-23): MISMA linea grafica de registerEmail.ejs (body #E5E7EB, contenedor #F9FAFB radius 8px, titulo #1E3A8A 24px, texto #4B5563 16px, boton CTA #1E3A8A texto blanco, footer #9CA3AF con soporte@portaqr.cl y (c), @media 600px) pero SOLO MODO CLARO (NO incluir @media prefers-color-scheme dark - mismo criterio que qrActivated.ejs ADR-019.7); saludo GENERICO \u0027Bienvenido(a) a Porta QR!\u0027 (a esa altura no hay nombre - ADR-020.9); variables EJS: baseUrl; CTA \u0027Ir a mi cuenta\u0027 -\u003e {baseUrl}/login; (2) src/shared/email/email.service.ts: + metodo sendWelcomeEmail(email: string) que renderiza welcomeEmail.ejs con { baseUrl }, subject \u0027Bienvenido(a) a Porta QR\u0027, from EMAIL_FROM, logs CustomLogger (patron sendVerificationEmail); throw en fallo (el caller decide best-effort); (3) el disparo se hace en el PRIMER LOGIN con cuenta verificada (RF-23/RF-27, decision usuario 2026-08-17): AuthService.login (tarea 16 - flujo local) y GoogleAuthService (tarea 5 - flujo Google, al crear = su primer login); NO al registrarse ni al vincular. Unit tests email.service.spec.ts: sendMail llamado con to/subject/html conteniendo \u0027Bienvenido(a) a Porta QR\u0027 y baseUrl; error propagado.",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "13",
+                      "content":  "[SPEC-020] Frontend: seccion Datos Personales en /dashboard/settings (EditProfileForm)",
+                      "description":  "qr-app: (1) NUEVO src/components/EditProfileForm/ (RF-25): formulario client con firstName, paternalLastName, maternalLastName (obligatorios) y userName (opcional, con check de disponibilidad async en blur reutilizando authService.checkUsernameExists); valores iniciales desde AuthContext (state.user); submit -\u003e PATCH /api/users/:id (proxy existente) con { firstName, paternalLastName, maternalLastName, userName? } -\u003e dispatch({ type: \u0027SET_USER\u0027, payload: user }) (refresca el contexto); manejar 409 de userName duplicado mostrando mensaje en el campo; feedback de exito (mensaje \u0027Perfil actualizado\u0027); (2) src/components/SettingsAccordion/index.tsx: agregar seccion \u0027Datos Personales\u0027 con \u003cEditProfileForm /\u003e (la seccion \u0027Cambio de ContraseÃ±a\u0027 se mantiene). Unit tests: EditProfileForm spec (CA-18: render con valores del contexto, submit PATCH con payload correcto, SET_USER dispatch, 409 visible en campo userName).",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "9"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "14",
+                      "content":  "[SPEC-020] Backend: helpers de nombre para correos (getDisplayName/getFullName) + ajuste passwordReset y qrActivated",
+                      "description":  "backend-portaqr (RF-26, auditoria de correos 2026-08-17): (1) NUEVO src/common/utils/user-name.util.ts (util compartido entre modulos - junto a code-generator.util.ts/hash.util.ts): getDisplayName(user) -\u003e firstName si existe, si no email; getFullName(user) -\u003e \u0027firstName paternalLastName maternalLastName\u0027 (trim) si firstName existe, si no email; (2) src/modules/users/application/use-cases/forgot-password.usecase.ts linea 51: nombreCompleto = getFullName(user) (evita \u0027Hola  !\u0027 para usuarios sin onboarding - hoy concatena campos vacios); (3) src/modules/qr-activate/application/services/qr-activated-notification.service.ts linea 73: userName = getDisplayName(user) (evita \u0027Hola , tus codigos...\u0027 con firstName vacio); registerEmail.ejs NO usa nombre (verificado - sin cambios); previews registerEmail.html/email-preview*.html son estaticos de desarrollo (sin cambios). Unit tests: user-name.util.spec.ts (firstName presente, firstName vacio -\u003e email, espacios en blanco), forgot-password.usecase.spec.ts (CA-16: usuario sin onboarding -\u003e nombreCompleto = email), qr-activated-notification.service.spec.ts (CA-16: firstName vacio -\u003e userName = email).",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "16",
+                      "content":  "[SPEC-020] Backend: disparo de welcomeEmail en AuthService.login + migracion one-off welcomeEmailSent",
+                      "description":  "backend-portaqr (RF-27, decision usuario 2026-08-17 - la bienvenida va en el primer login con cuenta verificada, NO al registrarse): (1) NUEVO src/modules/auth/domain/ports/out/email-sender.port.ts con ICanSendWelcomeEmail { sendWelcomeEmail(email: string): Promise\u003cvoid\u003e } (ADR-019.8 - la capa de aplicacion/auth NUNCA inyecta EmailService directo); (2) src/modules/auth/domain/services/auth.service.ts: inyectar @Inject(AUTH_EMAIL_PORT) ICanSendWelcomeEmail; tras el login exitoso (el flujo local ya exige email verificado - SPEC-009), si !user.welcomeEmailSent -\u003e sendWelcomeEmail(user.email) best-effort (try/catch + log, NO re-throw, no rompe el login) y si el envio fue exitoso updateUserUseCase.update(user.id, { welcomeEmailSent: true }) (si SMTP falla el flag queda false y se reintenta en el proximo login); AuthService ya inyecta UpdateUserUseCase - sin dependencias nuevas de users; (3) migracion one-off (documentada en la nota de despliegue, tarea 15): db.users.updateMany({ welcomeEmailSent: { $exists: false } }, { $set: { welcomeEmailSent: true } }) - los usuarios existentes antes del deploy NO reciben bienvenida (solo usuarios nuevos). Unit tests auth.service.spec.ts: CA-17 (login con welcomeEmailSent false -\u003e sendWelcomeEmail llamado + flag marcado true; login con welcomeEmailSent true -\u003e NO llamado; SMTP falla -\u003e login OK + flag NO marcado (reintento en proximo login); vinculacion Google -\u003e NO llamado).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "3",
+                                           "12"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "15",
+                      "content":  "[SPEC-020] Verificacion manual + nota de despliegue",
+                      "description":  "(1) verificacion manual local (CA-15): flujo A - signup email+password (4 campos) -\u003e verify-email (correo SIN nombre, saludo generico - CA-16) -\u003e login -\u003e onboarding \u0027Queremos saber como te llamas\u0027 (nombre+apellidos obligatorios, userName opcional) -\u003e dashboard sin redirects; flujo B - boton Google -\u003e consentimiento -\u003e callback -\u003e dashboard (o /onboarding si Google no trajo family_name); login local de usuario Google -\u003e \u0027Credenciales invalidas\u0027; mongosh: usuarios Google con provider \u0027google\u0027, googleId, isEmailVerified true; usuarios nuevos locales con userName user_* y nombres \u0027\u0027 hasta completar onboarding; (2) /dashboard/settings: editar nombre/apellidos/userName desde \u0027Datos Personales\u0027 -\u003e persiste y el header se actualiza (CA-18); (3) correos: reset de password de usuario sin onboarding -\u003e \u0027Hola {email}!\u0027 (nunca \u0027Hola  !\u0027); activacion de QR con firstName vacio -\u003e \u0027Hola {email}, tus codigos...\u0027 (CA-16/RF-26); welcomeEmail SOLO en primer login con cuenta verificada (CA-17): usuario local recibe verificaciÃ³n al registrarse y bienvenida al primer login; usuario Google recibe bienvenida en el callback; usuario existente (pre-deploy) NO recibe bienvenida (migracion); SMTP caido en primer login -\u003e login OK + reintento en proximo login; (4) NUEVA docs/produccion/NOTA-despliegue-produccion-SPEC-020.md siguiendo patron de NOTA-despliegue-produccion-SPEC-016: variables nuevas GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_CALLBACK_URL (Railway backend-portaqr) y NEXT_PUBLIC_GOOGLE_ENABLED=true (qr-app); requisito previo: credenciales OAuth en Google Cloud Console (OAuth 2.0 Client ID tipo Web application, Authorized redirect URIs = https://portaqr.cl/api/auth/google/callback y http://localhost:3000/api/auth/google/callback); redeploy Railway de backend-portaqr (npm install incluye passport-google-oauth20) y qr-app (nuevos proxies + onboarding + settings); migracion one-off welcomeEmailSent (tarea 16) ANTES de habilitar el login con welcomeEmail; sin cambios de CORS ni migracion de Mongo (campos nuevos opcionales); checklist de seguridad post-despliegue: /auth/google sin credenciales -\u003e 503, state manipulado -\u003e 400 sin creacion, tokens ausentes en URLs/logs, login local de usuario Google -\u003e 401, welcomeEmail solo primer login verificado, correo de verificacion sin nombre, reset/activacion con fallback a email.",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-020",
+                      "dependencies":  [
+                                           "7",
+                                           "11",
+                                           "12",
+                                           "13",
+                                           "14",
+                                           "16"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "17",
+                      "subtasks":  [
+
+                                   ],
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "description":  "CreateUserUseCase: loop de hasta 3 intentos - si el E11000 es por keyPattern.userName y el userName fue auto-generado (no proveido), se regenera con otro valor y se reintenta; si es por email -\u003e 409 \u0027El correo electronico ya esta registrado\u0027; si es por userName elegido por el usuario -\u003e 409 \u0027El nombre de usuario ya esta en uso\u0027; si se agotan los reintentos -\u003e 409 \u0027No se pudo crear el usuario (conflicto de nombre de usuario)\u0027. La unicidad real la da el indice unique de MongoDB. 2 tests nuevos (reintento con exito al 2do intento, agotamiento de 3 intentos).",
+                      "status":  "completed",
+                      "content":  "[SPEC-020] Backend: reintento E11000 por userName generado (RF-3, defensa en profundidad)",
+                      "priority":  "high",
+                      "tag":  "spec-020"
+                  },
+                  {
+                      "id":  "18",
+                      "subtasks":  [
+
+                                   ],
+                      "dependencies":  [
+                                           "9",
+                                           "13"
+                                       ],
+                      "description":  "OnboardingPageClient y EditProfileForm: nuevo estado usernameAvailable - cuando el check async (GET /users/check-username/:userName) devuelve que el nombre NO existe, se muestra \u0027Nombre de usuario disponible\u0027 en verde (role=status); el error rojo \u0027ya esta en uso\u0027 se mantiene. El estado se resetea al cambiar el texto (onChange) y al blur con campo vacio o userName igual al actual. 2 tests nuevos.",
+                      "status":  "completed",
+                      "content":  "[SPEC-020] Frontend: feedback positivo de disponibilidad de userName (RF-15/RF-25)",
+                      "priority":  "medium",
+                      "tag":  "spec-020"
+                  },
+                  {
+                      "id":  "19",
+                      "subtasks":  [
+
+                                   ],
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "description":  "Backend: flag hasPassword (default true; false solo para cuentas Google nuevas - CreateUserUseCase setea hasPassword: dto.provider === \u0027google\u0027 ? false : true) en schema/entidad/mapper; ChangePasswordDto.currentPassword -\u003e @IsOptional(); ChangePasswordUseCase: si provider===\u0027google\u0027 \u0026\u0026 !hasPassword -\u003e salta verificacion de contrasena anterior y NO incrementa tokenVersion (el usuario esta logueado via Google); si ya tiene contrasena -\u003e flujo normal. Frontend: AuthUser + hasPassword; ChangePasswordForm distingue esPrimerSetPassword (no pide contrasena actual, boton \u0027Establecer contrasena\u0027, dispatch SET_USER con hasPassword:true tras exito); SettingsAccordion titulo dinamico \u0027Agregar contrasena\u0027 vs \u0027Cambio de Contrasena\u0027. 3 tests nuevos.",
+                      "status":  "completed",
+                      "content":  "[SPEC-020] Backend+Frontend: flujo \u0027Agregar contrasena\u0027 para cuentas Google (ADR-020.11, flag hasPassword)",
+                      "priority":  "high",
+                      "tag":  "spec-020"
+                  },
+                  {
+                      "id":  "20",
+                      "subtasks":  [
+
+                                   ],
+                      "dependencies":  [
+                                           "19"
+                                       ],
+                      "description":  "JwtPayload + jwt.service.ts agregan provider/hasPassword como claims; getAuthUser() (lib/auth.ts) y session/route.ts los propagan al AuthUser (el perfil completo del backend es la fuente de verdad). Migracion one-off: updateMany({ provider: \u0027google\u0027, hasPassword: { exists: false } }, { set: { hasPassword: false } }) (en local: 0 cuentas Google que migrar).",
+                      "status":  "completed",
+                      "content":  "[SPEC-020] Backend+Frontend: JWT con claims provider/hasPassword + migracion",
+                      "priority":  "high",
+                      "tag":  "spec-020"
+                  },
+                  {
+                      "id":  "21",
+                      "subtasks":  [
+
+                                   ],
+                      "dependencies":  [
+                                           "11"
+                                       ],
+                      "description":  "Backend: GoogleAuthGuard lee ?mode=login|signup y lo persiste en cookie httpOnly oauth_mode; GoogleAuthService.authenticate(profile, mode, tracking) - en mode=\u0027login\u0027 si el email NO existe lanza 401 \u0027No tienes una cuenta. Registrate primero.\u0027 (no crea); en \u0027signup\u0027 crea. Frontend: GoogleButton acepta props mode/disabled y navega a /api/auth/google?mode=...; SignUpForm pasa disabled={!formData.acceptTerms} (el boton Google exige aceptar terminos - RN-1); LoginForm pasa mode=\u0027login\u0027; callback redirige a /signup?error=google-no-account en 401; SignUpPage muestra \u0027No tienes una cuenta con este correo. Registrate para continuar.\u0027",
+                      "status":  "completed",
+                      "content":  "[SPEC-020] Backend+Frontend: distincion login/signup en Google OAuth + terminos obligatorios (ADR-020.10)",
+                      "priority":  "high",
+                      "tag":  "spec-020"
+                  },
+                  {
+                      "id":  "22",
+                      "subtasks":  [
+
+                                   ],
+                      "dependencies":  [
+                                           "21"
+                                       ],
+                      "description":  "El proxy /api/auth/google/route.ts NO pasaba el mode al backend (fetch a /auth/google sin ?mode=...) -\u003e el backend asumia \u0027signup\u0027 -\u003e el login con cuenta no creada creaba la cuenta y mandaba al onboarding. Fix: leer mode del query del request y pasarlo al backend; usar headers.getSetCookie() y unirlas con \u0027, \u0027 (get() solo devuelve la primera cookie). Ademas: hint visual en GoogleButton cuando disabled (\u0027Acepta los terminos y condiciones para habilitar el registro con Google.\u0027) y provider/hasPassword agregados al JwtPayload del frontend (lib/jwt.ts). Verificado en vivo: /api/auth/google?mode=login -\u003e 307 con cookies oauth_state + oauth_mode=login.",
+                      "status":  "completed",
+                      "content":  "[SPEC-020] Fix proxy Google OAuth: mode + multiples Set-Cookie",
+                      "priority":  "high",
+                      "tag":  "spec-020"
+                  },
+                  {
+                      "id":  "23",
+                      "subtasks":  [
+
+                                   ],
+                      "dependencies":  [
+                                           "8"
+                                       ],
+                      "description":  "26 fallos E2E por tests desactualizados vs SPEC-020: fixture test-user.ts (crear con solo email+password, completar perfil en BD, leer userName real), SignUpPage.ts (formulario reducido), register.spec.ts (3 tests), verify-email.spec.ts (loguear con email), utils/db.ts (completeUserProfileInDb + setUserNameInDb), tests/admin/* (setUserNameInDb + completeUserProfileInDb). Suite chromium: 87 passed / 0 failed.",
+                      "status":  "completed",
+                      "content":  "[SPEC-020] Tests E2E actualizados para el flujo nuevo (RF-12/RF-13/RF-24)",
+                      "priority":  "high",
+                      "tag":  "spec-020"
+                  },
+                  {
+                      "id":  "24",
+                      "subtasks":  [
+
+                                   ],
+                      "dependencies":  [
+                                           "23"
+                                       ],
+                      "description":  "6 tests E2E nuevos: google-signup.spec.ts (modal de terminos + navegacion mode=signup), google-login.spec.ts (navegacion mode=login), onboarding-username.spec.ts (feedback \u0027disponible\u0027/error), settings-username.spec.ts (feedback en EditProfileForm), set-password.spec.ts (Agregar contrasena para cuenta Google con makeUserGoogleInDb). BUG REAL: proxy /api/auth/change-password hacia response.json() sobre body vacio (controller Promise\u003cvoid\u003e) -\u003e 500 SIEMPRE; fix: response.text() + { success: true }. Suite chromium: 92 passed + 1 flaky preexistente.",
+                      "status":  "completed",
+                      "content":  "[SPEC-020] Tests E2E nuevos para features + fix proxy change-password",
+                      "priority":  "high",
+                      "tag":  "spec-020"
+                  }
+              ]
+}
