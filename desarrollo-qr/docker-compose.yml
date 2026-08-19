@@ -189,6 +189,44 @@ services:
       retries: 3
       start_period: 40s
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # qr-cms — Payload CMS 3.x + Next.js (blog PortaQR, SPEC-023)
+  # App separada del blog público. Admin + REST/GraphQL API. BD portaqr_cms
+  # (misma instancia mongo) + imágenes en Cloudflare R2.
+  # El blog público (qr-app) consume la REST API con ISR.
+  # ═══════════════════════════════════════════════════════════════════════════
+  qr-cms:
+    build:
+      context: ./qr-cms
+      target: development
+      dockerfile: Dockerfile
+    container_name: qr-cms
+    restart: always
+    ports:
+      - "3005:3005"
+    env_file:
+      - ./qr-cms/qrCms.env
+    environment:
+      - SERVER_PORT=3005
+      - PORT=3005 # Next.js usa PORT (no SERVER_PORT) para el puerto de escucha
+    volumes:
+      - ./qr-cms:/app
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - webnet
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: npm run dev
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:3005/admin || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   # qr-service (DEPRECADO — SPEC-001):
   # qr-service:
   #   build:
