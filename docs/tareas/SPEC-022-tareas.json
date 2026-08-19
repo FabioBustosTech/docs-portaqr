@@ -4,7 +4,7 @@
                       "id":  "1",
                       "content":  "[SPEC-022] Rama feat/spec-022-title-pdf-multilink + archivo de tareas",
                       "description":  "Crear rama feat/spec-022-title-pdf-multilink en desarrollo-qr (backend-portaqr y qr-app) desde main. Registrar tareas en docs/tareas/SPEC-022-tareas.json (formato Taskmaster-compatible). Enfoque: campo title opcional (max 60 chars) en items PDF de QR multilink (SPEC-005) que se muestra en la landing en lugar del texto fijo 'Descargar PDF' (UrlList.tsx L360). El QR acepta hasta 2 PDFs (MAX_PDF_ITEMS_PER_QR) y cada item es INDEPENDIENTE: el title es por PDF, no por QR. Backend: entity, DTOs, schema, validador, POST /qr/list-pdf. Frontend: tipos, helpers, row, form, sync, uploader, landing, flujo creacion.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-022",
                       "dependencies":  [
@@ -18,7 +18,7 @@
                       "id":  "2",
                       "content":  "[SPEC-022] Backend: entity QrUrlListItem.title + DTOs + schema + validador",
                       "description":  "backend-portaqr/src/modules/qr/: (1) domain/entities/qr.entity.ts L9-15 agregar title?: string a QrUrlListItem; (2) application/dto/create-qr.dto.ts ListUrlData L154-178 agregar title con @ValidateIf((o) => o.typeUrl === 'pdf') + @IsOptional + @IsString + @MaxLength(60); (3) application/dto/url-item.dto.ts agregar title con @ApiProperty (Swagger); (4) infrastructure/repository/mongo/schemas/qr.schema.ts: campo title en urlList L117-130, tipo TS L242-248, y en validateQrDataFields case 'list' L41-65 extender exclusividad: pdf permite title (opcional), vcard/URL lo PROHIBEN (si viene -> invalido). OBLIGATORIO por whitelist:true de SPEC-008: declarar title en los DTOs o el PATCH lo eliminara silenciosamente. El title es por item (cada uno de los 2 PDFs tiene el suyo).",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-022",
                       "dependencies":  [
@@ -32,7 +32,7 @@
                       "id":  "3",
                       "content":  "[SPEC-022] Backend: controller POST /qr/list-pdf acepta title",
                       "description":  "backend-portaqr/src/modules/qr/presentation/controllers/qr.controller.ts uploadListPdf L258-387: (1) agregar @Body('title') title?: string a la firma; (2) helper sanitizePdfTitle(raw) usando escapeHtml de common/utils/escape-html.util.ts (patron SPEC-008): trim + vacio -> undefined; (3) append: [...urlList, { itemId, typeUrl: 'pdf', documentUrl: publicUrl, title: sanitizedTitle }]; (4) reemplazo: title: sanitizedTitle !== undefined ? sanitizedTitle : it.title (si el body trae title reemplaza, si no conserva el existente); (5) incluir title en el return y en Swagger @ApiBody/@ApiResponse. Sin cambios en PATCH /qr/:id (cambiar solo title no dispara operaciones R2). Cada PDF (hasta 2) mantiene su title independiente por itemId.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "high",
                       "tag":  "spec-022",
                       "dependencies":  [
@@ -102,7 +102,7 @@
                       "id":  "8",
                       "content":  "[SPEC-022] Tests backend",
                       "description":  "backend-portaqr: (1) DTO ListUrlData: title <= 60 pasa, > 60 error @MaxLength, title en item no-pdf ignorado por @ValidateIf; (2) validador schema case 'list': item pdf con title valido, item vcard/URL con title invalido (exclusividad), items legacy sin title siguen pasando; (3) controller POST /qr/list-pdf (unitario + integracion): append con title persiste title, append sin title -> undefined, reemplazo con title reemplaza, reemplazo sin title conserva, title con <script> persistido escapado (escapeHtml), title solo espacios -> undefined; (4) PATCH /qr/:id cambiando solo title NO invoca deleteObject (mock StorageService). Criterios CA-01..11.",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "medium",
                       "tag":  "spec-022",
                       "dependencies":  [
