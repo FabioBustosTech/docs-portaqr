@@ -131,7 +131,7 @@
                       "id":  "10",
                       "content":  "[SPEC-022] Tests E2E (e2e-tests-portaqr)",
                       "description":  "Playwright: (1) crear QR multilink con item PDF + title \u0027Menu\u0027 -\u003e la landing /qr/[id] muestra el boton con \u0027Menu\u0027 (mock de /api/qr/list-pdf); (2) editar el QR y cambiar el title a \u0027Carta\u0027 -\u003e la landing muestra \u0027Carta\u0027; (3) crear item PDF sin title -\u003e la landing muestra \u0027Descargar PDF\u0027 (sin regresion); (4) QR con 2 PDFs con titles \u0027Menu\u0027 y \u0027Catalogo\u0027 -\u003e la landing muestra ambos titles en sus botones respectivos (CA-11).",
-                      "status":  "pending",
+                      "status":  "done",
                       "priority":  "medium",
                       "tag":  "spec-022",
                       "dependencies":  [
