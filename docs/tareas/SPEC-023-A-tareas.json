@@ -1,0 +1,132 @@
+{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-023-A] Rama feat/spec-023-a-imagenes-cms en qr-cms y qr-app",
+                      "description":  "Crear rama feature en ambos repos (qr-cms y qr-app) desde main/rama spec-023. Objetivo: pipeline de imagenes del blog (validacion magic bytes, strip metadata EXIF/GPS, resize fit inside sin crop, conversion WebP, 3 versiones original/intermedia/thumbnail, naming por slug del post, title+alt requeridos) + bloque Lexical imageLayout en qr-cms + 4 componentes de layout en qr-app (BlogImageFull, BlogImageCenter, BlogImageRight, BlogImageLeft). Extiende SPEC-023 (coleccion media actual tiene imageSizes con crop centre y acepta SVG).",
+                      "status":  "pending",
+                      "priority":  "high",
+                      "tag":  "spec-023-a",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-023-A] Redisenar coleccion Media en qr-cms (campos + mimeTypes + imageSizes)",
+                      "description":  "qr-cms/src/collections/Media.ts: (1) admin.useAsTitle pasa a 'title'; (2) NUEVOS campos: title (text, requerido, RF-8), aspectRatio (select con los 7 ratios 16:9/1:1/4:5/2:3/9:16/4:3/21:9, admin.readOnly, auto-detectado RF-1), usage (select cover|inline, hidden, poblado por syncMediaNaming), postSlug (text, hidden, poblado por syncMediaNaming); (3) mimeTypes SIN image/svg+xml (RF-4: SVG prohibido - scripts maliciosos); (4) imageSizes reemplazados: thumbnail { width: 400, height: 400, fit: 'inside' } e intermedia { width: 1280, height: 1280, fit: 'inside' } (RF-6, sin position -> sin crop; el original se guarda aparte <= 2560px). Exportar constante ASPECT_RATIOS. Verificar que el admin exige title y alt (CA-07).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023-a",
+                      "dependencies":  [
+                                            "1"
+                                        ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-023-A] Hook transformImage (beforeChange de media): pipeline completo",
+                      "description":  "qr-cms/src/collections/Media/hooks/transform-image.ts (registrado en hooks.beforeChange de Media): (1) validar magic bytes por mime (JPEG FF D8 FF, PNG 89 50 4E 47, WebP RIFF....WEBP, GIF GIF8[79]a) - archivo HTML/JS disfrazado -> throw (400, CA-03); (2) sharp(buffer).metadata() -> detectar aspectRatio real y normalizar al ratio soportado mas cercano (funcion pura normalizeAspectRatio con tolerancia ~2%, RF-1/CA-05); (3) .rotate() (endereza EXIF) + .withMetadata(false) (elimina EXIF/GPS/IPTC/XMP, RF-3/CA-01); (4) .resize({ width: 2560, height: 2560, fit: 'inside', withoutEnlargement: true }) (RF-2/RN-3: el contenido persiste, nunca crop); (5) .webp({ quality: 80 }) (RF-4/RF-6); (6) reemplazar data.file.data (buffer), data.file.mimetype = 'image/webp' y data.file.name = '{postSlug}.webp' | '{postSlug}-img-{n}.webp' | slugify(original).webp (RF-7). Manejar data.file (JSON) y req.files (multipart). Unit tests: magic bytes ok/ko, metadata eliminada, webp generado, ratios detectados, naming. IMPLEMENTADO: simplifyRatio (ratio exacto simplificado, 21:9 especial), slugify, 11 tests verdes, commit 03733e7.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023-a",
+                      "dependencies":  [
+                                            "2"
+                                        ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-023-A] Hook syncMediaNaming (afterChange de posts): renombrar imagenes segun slug",
+                      "description":  "qr-cms/src/collections/Posts/hooks/sync-media-naming.ts (registrado en afterChange de Posts junto a revalidatePost): (1) collectMediaRefs(doc) - recorre doc.cover (usage cover) y el arbol Lexical de doc.content (recursivo sobre children) extrayendo nodos upload y bloques imageLayout (usage inline, index 1-based por orden de aparicion); (2) para cada media: req.payload.update({ collection: 'media', id, data: { postSlug: doc.slug, usage, filename: '{slug}.webp' | '{slug}-img-{n}.webp' } }) - Payload mueve el objeto en R2 (verificar; si el adapter no renombra, re-subir buffer y borrar viejo); (3) solo actualizar si filename difiere (evita writes innecesarios); (4) si cambia el slug, el hook corre de nuevo y renombra (RN-4). Unit tests: cover renombrada, embebidas indexadas en orden, slug cambiado re-renombra, sin media no hace nada. IMPLEMENTADO: collectMediaRefs puro + targetFilename + hook con findByID/update, 8 tests verdes, commit 76c6aca.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023-a",
+                      "dependencies":  [
+                                            "3"
+                                        ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+"id":  "5",
+                      "content":  "[SPEC-023-A] Bloque Lexical imageLayout en qr-cms",
+                      "description":  "qr-cms/src/blocks/ImageLayout.ts: (1) slug 'imageLayout', labels ES; (2) campos: image (upload -> media, requerido), layout (select full|center|right|left, default center), caption (text, opcional), text (richText con admin.condition: solo visible si layout right|left); (3) registrar en payload.config.ts: lexicalEditor({ features: [...defaultEditorFeatures, BlocksFeature({ blocks: [ImageLayout] })] }) (3.88: los bloques van en features, no en blocks directo; sub-richText requiere editor: lexicalEditor() propio). Verificar que el bloque aparece en el editor (CA-08).",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-023-a",
+                      "dependencies":  [
+                                            "2"
+                                        ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+"id":  "6",
+                      "content":  "[SPEC-023-A] 4 componentes de layout en qr-app + renderer de bloques",
+                      "description":  "qr-app/src/components/blog/: (1) BlogImageFull.tsx (ancho completo del articulo, sizes '(max-width: 768px) 100vw, 768px'); (2) BlogImageCenter.tsx (centrada max-w-md, sizes '...448px'); (3) BlogImageRight.tsx (imagen derecha + texto izquierda, grid md:grid-cols-2, sizes '...384px'); (4) BlogImageLeft.tsx (imagen izquierda + texto derecha); (5) BlogImage.tsx base: srcSet manual con las 3 versiones del CMS (400w/1280w/2560w), src fallback = intermedia, aspectRatio real para reservar espacio sin CLS, loading lazy/decoding async; (6) BlogRichText.tsx: case 'block' con blockType imageLayout -> componente segun layout + RichTextContent exportado para el sub-richText; (7) RF-9.1: BlogPostCard SIEMPRE usa sizes.thumbnail.url; hero de [slug]/page.tsx usa srcSet manual. NOTA Next 16.3: la prop srcSet fue ELIMINADA de next/image (doc: 'srcSet: Use Device Sizes instead') -> se usa <img> nativo (las imagenes ya son WebP optimizadas por el CMS, unoptimized no aporta). Unit tests: srcSet 3 versiones, fallback intermedia, aspectRatio, 4 layouts, bloque sin imagen no rompe.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023-a",
+                      "dependencies":  [
+                                            "5"
+                                        ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-023-A] Tipos en qr-app: Media extendida + ImageLayoutBlock",
+                      "description":  "qr-app/src/interfaces/blog.ts: (1) extender la interfaz Media (o crear MediaImage) con title, aspectRatio ('16:9'|'1:1'|'4:5'|'2:3'|'9:16'|'4:3'|'21:9'), usage ('cover'|'inline'), postSlug, sizes: { thumbnail?: { url, width, height }, intermedia?: { url, width, height } }; (2) tipo ImageLayoutBlock { blockType: 'imageLayout', image: MediaImage, layout: 'full'|'center'|'right'|'left', caption?: string, text?: LexicalContent }; (3) actualizar el tipo del content Lexical para incluir bloques. tsc --noEmit sin errores. IMPLEMENTADO: MediaImage + MediaSize + ImageLayout + ImageLayoutBlock, Post.cover actualizado, commit 11309bd.",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-023-a",
+                      "dependencies":  [
+                                            "6"
+                                        ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "9",
+                      "content":  "[SPEC-023-A] Eliminacion en cascada CMS -> R2 (sin imagenes huerfanas)",
+                      "description":  "RF-10: (1) qr-cms/src/collections/Media/hooks/delete-media-files.ts (afterDelete de media) - red de seguridad: el core de Payload ya elimina archivos via deleteAssociatedFiles, pero el hook verifica con S3Client (DeleteObjectCommand + ListObjectsV2Command con prefijo del filename base) que original + sizes (intermedia/thumbnail) no queden en R2; idempotente; loguea errores sin throw; skip si R2_BUCKET vacio. (2) qr-cms/src/collections/Posts/hooks/delete-post-media.ts (afterDelete de posts) - el core NO hace cascade por relaciones (confirmado en doc de Payload): recolecta mediaIds (cover + nodos upload/imageLayout del content via collectMediaRefs) y elimina cada media SOLO si no esta referenciada por otro post (payload.count con where cover equals + busqueda en content de otros posts); si esta compartida, solo se desvincula. (3) Verificar permiso DeleteObject en credenciales R2 (sin el, el delete del adapter falla silenciosamente). Unit tests: delete de media elimina objetos (mock S3), post eliminado elimina sus medias, media compartida permanece, sin R2_BUCKET no hace nada. IMPLEMENTADO: deleteObjectsByPrefix con paginacion, getS3Client, hooks registrados en afterDelete, 11 tests verdes, commit 0205001.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023-a",
+                      "dependencies":  [
+                                            "4"
+                                        ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "8",
+                      "content":  "[SPEC-023-A] Tests de integracion y verificacion CA-01 a CA-12",
+                      "description":  "Verificar criterios de aceptacion: CA-01 (JPEG con EXIF/GPS -> WebP sin metadatos, verificado con sharp.metadata()/exiftool), CA-02 (JPEG/PNG/GIF/WebP -> 3 versiones WebP misma proporcion, sin crop), CA-03 (HTML/JS disfrazado de .jpg -> 400), CA-04 (SVG rechazado - no aparece en selector), CA-05 (7 aspect ratios detectados), CA-06 (cover -> {slug}.webp y embebidas -> {slug}-img-{n}.webp en R2 y API), CA-07 (admin exige title+alt), CA-08 (post con 4 layouts renderiza en /blog/[slug] desktop y movil), CA-09 (qr-app: tsc, lint, build, tests verdes), CA-10 (qr-cms: tests verdes), CA-11 (eliminar imagen del admin -> 3 archivos WebP desaparecen del bucket R2), CA-12 (eliminar post -> sus imagenes se eliminan de media y R2; compartida permanece), CA-13 (RF-9.1: en /blog el src de cada tarjeta es sizes.thumbnail.url; en /blog/[slug] el hero y layouts usan srcSet 3 versiones y con DevTools en viewport movil 375px la red descarga <= 1280px, nunca la original). Actualizar SPEC-023-A con estado final. IMPLEMENTADO 2026-08-20: CA-01..CA-13 verificados (tests + tsc + lint + build exit 0; qr-app 293 tests/46 suites, qr-cms 36 tests/5 suites). Spec actualizada: status implementado, checkboxes marcados, nota Next 16.3 (img nativo, srcSet eliminado de next/image), plan con commits reales. QA manual pendiente: visual navegador (CA-08), bucket R2 (CA-11/12), Network movil (CA-13).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023-a",
+                      "dependencies":  [
+                                            "4",
+                                            "7",
+                                            "9"
+                                        ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}
