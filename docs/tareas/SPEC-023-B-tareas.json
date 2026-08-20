@@ -1,0 +1,153 @@
+{
+    "project":  "plataforma_qr_cursor",
+    "spec":  "SPEC-023-B",
+    "title":  "Blog avanzado — autores (E-E-A-T), TOC, CTA, relacionados, schema BlogPosting, creditos de imagen",
+    "tasks":  [
+        {
+            "id":  "1",
+            "content":  "[SPEC-023-B] Coleccion authors en qr-cms + Posts.author relationship + tocEnabled",
+            "description":  "qr-cms: (1) nueva coleccion Authors (slug 'authors', group Blog): name (text required), slug (text required unique index), bio (textarea), avatar (upload -> media), url (text); access read true; (2) Posts.author: cambiar de text a relationship -> authors (opcional); (3) Posts.tocEnabled: checkbox default true (sidebar, descripcion 'Se muestra con 3+ headings h2/h3'); (4) registrar Authors en payload.config.ts collections; (5) payload generate:types sin errores. Migracion: posts existentes con texto libre quedan con id string; frontend mantiene fallback Author | string (CA-11). IMPLEMENTADO: commit qr-cms a8992cc, 6 tests de estructura (Authors.spec.ts).",
+            "status":  "completed",
+            "priority":  "high",
+            "tag":  "spec-023-b",
+            "dependencies":  [],
+            "subtasks":  []
+        },
+        {
+            "id":  "2",
+            "content":  "[SPEC-023-B] Bloque Lexical cta en qr-cms",
+            "description":  "qr-cms: (1) src/blocks/Cta.ts: slug 'cta', labels 'Llamado a la accion', campos title (text required), text (textarea), buttonLabel (text required), buttonUrl (text required); (2) registrar en payload.config.ts: BlocksFeature({ blocks: [ImageLayout, Cta] }); (3) payload generate:types sin errores. IMPLEMENTADO: commit qr-cms 2f2201b, 3 tests de estructura (Cta.spec.ts).",
+            "status":  "completed",
+            "priority":  "high",
+            "tag":  "spec-023-b",
+            "dependencies":  [],
+            "subtasks":  []
+        },
+        {
+            "id":  "3",
+            "content":  "[SPEC-023-B] Media extendida: credits + longDescription",
+            "description":  "qr-cms: agregar a src/collections/Media.ts los campos credits (text, label 'Creditos (fuente/fotografo/licencia)') y longDescription (textarea, label 'Descripcion larga (infografias/graficos)'), ambos opcionales; payload generate:types sin errores. IMPLEMENTADO: commit qr-cms a7abb9f.",
+            "status":  "completed",
+            "priority":  "medium",
+            "tag":  "spec-023-b",
+            "dependencies":  [],
+            "subtasks":  []
+        },
+        {
+            "id":  "4",
+            "content":  "[SPEC-023-B] Tipos en qr-app: Author, CtaBlock, tocEnabled, credits/longDescription",
+            "description":  "qr-app/src/interfaces/blog.ts: (1) interfaz Author { id, name, slug, bio?, avatar?: MediaImage | string | null, url? }; (2) Post.author: Author | string | null (fallback migracion); (3) Post.tocEnabled?: boolean; (4) CtaBlock { blockType: 'cta', title, text?, buttonLabel, buttonUrl }; (5) MediaImage + credits?: string, longDescription?: string. tsc --noEmit sin errores. IMPLEMENTADO: commit qr-app c2d20db (incluye ajuste render autor en [slug]/page.tsx para que compile).",
+            "status":  "completed",
+            "priority":  "high",
+            "tag":  "spec-023-b",
+            "dependencies":  [
+                "1",
+                "2",
+                "3"
+            ],
+            "subtasks":  []
+        },
+        {
+            "id":  "5",
+            "content":  "[SPEC-023-B] TOC en qr-app: extractHeadings + ids en headings + BlogToc + layout",
+            "description":  "qr-app: (1) src/components/blog/toc.ts: slugifyHeading (lowercase, sin acentos, espacios -> '-') + extractHeadings(content) pura -> [{ id, text, level: 2|3 }] solo h2/h3 en orden, ids unicos (colision -> sufijo -2, -3); (2) BlogRichText recibe toc?: TocItem[] y los headings usan id={toc[i].id} por indice + scroll-mt-20 (compensa header fixed); (3) BlogToc.tsx server component: nav 'Tabla de contenidos', h2/h3 con indentacion (pl-4), enlaces #id; (4) [slug]/page.tsx: lg:grid-cols-[minmax(0,1fr)_260px] con TOC sticky (lg:sticky lg:top-24 lg:self-start) solo si toc.length >= 3 y tocEnabled !== false; en movil <details> colapsable arriba del contenido. Unit tests: extractHeadings (orden, niveles, colisiones, sin h1/h4), render condicional TOC. IMPLEMENTADO: commit qr-app 2e0bc49 (incluye BlogCta como dependencia de compilacion del renderer; tests de TOC + CTA en BlogRichText.spec).",
+            "status":  "completed",
+            "priority":  "high",
+            "tag":  "spec-023-b",
+            "dependencies":  [
+                "4"
+            ],
+            "subtasks":  []
+        },
+        {
+            "id":  "6",
+            "content":  "[SPEC-023-B] Header del post: fecha actualizacion + autor con avatar + card de autor",
+            "description":  "qr-app [slug]/page.tsx: (1) mostrar 'Actualizado: {formatDate(updatedAt)}' solo si updatedAt > publishedAt + 1 dia (RN-4); (2) autor: avatar circular pequeno (h-6 w-6 rounded-full) + nombre (Link a author.url si existe); (3) card de autor al final del post (antes de relacionados): avatar grande + name + bio, solo si author?.bio; (4) manejar author como objeto o string (fallback migracion). Unit tests: isUpdated (margen 1 dia), render autor objeto/string. IMPLEMENTADO: commit qr-app e0ed678 (isUpdated en blog.helpers + 4 tests; header con 'Por' + avatar; card de autor con bio).",
+            "status":  "completed",
+            "priority":  "medium",
+            "tag":  "spec-023-b",
+            "dependencies":  [
+                "4"
+            ],
+            "subtasks":  []
+        },
+        {
+            "id":  "7",
+            "content":  "[SPEC-023-B] Renderer del bloque CTA en qr-app",
+            "description":  "qr-app: (1) BlogCta.tsx: card destacada (fondo accent, titulo, texto, boton con Link a buttonUrl, target _blank si es externa); (2) BlogRichText case 'block' con blockType 'cta' -> BlogCta; (3) tipos CtaBlock ya en tarea 4. Unit tests: render titulo/texto/boton, link correcto, bloque sin campos no rompe. IMPLEMENTADO: BlogCta.tsx creado en commit 2e0bc49 (dependencia de compilacion del renderer, case cta en BlogRichText); test dedicado BlogCta.spec.tsx en commit 463eaa9 (4 tests).",
+            "status":  "completed",
+            "priority":  "medium",
+            "tag":  "spec-023-b",
+            "dependencies":  [
+                "4"
+            ],
+            "subtasks":  []
+        },
+        {
+            "id":  "8",
+            "content":  "[SPEC-023-B] Articulos relacionados en qr-app",
+            "description":  "qr-app: (1) blog.service.ts getRelatedPosts(post, limit=3): misma categoria (where[category][equals]=id + where[id][not_equals] + status published + sort -publishedAt + depth 1); fallback sin categoria -> primer tag (where[tags][contains]); sin resultados -> []; (2) [slug]/page.tsx seccion 'Articulos relacionados' (grid md:grid-cols-3 reutilizando BlogPostCard) solo si hay resultados. Unit tests: service con fetch mock (query correcta, fallback tag, vacio). IMPLEMENTADO: commit qr-app bb99590 (getRelatedPosts + seccion UI + 6 tests; tipo category + id).",
+            "status":  "completed",
+            "priority":  "medium",
+            "tag":  "spec-023-b",
+            "dependencies":  [
+                "4"
+            ],
+            "subtasks":  []
+        },
+        {
+            "id":  "9",
+            "content":  "[SPEC-023-B] Schema BlogPosting en qr-app",
+            "description":  "qr-app [slug]/page.tsx buildJsonLd: (1) @type 'Article' -> 'BlogPosting'; (2) image absoluta (si relativa, anteponer baseUrl); (3) author Person con name + url (si author es objeto con url); (4) publisher Organization { name: 'Porta QR', logo: { @type: 'ImageObject', url: baseUrl + '/icon.png' } }; (5) mainEntityOfPage WebPage con @id absoluto; (6) mantener override structuredData del editor y sanitizacion < -> \\u003c. Unit tests: JSON contiene BlogPosting/publisher/logo, imagen absoluta, author con url. IMPLEMENTADO: commit qr-app dccb0f9 (buildJsonLd exportado + 4 tests).",
+            "status":  "completed",
+            "priority":  "high",
+            "tag":  "spec-023-b",
+            "dependencies":  [
+                "4"
+            ],
+            "subtasks":  []
+        },
+        {
+            "id":  "10",
+            "content":  "[SPEC-023-B] Creditos de imagen en qr-app",
+            "description":  "qr-app: en los layouts de imagen (BlogImageFull/Center/Right/Left y nodo upload de BlogRichText), si media.credits existe mostrar caption secundario 'Credito: {credits}' (texto pequeno, text-light-tertiary). longDescription queda como metadata (no se muestra). Unit tests: caption con credits, sin credits no se muestra. IMPLEMENTADO: commit qr-app 10fc0b6 (getMediaCredits helper + 4 layouts + nodo upload + 3 tests).",
+            "status":  "completed",
+            "priority":  "low",
+            "tag":  "spec-023-b",
+            "dependencies":  [
+                "4"
+            ],
+            "subtasks":  []
+        },
+        {
+            "id":  "11",
+            "content":  "[SPEC-023-B] Verificacion CA-01 a CA-12 + spec a implementado",
+            "description":  "Verificar criterios de aceptacion (seccion 2.3): CA-01 TOC con anclas funcionales y condicional (>=3 headings, tocEnabled), CA-02 ids unicos + scroll-mt, CA-03 autor avatar/bio + schema Person con url, CA-04 'Actualizado' con margen 1 dia, CA-05 bloque CTA renderiza, CA-06 relacionados (categoria, fallback tag, max 3), CA-07 JSON-LD BlogPosting con publisher/logo/imagen absoluta, CA-08 credits visible + longDescription en CMS, CA-09 qr-app tsc/lint/build/tests verdes, CA-10 qr-cms tests + generate:types, CA-11 migracion author sin romper (fallback string), CA-12 rediseno /blog (filtro categoria, seccion tags debajo del grid, categoria clicable, ultimas 9 publicaciones, filtros combinables). Actualizar SPEC-023-B: status borrador -> implementado, checkboxes CA marcados. IMPLEMENTADO 2026-08-20: CA-01..CA-12 verificados (qr-app 326 tests/48 suites + tsc 0 + lint 0 + build exit 0; qr-cms 45 tests/7 suites + tsc 0 + generate:types OK). Spec actualizada a implementado con commits reales. QA manual pendiente: visual navegador (TOC/CTA/relacionados), bucket R2.",
+            "status":  "completed",
+            "priority":  "high",
+            "tag":  "spec-023-b",
+            "dependencies":  [
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "10",
+                "12"
+            ],
+            "subtasks":  []
+        },
+        {
+            "id":  "12",
+            "content":  "[SPEC-023-B] Rediseno del listado /blog: filtro por categoria + seccion de tags propia",
+            "description":  "qr-app (RF-8): (1) blog.service.ts: getPosts acepta category (where[category.slug][equals], deep query) + getAllCategories() (GET /api/categories?limit=100&depth=0); (2) BlogCategoryFilter.tsx nuevo (chips de categorias -> /blog?category=<slug>, chip 'Todos' -> /blog, activo cuando ?category coincide); (3) BlogTagFilter.tsx existente se reutiliza SIN cambios en la seccion de tags debajo del grid (los tags son TRANSVERSALES: /blog?tag=X muestra posts de cualquier categoria, independiente de la categoria); (4) BlogPostCard.tsx: categoria pasa de span a Link -> /blog?category=<slug>; (5) [slug]/page.tsx: categoria del header clicable; (6) BlogPagination.tsx: agregar category?: string a props y preservarlo en buildHref (junto a q/tag) para que al paginar dentro de una categoria se mantenga ?category=; (7) page.tsx layout: Hero -> Busqueda + BlogCategoryFilter -> Grid (paginado, sort -publishedAt; /blog = todas las categorias, /blog?category=X = esa categoria, /blog?tag=Y = posts con ese tag independiente de categoria, combinables) -> seccion 'Explora por etiquetas' (BlogTagFilter). Unit tests: service con fetch mock (query categoria, getAllCategories, combinacion), BlogCategoryFilter (chip activo, link), categoria clicable en card, BlogPagination preserva category. IMPLEMENTADO: commit qr-app e603075 (12 tests).",
+            "status":  "completed",
+            "priority":  "high",
+            "tag":  "spec-023-b",
+            "dependencies":  [
+                "4"
+            ],
+            "subtasks":  []
+        }
+    ]
+}
