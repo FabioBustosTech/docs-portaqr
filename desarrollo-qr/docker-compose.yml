@@ -214,7 +214,7 @@ services:
     volumes:
       - ./qr-cms:/app
       - /app/node_modules
-      - cms_media:/app/media
+      - ./qr-cms/media:/app/media:rw
     depends_on:
       mongo:
         condition: service_healthy
@@ -271,5 +271,3 @@ volumes:
   mongodb_data_container:
     name: plataforma_qr_cursor_mongodb_data_container
     external: true
-  cms_media:
-    name: plataforma_qr_cursor_cms_media
