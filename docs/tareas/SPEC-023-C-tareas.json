@@ -1,0 +1,77 @@
+{
+  "project": "plataforma_qr_cursor",
+  "spec": "SPEC-023-C",
+  "title": "Blog híbrido ISR inmediato — publicación sin redeploy y revalidación granular por post",
+  "tasks": [
+    {
+      "id": "1",
+      "content": "[SPEC-023-C] Desmutear env QR_APP_URL en qr-cms (fix webhook mudo)",
+      "description": "qr-cms/qrCms.env: descomentar QR_APP_URL=http://qr-app:3000 (hoy está comentado con #) y verificar que REVALIDATE_SECRET sea idéntico en qr-cms/qrCms.env y qr-app/qrApp.env (df7a2fba5dd77720ff7116d632a42fe91f44778c25843d982cb82e8f8cf6be37). Verificar que docker-compose.yml servicio qr-cms use env_file qrCms.env y que QR_APP_URL resuelva en red webnet (qr-app:3000 en docker, localhost:3000 fuera). Commit en qr-cms@main. ✅ fd8fa4c",
+      "status": "completed",
+      "priority": "high",
+      "tag": "spec-023-c",
+      "dependencies": [],
+      "subtasks": []
+    },
+    {
+      "id": "2",
+      "content": "[SPEC-023-C] blog.service.ts: tags granulares + revalidate:60",
+      "description": "qr-app/src/services/blog.service.ts: (1) fetchOptions(tags: string[]) => { next:{tags, revalidate:60} } (hoy revalidate implícito 3600 + force-cache); (2) getPosts -> tags ['blog']; (3) getPostBySlug(slug) -> tags ['blog', `post:${slug}`]; (4) getAllCategories/getCategoryBySlug -> tags ['blog'] y ['blog',`category:${slug}`] respectivamente; (5) actualizar blog.service.spec.ts: verificar que cada método llame fetch con next:{tags, revalidate:60} y tags correctos, y que getAllCategories filtre categorías con posts publicados siga funcionando. tsc --noEmit OK. Commit en qr-app@feat/spec-023-blog-payload-cms-isr. ✅ 7389f94 - 34 tests",
+      "status": "completed",
+      "priority": "high",
+      "tag": "spec-023-c",
+      "dependencies": ["1"],
+      "subtasks": []
+    },
+    {
+      "id": "3",
+      "content": "[SPEC-023-C] Pages revalidate 60 (blog, [slug], categoria/[slug])",
+      "description": "qr-app: (1) src/app/blog/page.tsx: revalidate 3600->60; (2) src/app/blog/[slug]/page.tsx: revalidate 3600->60 + verificar dynamicParams=true; (3) src/app/blog/categoria/[slug]/page.tsx: revalidate 60 + dynamicParams true; (4) actualizar page.spec.tsx de cada ruta para esperar revalidate 60 y tags. tsc/lint/build OK. Commit en qr-app. ✅ 727689b",
+      "status": "completed",
+      "priority": "high",
+      "tag": "spec-023-c",
+      "dependencies": ["2"],
+      "subtasks": []
+    },
+    {
+      "id": "4",
+      "content": "[SPEC-023-C] Webhook granular diffKeys + retry x3 en qr-cms",
+      "description": "qr-cms/src/collections/Posts/hooks/revalidate.ts: (1) helper diffKeys(doc, prev) compara title/slug/excerpt/content/cover/category/tags/author/youtubeUrl/publishedAt/status/featured/featuredCategory/tocEnabled; (2) revalidatePost solo dispara si diffKeys.length>0 (update sin cambios no invalida); (3) notifyRevalidate({slug, diffKeys, deleted?}) con retry x3 backoff 500ms*(i+1), log warn si falta env y error tras 3 intentos; (4) registrar hook también en Categories (cambio name/slug) y Authors (cambio que afecte post:${slug} de sus posts); (5) tests revalidate.spec.ts: diff sin cambios no llama fetch, retry, missing env warn. Commit en qr-cms@main. ✅ 3ecb150 - 55 tests",
+      "status": "completed",
+      "priority": "high",
+      "tag": "spec-023-c",
+      "dependencies": ["1"],
+      "subtasks": []
+    },
+    {
+      "id": "5",
+      "content": "[SPEC-023-C] Route handler granular api/revalidate (touchesListing)",
+      "description": "qr-app/src/app/api/revalidate/route.ts: (1) validar x-revalidate-secret (401 vs 200); (2) parsear {slug, diffKeys, categorySlug, deleted}; (3) si slug revalidateTag(`post:${slug}`,'max'); (4) touchesListing = !diffKeys || diffKeys.some(k=>['title','excerpt','cover','category','tags','publishedAt','status','featured','featuredCategory'].includes(k)) -> si true revalidateTag('blog','max') + revalidatePath('/blog') + revalidatePath('/blog/categoria/[slug]'); (5) si categorySlug revalidateTag(`category:${slug}`); (6) revalidatePath('/sitemap.xml'); (7) tests route.spec.ts: 401 sin secreto, 200 con secreto, granular solo post vs blog+post. Commit en qr-app. ✅ 37f64ef - 8 tests",
+      "status": "completed",
+      "priority": "high",
+      "tag": "spec-023-c",
+      "dependencies": ["2", "4"],
+      "subtasks": []
+    },
+    {
+      "id": "6",
+      "content": "[SPEC-023-C] Verificación CA-01..07 + unlighthouse",
+      "description": "Verificar criterios de aceptación: CA-01 nuevo post inmediato en /blog y sitemap, CA-02 update granular solo post:${slug}, CA-03 no tocados quedan HIT, CA-04 borrado 404, CA-05 safety net 60s con qr-cms apagado, CA-06 seguridad 401/200, CA-07 tsc/lint/build/tests verdes + unlighthouse isStatic true para /blog y /blog/[slug]. Documentar resultados en spec §7. ✅ qr-app 377/49 + qr-cms 55/8 + tsc 0 + isStatic verificado en código",
+      "status": "completed",
+      "priority": "medium",
+      "tag": "spec-023-c",
+      "dependencies": ["3", "5"],
+      "subtasks": []
+    },
+    {
+      "id": "7",
+      "content": "[SPEC-023-C] Docs - marcar SPEC-023-C implementado",
+      "description": "Actualizar docs/spec/SPEC-023-C-blog-hibrido-isr-inmediato.md: status borrador->implementado, checkboxes CA-01..07 marcados, tabla estado implementación con commits reales, y SPEC-023-blog-payload-cms-isr.md §7 si aplica. Commit docs. ✅ 2026-08-21",
+      "status": "completed",
+      "priority": "low",
+      "tag": "spec-023-c",
+      "dependencies": ["6"],
+      "subtasks": []
+    }
+  ]
+}
