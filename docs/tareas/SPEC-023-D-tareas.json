@@ -1,0 +1,67 @@
+{
+  "project": "plataforma_qr_cursor",
+  "spec": "SPEC-023-D",
+  "title": "Flag R2_ENABLED para media + binding de carpeta media en qr-cms",
+  "tasks": [
+    {
+      "id": "1",
+      "content": "[SPEC-023-D] Flag R2_ENABLED en payload.config.ts",
+      "description": "qr-cms/src/payload.config.ts: reemplazar s3Storage({ enabled: Boolean(R2_BUCKET) }) por const r2Enabled = process.env.R2_ENABLED !== 'false' && Boolean(process.env.R2_BUCKET); s3Storage({ enabled: r2Enabled }). Default true si var no definida. Tests: verificar que con R2_ENABLED=false aunque R2_BUCKET esté seteado, enabled=false. Commit en qr-cms@main.",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-023-d",
+      "dependencies": [],
+      "subtasks": []
+    },
+    {
+      "id": "2",
+      "content": "[SPEC-023-D] Env template y local R2_ENABLED=false",
+      "description": "qr-cms/.env.example: añadir R2_ENABLED=true # false = usa media/ local (dev). Default true si no se define. qrCms.env local: R2_ENABLED=false (no versionado, pero documentado). Verificar que payload.config default true sin var. Commit en qr-cms@main.",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-023-d",
+      "dependencies": ["1"],
+      "subtasks": []
+    },
+    {
+      "id": "3",
+      "content": "[SPEC-023-D] Docker volume para /app/media en qr-cms",
+      "description": "docker-compose.yml: servicio qr-cms añadir volumen cms_media:/app/media (persistente, evita hide del bind mount ./qr-cms:/app). Añadir volumes top-level cms_media con name plataforma_qr_cursor_cms_media. Verificar con docker exec qr-cms ls -lh /app/media y que upload local persiste tras rebuild. Commit en root main (docker-compose).",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-023-d",
+      "dependencies": ["1"],
+      "subtasks": []
+    },
+    {
+      "id": "4",
+      "content": "[SPEC-023-D] Frontend BlogImage resolver URLs locales contra CMS_URL",
+      "description": "qr-app/src/components/blog/BlogImage.tsx: si media.url o sizes.*.url empieza con '/', prefijar con CMS_URL (server: process.env.CMS_URL || http://qr-cms:3005, browser: NEXT_PUBLIC_CMS_URL || http://localhost:3005). Mantener URLs absolutas https://pub-... tal cual. Tests: resolveUrl con /api/media/file/... -> http://... y https://... sin cambio. Commit en qr-app@feat/spec-023-blog-payload-cms-isr.",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-023-d",
+      "dependencies": ["1"],
+      "subtasks": []
+    },
+    {
+      "id": "5",
+      "content": "[SPEC-023-D] Tests de flag y URL resolver",
+      "description": "qr-cms: test para r2Enabled logic (env true/false + R2_BUCKET). qr-app: test para BlogImage resolveUrl / buildSrcSet con URLs relativas y absolutas. tsc --noEmit OK. Commits en respectivas ramas.",
+      "status": "pending",
+      "priority": "medium",
+      "tag": "spec-023-d",
+      "dependencies": ["1", "4"],
+      "subtasks": []
+    },
+    {
+      "id": "6",
+      "content": "[SPEC-023-D] Verificación CA-01..05 + docs a implementado",
+      "description": "Verificar CA-01 (R2_ENABLED=false -> local), CA-02 (true -> R2), CA-03 (archivo visible en volumen), CA-04 (imagen visible en /blog con y sin R2), CA-05 (tsc/tests verdes). Actualizar SPEC-023-D status borrador->implementado y tabla estado. Commit docs en root main.",
+      "status": "pending",
+      "priority": "medium",
+      "tag": "spec-023-d",
+      "dependencies": ["2", "3", "5"],
+      "subtasks": []
+    }
+  ]
+}
