@@ -10,6 +10,8 @@ services:
       - MONGO_INITDB_DATABASE=sistema
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=example
+      # SPEC-023: nombre de la BD del blog (qr-cms / Payload CMS) — la lee mongo-init.js
+      - CMS_DB_NAME=portaqr_cms
     healthcheck:
       test: mongosh --quiet --eval 'db.runCommand("ping").ok' --port 27017 -u "root" -p "example" --authenticationDatabase "admin"
       interval: 10s
@@ -212,6 +214,7 @@ services:
     volumes:
       - ./qr-cms:/app
       - /app/node_modules
+      - cms_media:/app/media
     depends_on:
       mongo:
         condition: service_healthy
@@ -268,3 +271,5 @@ volumes:
   mongodb_data_container:
     name: plataforma_qr_cursor_mongodb_data_container
     external: true
+  cms_media:
+    name: plataforma_qr_cursor_cms_media
