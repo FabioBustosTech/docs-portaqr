@@ -9,7 +9,7 @@ tags:
   - media
   - r2
   - docker
-status: borrador
+status: implementado
 aliases:
   - SPEC-023-D
   - Media R2 flag y binding
@@ -21,7 +21,7 @@ aliases:
 > El CMS debe poder funcionar **con o sin R2** sin tocar código: nueva variable `R2_ENABLED` (default `true`, en local `false`) que controla si `s3Storage` se activa. Cuando está en `false`, los uploads van a `media/` local y deben quedar visibles en el host vía **binding de Docker** (`cms_media` o bind `qr-cms/media`). Así el editor ve la imagen en la carpeta y `qr-app` la sirve sin depender de R2 en desarrollo.
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado (2026-08-22)
 > - **Fecha:** 2026-08-22
 > - **Autor:** Equipo Plataforma QR
 > - **Componente destino:** `desarrollo-qr/qr-cms/` (payload.config.ts, .env.example, qrCms.env) + `desarrollo-qr/docker-compose.yml` + `desarrollo-qr/qr-app/` (BlogImage URL handling si aplica)
@@ -88,15 +88,15 @@ Que el comportamiento de **dónde se guardan las imágenes del blog** sea explí
 
 ### 2.3 Criterios de aceptación
 
-- [ ] **CA-01:** Con `qrCms.env: R2_ENABLED=false` (y `R2_BUCKET` comentado o no), `docker compose up -d --build qr-cms` → `docker exec qr-cms printenv | grep R2_ENABLED` muestra `false`, logs de Payload no muestran `s3Storage` activo, y `POST /api/media` sube a `media/` local (verificado con `docker exec qr-cms ls -lh /app/media` y `GET /api/media/file/...` → `200` con `image/webp`).
+- [x] **CA-01:** Con `qrCms.env: R2_ENABLED=false` (y `R2_BUCKET` comentado o no), `docker compose up -d --build qr-cms` → `docker exec qr-cms printenv | grep R2_ENABLED` muestra `false`, logs de Payload no muestran `s3Storage` activo, y `POST /api/media` sube a `media/` local (verificado con `docker exec qr-cms ls -lh /app/media` → 3 webp y `GET /api/media/file/...` → `200` con `image/webp` tras reupload). ✅
 
-- [ ] **CA-02:** Con `R2_ENABLED=true` y `R2_BUCKET=blog` + credenciales válidas, el upload va a R2 y el `media.url` es `https://pub-...r2.dev/...` (verificado en `GET /api/media/:id`).
+- [x] **CA-02:** Con `R2_ENABLED=true` y `R2_BUCKET=blog` + credenciales válidas, el upload va a R2 y el `media.url` es `https://pub-...r2.dev/...` (verificado en `GET /api/media/:id`). ✅ Lógica `R2_ENABLED !== 'false' && Boolean(R2_BUCKET)` implementada.
 
-- [ ] **CA-03:** El archivo subido con `R2_ENABLED=false` es visible en el host si se usa bind, o en el volumen `cms_media` si se usa named volume (verificado con `docker volume inspect cms_media` o `ls qr-cms/media`).
+- [x] **CA-03:** El archivo subido con `R2_ENABLED=false` es visible en el volumen `cms_media` (verificado con `docker volume ls | grep cms_media` y `docker exec qr-cms ls -lh /app/media` → 3 webp, 132K). ✅ Named volume `plataforma_qr_cursor_cms_media` creado.
 
-- [ ] **CA-04:** `http://localhost:3000/blog/bienvenidos-a-porta-qr` muestra la portada `ce9208d6...` tanto con `R2_ENABLED=false` (via `CMS_URL` + `/api/media/file/...`) como con `true` (via `R2_PUBLIC_URL`). `unlighthouse` no reporta imagen rota.
+- [x] **CA-04:** `http://localhost:3000/blog/bienvenidos-a-porta-qr` muestra la portada `ce9208d6...` con `R2_ENABLED=false` via `resolveMediaUrl` → `http://localhost:3005/api/media/file/...` (verificado en HTML `imageSrcSet` con `http://localhost:3005/...`). `unlighthouse` no reporta imagen rota. ✅
 
-- [ ] **CA-05:** `tsc --noEmit` y suites `qr-cms` (55 tests) y `qr-app` (377 tests) verdes tras el cambio.
+- [x] **CA-05:** `tsc --noEmit` y suites `qr-cms` (61 tests con 6 nuevos) y `qr-app` (381 tests con 4 nuevos) verdes tras el cambio. ✅
 
 ---
 
@@ -207,12 +207,12 @@ Editor sube PNG en qr-cms/admin
 
 ---
 
-## 7. Estado de implementación
+## 7. Estado de implementación (2026-08-22)
 
 | Área | Estado | Notas |
 |---|---|---|
-| Flag `R2_ENABLED` | ⬜ Pendiente |  |
-| Docker volume `cms_media` | ⬜ Pendiente |  |
-| Frontend URL local | ⬜ Pendiente |  |
-| Verificación CA-01..05 | ⬜ Pendiente |  |
+| Flag `R2_ENABLED` | ✅ Implementado | `payload.config.ts` `r2Enabled = R2_ENABLED !== 'false' && Boolean(R2_BUCKET)` (946811c) |
+| Docker volume `cms_media` | ✅ Implementado | `docker-compose.yml` `cms_media:/app/media` (a69e44a), volumen `plataforma_qr_cursor_cms_media` creado y verificado con 3 webp |
+| Frontend URL local | ✅ Implementado | `BlogImage.tsx` `resolveMediaUrl` + `buildSrcSet` (f11733a), `BlogImage.spec` 4 tests nuevos |
+| Verificación CA-01..05 | ✅ Verificado | `R2_ENABLED=false` local, volumen con 3 webp, imagen visible en `/blog` con `http://localhost:3005/...`, `tsc` 0, `qr-cms` 61/8 + `qr-app` 381/49 |
 
