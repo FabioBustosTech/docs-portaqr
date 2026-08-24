@@ -1,0 +1,113 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-024] Rama feat/spec-024-look-feel-portaqrtest desde feat/spec-023-blog-payload-cms-isr",
+            "description": "REALIZADA 2026-08-23: rama creada desde feat/spec-023-blog-payload-cms-isr (NO desde main - SPEC-024 se construye sobre el blog). Tags de seguridad en repo qr-app: pre-spec-023-blog-cms (65ad8d9, tip main sin blog) y pre-spec-024-look-feel (14fbe97, tip spec-023, punto de restauracion pre-rediseno). Toda la implementacion de las sesiones 1-6 va en feat/spec-024; nada de --no-verify.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-024",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-024] Sesion 1 - Fundacion: tokens y dependencias (sin cambio visual)",
+            "description": "RF-01/02/03. (1) npm install class-variance-authority tw-animate-css; evaluar '@import shadcn/tailwind.css' (si no resuelve en el build, copiar el CSS base resultante); crear components.json con aliases a src/. (2) globals.css: agregar @theme OKLCH del prototipo (light + .dark), keyframes marquee/float/fade-up, clases .reveal y @custom-variant dark del prototipo COEXISTIENDO con la variante actual; MANTENER intactos tokens legacy (primary-50..950, accent-50..950, destructive, @utility bg-light-*/bg-dark-*/text-light-*/text-dark-*, alternate-bg, tooltip responsive). No borrar todavia el hack @media (color-gamut: p3) - su eliminacion va con RF-07 de SPEC-018 subsumida en Sesion 6. (3) layout.tsx: Inter con variable '--font-inter' conservando TODA la metadata actual (safeSiteUrl, organizationSchema, og, twitter, manifest, robots). Criterio duro: screenshots comparativos de home, login y dashboard SIN diferencias visibles. DoD: tsxValidate + lint + test + build verdes, revision visual light/dark, commit.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-024",
+            "dependencies": ["1"],
+            "subtasks": [
+                { "id": "2.1", "content": "Instalar deps (class-variance-authority, tw-animate-css) + components.json", "status": "completed" },
+                { "id": "2.2", "content": "globals.css: capa de tokens nuevos OKLCH sin borrar legacy (puente)", "status": "completed" },
+                { "id": "2.3", "content": "layout.tsx: Inter variable --font-inter conservando metadata", "status": "completed" },
+                { "id": "2.4", "content": "Verificacion visual: home/login/dashboard identicos (light+dark)", "status": "completed" }
+            ]
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-024] Sesion 2 - Shell publico: SiteHeader + SiteFooter",
+            "description": "RF-04/04b/05/06/07. (1) Crear src/components/layout/SiteHeader.tsx adaptado de portaqrtest-main/components/site-header.tsx (fixed, blur al hacer scroll, z-50, menu movil con lock de scroll y cierre al navegar, aria-current en enlace activo) PERO conectado a qr-app: logo OFICIAL de qr-app por tema (useThemeState + Image con /PORTA_QR_LOGO_HORIZONTAL.svg / /Logo_PortaQR_Horizontal_blanco.svg - NO usar porta-qr-logo.tsx del prototipo, requisito explicito del usuario 2026-08-23), AuthButtons real (AuthContext, Cerrar Sesion autenticado), ThemeToggle real. **REQUISITO EXPLICITO DEL USUARIO: conservar los iconos de la nav** - cada enlace mantiene su Icon (home/settings/chart/blog/mail) junto al texto en desktop y movil + tooltips existentes; evaluar lucide-react solo con paridad visual 1:1, ante la duda conservar componente Icon actual. Rutas reales: /, /servicios, /precios, /blog, /contacto. (2) Crear src/components/layout/SiteFooter.tsx adaptado de site-footer.tsx con enlaces reales (legales, redes del componente SocialIcon actual). (3) Header/footer nuevos SOLO en paginas publicas; dashboard/ mantiene DashboardLayoutClient intacto. (4) Skip-link 'Saltar al contenido' como primer elemento enfocable + focus states visibles. (5) HomePageClient y demas paginas publicas pasan a renderizar el shell nuevo; Header/Footer legacy quedan de momento sin uso (no borrar aun). DoD: navegacion completa desktop+movil, login/logout manual, light/dark, tests + build verdes, commit.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-024",
+            "dependencies": ["2"],
+            "subtasks": [
+                { "id": "3.1", "content": "SiteHeader: estructura visual nueva (scroll blur, aria-current, menu movil)", "status": "completed" },
+                { "id": "3.2", "content": "SiteHeader: conectar AuthButtons/ThemeToggle/logo por tema + ICONOS nav conservados", "status": "completed" },
+                { "id": "3.3", "content": "SiteFooter: visual nuevo CON esquema de links de qr-app intacto (Empresa: Contacto/Blog; Productos: Servicios/Precios; Soporte: FAQ; Legal: privacidad/terminos/cookies/eliminacion-de-datos; sin reactivar links comentados), SocialIcon reales (facebook/instagram/youtube portaqrcl) y ChatWindow montado desde el footer", "status": "completed" },
+                { "id": "3.4", "content": "Skip-link + focus states; dashboard sin tocar", "status": "completed" },
+                { "id": "3.5", "content": "Verificacion manual: nav desktop/movil, auth, temas", "status": "completed" }
+            ]
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-024] Sesion 3 - Landing (/) con nuevo look",
+            "description": "RF-08/09/10. (1) Sustituir secciones de HomePageClient por adaptaciones de portaqrtest: Hero, Integrations (marquee con clon aria-hidden=true, pausa en hover/focus, prefers-reduced-motion), HowItWorks, HomeVisualShowcase, Features, CtaSection - conservando copy actual en espanol de qr-app donde corresponda. (2) Generador QR: nuevo diseno de panel (estilo qr-generator.tsx) SOBRE EL FLUJO REAL: POST /api/qr-free-generation (NO usar lib qrcode local del demo); preview live con debounce ~300ms; email opcional progressive disclosure ('Quieres recibir tu QR por email?'); estados error/exito visibles. (3) Metadata de page.tsx intacta. Verificacion: flujo end-to-end de generacion QR gratis contra backend local, tests actualizados (page.spec), build verde, commit.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-024",
+            "dependencies": ["3"],
+            "subtasks": [
+                { "id": "4.1", "content": "Portar Hero/HowItWorks/Features/CtaSection/Showcase", "status": "completed" },
+                { "id": "4.2", "content": "Integrations marquee accesible (aria-hidden clone, pausa hover/focus, reduced-motion) CON LISTA COMPLETA de 37 items. Logos: copiar 9 SVG del prototipo (instagram facebook whatsapp youtube tiktok linkedin spotify telegram github) + conseguir 25 faltantes en Simple Icons (CC0, misma linea grafica) a qr-app/public/brands/ + 3 genericos via lucide (MapPin/Phone/Globe). components/icon/*.tsx NO SE TOCAN. CA: 37 items visibles, iconos viejos intactos (diff)", "status": "completed" },
+                { "id": "4.3", "content": "QrGeneratorPanel: reskin conservando POST /api/qr-free-generation real", "status": "completed" },
+                { "id": "4.4", "content": "Verificacion E2E generador QR + tests + build", "status": "completed" }
+            ]
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-024] Sesion 4 - Paginas publicas secundarias",
+            "description": "RF-11/12. Reskin conservando data y logica real: servicios, precios (planes desde API real, formato CLP), faq (FAQPageClient real), contacto (ContactForm real -> /api/mail, anti-spam SPEC-006 intacto), blog + blog/[slug] (ISR/Payload SPEC-023 intacto, solo presentacion), legales (privacidad/terminos/cookies/eliminacion-de-datos con patron LegalPage), y extendidas: nosotros, productos, tipos-qr, tutoriales, documentacion, ayuda. Crear PageHero comun para titulos. Tests + build verdes, commit.",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-024",
+            "dependencies": ["3"],
+            "subtasks": [
+                { "id": "5.1", "content": "PageHero comun + legales (RF-12a): textos legales de qr-app INTACTOS, sidebar de contenido con scroll-spy conservado (TermsPageClient: aside sticky top-24 w-64, offset 128px, activo accent->primary/brand), solo reskin visual con tokens nuevos; NO usar legal-page.tsx del prototipo. COMMIT dda96a1", "status": "completed" },
+                { "id": "5.2", "content": "servicios, precios (API real), faq, contacto (form real). RF-11a: conservar tooltip informativo 'Pagina de aterrizaje' en plan QR Multi Link (precios/page.tsx lines 133-139, texto y comportamiento intactos). COMMIT 1e7a2c9", "status": "completed" },
+                { "id": "5.3", "content": "blog listado + detalle (ISR/Payload intacto, filtrado server-side conservado: ?q/tag/category/page, 301 categoria, Limpiar filtros, fallback imagen SPEC-023-E). Adoptar SOLO visual del prototipo: hero con kicker + card visual, destacado con meta flotante, cards hover-lift con kicker/readtime + fila fecha-autor, paginacion/estado vacio nuevos. Fix visual: placeholder 'Porta QR' roto en cards sin cover + alturas desiguales del grid. COMMIT 5f7d02d", "status": "completed" },
+                { "id": "5.4", "content": "nosotros, productos, tipos-qr, tutoriales, documentacion, ayuda. COMMIT b62c14e", "status": "completed" }
+            ]
+        },
+        {
+            "id": "6",
+            "content": "[SPEC-024] Sesion 5 - Pantallas de autenticacion",
+            "description": "RF-13/14. Reskin con AuthShell/estilos auth-form del prototipo para login, signup (Google OAuth SPEC-020 intacto: GoogleButton, FacebookSDKProvider si aplica), forgot-password, verify-email, onboarding. SOLO presentacion: conservar AuthContext, services, validaciones, PasswordStrengthMeter, TermsModal/TermsCheckbox, EmailVerification. Estados error/loading/exito con tokens nuevos. Eliminar Header/Footer legacy cuando ya nada los use (fin de esta sesion o inicio de la 6). Tests de auth actualizados + build verde, commit.",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-024",
+            "dependencies": ["3"],
+            "subtasks": [
+                { "id": "6.1", "content": "AuthShell comun (src/components/auth/AuthShell.tsx) + reskin login/signup (OAuth intacto) + Button variant 'brand' aditivo + GoogleButton/TermsCheckbox/TermsModal a tokens nuevos. COMMIT f72db75", "status": "completed" },
+                { "id": "6.2", "content": "forgot-password, verify-email, onboarding con AuthShell; EmailVerification a tokens nuevos; labels/ids/textos conservados (specs verdes). COMMIT 0044cfa", "status": "completed" },
+                { "id": "6.3", "content": "Header/Footer legacy YA no existen como archivos separados (reescritos in-place en Sesion 2 — nada que borrar). Nuevo AuthShell.spec (4 tests); suite completa 381/381 + build verdes; revision visual light/dark login/signup/forgot OK. COMMIT 440d963", "status": "completed" }
+            ]
+        },
+        {
+            "id": "7",
+            "content": "[SPEC-024] Sesion 6 - Limpieza y QA final",
+            "description": "REALIZADA 2026-08-24 en 3 commits (449af05, 3570756, e88dcb0) + commit docs. (1) Limpieza: eliminados componentes home legacy sin uso (HomeHero, HomeStaticSections, HomeQrGenerator, HomeFeaturesStats, AnimatedLinkList + barrel huerfano). Migrados a tokens nuevos TODOS los remanentes de la superficie publica: Header (fondo sin scroll), blog completo (12 componentes + listado/detalle/categoria), SocialIcon, FAB de ChatWindow, not-found, paginas de escaneo publicas (qr/[id], pet-tag/[idQr], PetInfo, UrlList) con accent->brand y forced-dark a equivalentes estandar (bg-slate-800). Eliminados del CSS: hack @media (color-gamut: p3) (RF-07 SPEC-018 subsumida; forzaba text-gray-800 a blanco en claro P3) y .alternate-bg sin referencias. DECISION ARQUITECTONICA: la capa puente legacy se CONSERVA porque dashboard/*, admin y primitivas compartidas (Button, Input, Toast, dialog, checkbox, PaginationControls, ThemeToggle, QRCode/QrDisplay, formularios qr/pet-tag, cart) aun la referencian - eliminarla romperia el dashboard (out of scope, requisito duro de la SPEC). Deuda documentada en globals.css y SPEC-024 para SPEC-025. (2) Test guardian nuevo src/legacy-tokens.guard.spec.ts (3 tests): escanea src/ completo y falla si un token legacy aparece fuera de dashboard/admin y del allowlist SPEC-025; verifica poda P3/alternate-bg y coexistencia documentada de capas. (3) QA final: tsxValidate OK, lint OK (warning preexistente .eslintignore), jest 384/384 (51 suites, +3 guardian), build OK, react-doctor sin errores (avisos advisorial preexistentes), revision visual light/dark de /, /blog, /precios, /login, 404 + chequeos estructurales (skip-link, burger, nav iconos, FAB chat brand, 3 SocialIcon, tooltip Pagina de aterrizaje intacto en precios). Contrato API intacto (cero cambios en app/api). (4) SPEC-018 marcada subsumida/cerrada; SPEC-024 marcada implementada. Pendiente: revision del usuario para merge a main.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-024",
+            "dependencies": ["4", "5", "6"],
+            "subtasks": [
+                { "id": "7.1", "content": "Migrar remanentes legacy (superficie publica 100% limpia) y eliminar capa puente eliminable (P3 hack + alternate-bg); puente restante documentado para dashboard hasta SPEC-025. COMMITS 449af05 + 3570756 + e88dcb0", "status": "completed" },
+                { "id": "7.2", "content": "QA completo: tsxValidate/lint/test 384-384/build/doctor verdes + revision visual light/dark (/, /blog, /precios, /login, 404) + guardian anti-regresion. COMMIT e88dcb0", "status": "completed" },
+                { "id": "7.3", "content": "Cerrar SPEC-018 (subsumida) y actualizar estado SPEC-024 a implementado + tareas.json", "status": "completed" }
+            ]
+        },
+        {
+            "id": "8",
+            "content": "[SPEC-024] OUT OF SCOPE: dashboard/admin (futura SPEC-025)",
+            "description": "El dashboard (dashboard/*, admin, settings, pet-tag) NO se rediseña en esta SPEC: el prototipo no lo cubre. Queda documentado para una futura SPEC-025 que aproveche los tokens sidebar-* del nuevo theme. En esta SPEC solo se garantiza que el dashboard NO se rompe (capa puente Sesion 1) y se revisa visualmente en Sesion 6.",
+            "status": "deferred",
+            "priority": "low",
+            "tag": "spec-024",
+            "dependencies": [],
+            "subtasks": []
+        }
+    ]
+}
