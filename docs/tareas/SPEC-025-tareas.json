@@ -1,0 +1,64 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-025] Preparación: rama feat/spec-025-colores-internos + tag pre-spec-025-colores",
+            "description": "Crear rama desde feat/spec-024-look-feel-portaqrtest (o main si ya se mergeó) y tag de seguridad pre-spec-025-colores en el repo qr-app (punto de restauración exacto).",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-025",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-025] Fase 1 - Re-tokenización CSS: paleta nueva en los tokens legacy (solo globals.css)",
+            "description": "Redefinir en globals.css los VALORES de la capa puente: escala accent-50..950 -> rampa brand (accent-500=var(--brand), 600/700=color-mix más oscuro, 50=brand-soft), escala primary-50..950 -> rampa neutra hue 250 con la lightness de la escala vieja, utilidades bg-light-*/bg-dark-* -> var(--background|--card|--secondary), text-light-*/text-dark-* -> var(--foreground|--muted-foreground). CERO cambios fuera de globals.css. Calibrar hover accent-600 en navegador.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-025",
+            "dependencies": ["1"],
+            "subtasks": [
+                { "id": "2.1", "content": "Re-tokenizar escala accent-* a rampa brand", "status": "pending" },
+                { "id": "2.2", "content": "Re-tokenizar escala primary-* a neutra hue 250", "status": "pending" },
+                { "id": "2.3", "content": "Re-tokenizar utilidades bg-light-*/bg-dark-*/text-light-*/text-dark-* a vars semánticas", "status": "pending" },
+                { "id": "2.4", "content": "Calibración de hover (accent-600) y contrastes en navegador", "status": "pending" }
+            ]
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-025] QA Fase 1 - revisión visual light/dark portal completo + públicas con compartidos",
+            "description": "tsc/lint/jest/build verdes (deben quedar intactos - no se toca código). Guardián legacy-tokens.guard.spec verde. Revisión visual light/dark de: dashboard home, qr, qr/stats, qr/pay, qr/pay/webpay, qr/activate, admin/qrs, admin/pet-tag, users, settings, plan/edit, contact + login, signup, contacto, onboarding, forgot-password, verify-email, home (generador), pet-tag público. Commit único de Fase 1.",
+            "status": "pending",
+            "priority": "high",
+            "tag": "spec-025",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-025] Fase 2 (opcional, por sesiones) - migración de nombres de clase y eliminación de la capa puente",
+            "description": "Con los valores ya alineados (mismo visual), migrar clases legacy -> nuevas archivo por archivo: lote 1 app/dashboard+admin (21 archivos), lote 2 compartidos puros de portal, lote 3 compartidos con consumidores públicos (revisión visual de ambas superficies por lote). Vaciar allowlist de legacy-tokens.guard.spec.ts, eliminar capa puente de globals.css. Es higiene de código: cero cambio visual.",
+            "status": "pending",
+            "priority": "medium",
+            "tag": "spec-025",
+            "dependencies": ["3"],
+            "subtasks": [
+                { "id": "4.1", "content": "Lote 1: app/dashboard/** + app/admin/** (21 archivos, 133 tokens)", "status": "pending" },
+                { "id": "4.2", "content": "Lote 2: compartidos puros de portal (EditProfileForm, SettingsAccordion, cart, pet-tag admin, qr forms)", "status": "pending" },
+                { "id": "4.3", "content": "Lote 3: compartidos con consumidores públicos (Button, Input, ThemeToggle, QRCode, Toast, dialog, checkbox, PaginationControls, PasswordInput/Strength, ShareModal, ContactForm, ChangePasswordForm, QrCard/QrGrid/QrDisplay, VCardNew)", "status": "pending" },
+                { "id": "4.4", "content": "Eliminar capa puente + vaciar allowlist del guardián + doctor", "status": "pending" }
+            ]
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-025] OUT OF SCOPE: layout del portal con tokens sidebar-* (futura SPEC-026), colores chart.js en JS, colores de marca por tipo de chip en UrlList",
+            "description": "Esta spec es SOLO colores via tokens CSS. El rediseño de layout del portal (sidebar, tipografía, espaciados con tokens sidebar-* del prototipo) queda para una futura SPEC-026. Los colores de gráficos chart.js viven en JS de StatsCharts (no son tokens CSS). Los colores de marca por tipo de chip en UrlList son identificación visual deliberada.",
+            "status": "deferred",
+            "priority": "low",
+            "tag": "spec-025",
+            "dependencies": [],
+            "subtasks": []
+        }
+    ]
+}
