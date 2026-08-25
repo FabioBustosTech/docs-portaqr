@@ -173,6 +173,47 @@ Recuperar la calidad de código de `qr-app/` degradada por la evolución posteri
 > [!warning] ⚠️ G-03 y G-04 son los de mayor riesgo
 > Son el **producto principal** (creación de QR multilink). Aplicar baseline funcional pre/post (patrón SPEC-004 §3.4) y validar en navegador. G-04 ya pasó por esto en SPEC-004-B C-02 — el refactor es incremental (solo lo que SPEC-005 agregó).
 
+### 3.6 Ejecución 2 (2026-08-24 — ronda de cierre SPEC-024 Sesión 6)
+
+**Resultado: Score 53/100 → 68/100 — 43 → 18 issues** (424 archivos). La degradación (74 → 53) provino del código nuevo de SPEC-024 (sesiones 3–6: landing, blog reskin, páginas públicas, ajustes finos).
+
+**Corregidos (17 issues, commit `9d70e37`):**
+
+| Regla | Cant | Archivos | Fix |
+| --- | --- | --- | --- |
+| `no-giant-component` | 1 | `blog/[slug]/page.tsx` (435→261 líneas) | Extracción de `PostMeta`, `AuthorCard`, `RelatedPosts` a `components/blog/` |
+| `server-sequential-independent-await` + `async-parallel` | 7 | `blog/page.tsx`, `blog/categoria/[slug]/page.tsx` | `Promise.all` (params/searchParams + 4 llamadas a blogService) |
+| `no-array-index-as-key` | 3 | `BlogRichText.tsx` | Key compuesto `nodeKey` (tipo+texto+índice) |
+| `no-transition-all` | 3 | `BlogFeaturedPost`, `BlogPostCard`, `HomeVisualShowcase` | `transition-[transform,border-color,box-shadow]` |
+| `nextjs-no-a-element` | 1 | `CtaSection.tsx` | `<a href="/precios">` → `<Link>` |
+| `prefer-module-scope-static-value` | 1 | `Integrations.tsx` | `LOOP_ITEMS` a module scope |
+| `prefer-module-scope-pure-function` | 2 | `BlogCategoryFilter`, `BlogTagFilter` | `chipClass` a module scope |
+| `only-export-components` | 1 | `BlogPagination.tsx` | `getPageNumbers` → `blog.helpers.ts` |
+| `iframe-missing-sandbox` | — | `YouTubeEmbed.tsx` | sandbox añadido (ver no-corregibles: la regla sigue flaggeando el combo requerido por YouTube) |
+| `no-async-event-handler-without-reentry-guard` | 1 | `QrGeneratorPanel.tsx` | Guard por ref (`generatingRef`) |
+| `deslop/unused-file` | 1 | `BlogImageFallback.tsx` | Eliminado (sin referencias) |
+| `deslop/unused-dependency` | 1 | `package.json` | Removida `class-variance-authority` (instalada en SPEC-024 S1, nunca importada; SPEC-025 puede re-agregarla si adopta shadcn) |
+| Falsos positivos de artefactos | 6 | `.unlighthouse/**` | Carpeta generada eliminada + `.gitignore` (los bundles minificados disparaban `insecure-crypto-risk`) |
+
+**No-corregibles / aceptados (18 restantes, NO tocados — CA-07):**
+
+| Regla | Cant | Justificación |
+| --- | --- | --- |
+| `prefer-dynamic-import` | 2 | Falso positivo verificado (chart.js/StatsCharts) — SPEC-004 §3.2 |
+| `nextjs-no-img-element` | 7 | Justificados en código con eslint-disable: WebP optimizado por CMS + srcSet manual (BlogImage, blog/[slug] avatares vía PostMeta/AuthorCard), SVGs de marca (Integrations), preview object-URL (PetTagPhotoField); PetInfo/UrlList decisión SPEC-002 |
+| `nextjs-no-client-side-redirect` | 2 | DashboardLayoutClient (out of scope → SPEC-025) y Onboarding (redirect post-auth funcional) |
+| `no-set-state-after-await-in-effect` | 1 | webpay (dashboard → SPEC-025) |
+| `url-prefilled-privileged-action` | 1 | Aceptado con justificación (SPEC-017 §3.3 H-06; dashboard) |
+| `rendering-hydration-mismatch-time` | 2 | QrsAdminTable (admin → SPEC-025) |
+| `html-label-has-single-control` | 1 | TermsCheckbox: decisión UX documentada (área clickeable WCAG 2.5.5 + preventDefault) |
+| `no-derived-state` | 1 | useListUrlSync: diseño de sincronización controlado/eco con guard de firma (SPEC-005) |
+| `iframe-missing-sandbox` | 1 | El player de YouTube requiere `allow-scripts`+`allow-same-origin`; la regla flaggea esa combinación — aceptado |
+
+QA de la ronda: `tsc --noEmit` limpio, `lint` limpio, **410/410 tests**, build de producción OK, blog detail verificado en navegador (commit `9d70e37`).
+
+> [!note] Lección de la ronda
+> Los `Set-Content` de PowerShell 5.1 escriben ANSI y corrompen UTF-8 (rompieron el build Turbopack: "failed to convert rope into string"). Para editar archivos con acentos usar herramientas que escriban UTF-8, y validar con un scan de U+FFFD antes de buildear.
+
 ---
 
 ## 4. Diseño Técnico
@@ -277,3 +318,4 @@ Recuperar la calidad de código de `qr-app/` degradada por la evolución posteri
 | :---------- | :----- | :---------- |
 | 2026-08-14 | Equipo | Borrador inicial. Ejecución 1 de react-doctor documentada (§3.1): score 69/100, 24 issues (12 maintainability, 8 performance, 1 security, 3 bugs). Clasificación: 22 corregibles, 2 no-corregibles heredados (falso positivo chart.js + decisión UrlList), 3 a verificar (url-prefilled, createObjectURL, PetInfo img). Origen de degradación mapeado a SPEC-005/013/015/016 (§3.1.2). Plan de corrección por hallazgo (§3.4) + plan de refactor por componente gigante (§3.5). Tareas T-017-01..10 en `docs/tareas/SPEC-017-tareas.json` |
 | 2026-08-14 | Equipo | Implementación completa (T-017-01..10 done). Ejecución final de react-doctor: **score 74/100, 7 issues** — **0 `no-giant-component`** y **0 `unused-export`** (CA-01 ✅). Todos los 22 corregibles resueltos. Quedan 7 no-corregibles con evidencia: `prefer-dynamic-import` ×2 (falso positivo chart.js, §3.2), `nextjs-no-img-element` ×3 (decisión SPEC-002/016: PetTagPhotoField:39, PetInfo:17, UrlList:307), `url-prefilled-privileged-action` ×1 (aceptado con justificación, §3.3 H-06), `no-derived-state` ×1 (falso positivo nuevo del refactor T-017-07 — guard de firma SPEC-005, §3.2). Veredictos manuales confirmados en §3.3 (H-06 aceptado, H-09 falso positivo, H-11 mantener). Commits: 4960fcf, 1b9c6d4, 00d7218, 74194e9, 9bbdac8, 4aeb65b, c4fab9a |
+| 2026-08-24 | Equipo | Ejecución 2 documentada (§3.6, ronda de cierre SPEC-024 Sesión 6): el código nuevo de SPEC-024 degradó el score a 53/100 (43 issues). Corregidos 17 issues — destacados: `no-giant-component` (blog/[slug] 435→261 líneas extrayendo `PostMeta`/`AuthorCard`/`RelatedPosts`), `Promise.all` en páginas blog, keys compuestos en BlogRichText, sandbox en YouTubeEmbed, guard por ref en QrGeneratorPanel, eliminados `BlogImageFallback.tsx` (sin uso) y `class-variance-authority` (dep sin importar), artefactos `.unlighthouse` a `.gitignore` (6 falsos positivos de criptografía). Quedan 18 no-corregibles/aceptados documentados (dashboard/admin → SPEC-025, decisiones SPEC-002/004/005, UX TermsCheckbox, sandbox YouTube). **Score final: 68/100**. QA: tsc/lint limpios, 410/410 tests, build OK. Lección: `Set-Content` de PowerShell 5.1 escribe ANSI y corrompe UTF-8 (rompió el build Turbopack) — usar herramientas UTF-8 y scanear U+FFFD. Commit: 9d70e37 |
