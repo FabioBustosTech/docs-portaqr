@@ -183,7 +183,11 @@ services:
       - webnet
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: sh -c "npm install && npm run dev"
+    # SPEC-027 (prueba local): build+start reproduce el fix de /blog/categoria/[slug]
+    # (dev no prerenderiza). NODE_ENV=production es OBLIGATORIO: con development,
+    # next build falla prerenderizando páginas estáticas (useContext/useReducer null).
+    # Revertir a `npm run dev` tras la prueba.
+    command: sh -c "npm install && NODE_ENV=production npm run build && NODE_ENV=production npm start"
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
       interval: 30s
