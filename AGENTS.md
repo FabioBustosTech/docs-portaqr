@@ -11,6 +11,7 @@ plataforma_qr_cursor/
 │   ├── qr-app/             # Frontend Next.js (puerto 3000)
 │   ├── user-service/       # Microservicio usuarios (puerto 3002)
 │   ├── qr-service/         # Microservicio QR (puerto 3003)
+│   ├── qr-cms/             # CMS del blog (Payload CMS 3.x, puerto 3005)
 │   ├── docker-compose.yml  # Orquestación local (mongo, mongo-express, servicios)
 │   └── mongo-init.js       # Inicialización de MongoDB
 ├── docs/                   # Documentación (Obsidian)
@@ -30,6 +31,7 @@ plataforma_qr_cursor/
   - `bff-service` (NestJS): http://localhost:3001
   - `user-service` (NestJS): http://localhost:3002
   - `qr-service` (NestJS): http://localhost:3003
+  - `qr-cms` (Payload CMS): http://localhost:3005/admin
   - `mongo-express`: http://localhost:8081
   - `mongo`: localhost:27017
 
@@ -42,6 +44,7 @@ plataforma_qr_cursor/
 | Base de datos | MongoDB (`sistema`) |
 | Autenticación | JWT RS256 + jose (backend y frontend), tokenVersion + logout |
 | Pagos | Webpay / Transbank |
+| CMS | Payload CMS 3.x (Next.js) + Cloudflare R2 |
 | Infraestructura | Docker Compose, Railway |
 
 ## Proceso de desarrollo
@@ -65,6 +68,20 @@ plataforma_qr_cursor/
 ### Graphify (CLI) — Para entender relaciones altas
 - `graphify explain "EventModule"` — qué módulos se relacionan
 - `graphify path "Controller" "Service"` — cómo se conectan componentes
+
+### Payload CMS (MCP) — Para interactuar con el CMS del blog (`qr-cms`)
+
+El proyecto tiene dos MCP de Payload configurados en `.opencode/opencode.json`:
+- `payload` — CMS local (`http://localhost:3005/api/mcp`)
+- `payload-prod` — CMS producción (Railway)
+
+Tools disponibles (prefijo `payload_` / `payload-prod_`):
+- `findPosts` / `createPosts` / `updatePosts` / `deletePosts` — gestionar posts del blog
+- `findMedia` / `uploadMedia` / `updateMedia` / `updateMediaFile` — imágenes (WebP, R2)
+- `findCategories` / `createCategories` / `updateCategories` / `deleteCategories` — categorías
+- `findUsers` — usuarios del admin
+
+Úsalas para crear/editar contenido del blog, subir imágenes o consultar el CMS sin tocar el admin web. El blog público (`qr-app`) consume la REST API de Payload con ISR. Especificaciones: `docs/spec/SPEC-023-blog-payload-cms-isr.md` y derivadas (`SPEC-023-A/B/C/D`).
 
 ### Lectura manual — Para verificar implementaciones concretas
 - Usar `read`, `grep`, `glob` para leer archivos específicos, buscar strings exactos, revisar configs
