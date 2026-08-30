@@ -7,11 +7,14 @@ Reglas globales del proyecto **Plataforma QR**. Léelas al iniciar cualquier tar
 ```
 plataforma_qr_cursor/
 ├── desarrollo-qr/          # Ambiente de desarrollo (código fuente)
-│   ├── bff-service/        # Backend NestJS (BFF, puerto 3001)
+│   ├── backend-portaqr/    # Backend NestJS (monolito modular, ÚNICO backend activo, puerto 3004)
 │   ├── qr-app/             # Frontend Next.js (puerto 3000)
-│   ├── user-service/       # Microservicio usuarios (puerto 3002)
-│   ├── qr-service/         # Microservicio QR (puerto 3003)
 │   ├── qr-cms/             # CMS del blog (Payload CMS 3.x, puerto 3005)
+│   ├── bff-service/        # DEPRECADO (SPEC-001) — no se usa
+│   ├── user-service/       # DEPRECADO (SPEC-001) — no se usa
+│   ├── qr-service/         # DEPRECADO (SPEC-001) — no se usa
+│   ├── e2e-tests-portaqr/  # Tests E2E
+│   ├── portaqrtest-main/   # (legacy / pruebas)
 │   ├── docker-compose.yml  # Orquestación local (mongo, mongo-express, servicios)
 │   └── mongo-init.js       # Inicialización de MongoDB
 ├── docs/                   # Documentación (Obsidian)
@@ -28,12 +31,11 @@ plataforma_qr_cursor/
 - **Regla de aislamiento**: Trabaja SOLO dentro de `desarrollo-qr/`. No modifiques archivos fuera de ese entorno.
 - **Servicios** (docker-compose):
   - `qr-app` (Next.js): http://localhost:3000
-  - `bff-service` (NestJS): http://localhost:3001
-  - `user-service` (NestJS): http://localhost:3002
-  - `qr-service` (NestJS): http://localhost:3003
+  - `backend-portaqr` (NestJS, monolito modular): http://localhost:3004
   - `qr-cms` (Payload CMS): http://localhost:3005/admin
   - `mongo-express`: http://localhost:8081
   - `mongo`: localhost:27017
+  - **DEPRECADOS (SPEC-001, comentados en docker-compose, NO se usan):** `bff-service` (:3001), `user-service` (:3002), `qr-service` (:3003). Toda la lógica vive en `backend-portaqr`; `qr-app` apunta a `NEXT_PUBLIC_BFF_URL=http://backend-portaqr:3004`.
 
 ## Stack tecnológico
 
@@ -49,13 +51,19 @@ plataforma_qr_cursor/
 
 ## Proceso de desarrollo
 
+> [!important] Workflow de implementación
+> Al **implementar una SPEC**, sigue el proceso detallado en `rules/common/implementation-workflow.md` (obligatorio). Resumen:
+
 1. **Especificación**: Las especificaciones técnicas se guardan en `docs/spec/SPEC-XXX-nombre.md` (formato en `rules/common/spec-driven-development.md`).
 2. **Tareas**: Regístralas en `docs/tareas/SPEC-XXX-tareas.json` (formato Taskmaster-compatible, un archivo JSON por SPEC: tasks con `id`, `content`, `status`, `priority`, `dependencies`, `subtasks`). **No crear `.taskmaster/`** — el usuario lo eliminó; las tareas viven en `docs/tareas/`.
-3. **Ramas**: Trabaja en ramas feature separadas. Nunca commitees directo a `main`.
-4. **TypeScript**: Todo el código debe pasar validaciones de tipos sin errores antes de commitear.
-5. **Tests**: Genera tests unitarios para todo el código desarrollado.
-6. **Salvaguardas**: Nunca uses `--no-verify` o `-n` para saltarte los hooks de Husky.
-7. **Documentación**: La documentación vive en `docs/` (vault Obsidian). Usa wikilinks `[[...]]`, frontmatter y callouts.
+3. **Ramas**:
+   - **Repos de desarrollo** (`qr-app`, `backend-portaqr`, `qr-cms`, `e2e-tests-portaqr`): crea una rama feature por SPEC en **cada repo afectado** (`feat/spec-XXX-descripcion`). Nunca commitees directo a `main` en estos repos.
+   - **Repo principal** (`plataforma_qr_cursor`, donde viven `docs/`, `AGENTS.md`, `rules/`): **NO usar ramas** — los cambios de documentación y tareas se commitean **directo a `main`**.
+4. **Ciclo por tarea**: implementa cada tarea con su **test unitario** (nuevo o actualizado), valida (`tsc --noEmit`, `lint`, `jest`), haz un **commit atómico** por tarea, y **marca la tarea como `done` en tiempo real** (no al final) para reflejar el avance.
+5. **Tests E2E**: agrega tests E2E (Playwright) en `e2e-tests-portaqr` para los **flujos que toca la SPEC**.
+6. **TypeScript**: Todo el código debe pasar validaciones de tipos sin errores antes de commitear.
+7. **Salvaguardas**: Nunca uses `--no-verify` o `-n` para saltarte los hooks de Husky.
+8. **Documentación**: La documentación vive en `docs/` (vault Obsidian). Usa wikilinks `[[...]]`, frontmatter y callouts.
 
 ## Herramientas de análisis de código
 
