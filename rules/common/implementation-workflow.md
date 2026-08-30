@@ -32,13 +32,14 @@ Para **cada** tarea del `SPEC-XXX-tareas.json`:
 
 1. **Implementar** la tarea en el repo de desarrollo correspondiente.
 2. **Escribir/actualizar el test unitario** que valida el flujo modificado (Jest). Si el flujo no tiene test, **crearlo**.
-3. **Validar** que el test nuevo y los existentes pasan:
+3. **Variables de entorno**: si la tarea introduce variables nuevas, **agrégalas al `.env.example`** del proyecto con su documentación (qué hace, valores aceptados, uso, ejemplo). Ver `rules/common/environment-variables.md`.
+4. **Validar** que el test nuevo y los existentes pasan:
    - `tsc --noEmit` (sin errores de tipos)
    - `lint`
    - `jest` (unitarios)
-4. **Commit** atómico en el repo de desarrollo con mensaje descriptivo en español (ej. `feat(spec-026): CheckoutSteps con indicador de pasos`).
-5. **Marcar la tarea como `done`** en `docs/tareas/SPEC-XXX-tareas.json` **inmediatamente**, anotando en `description` el resultado (tests verdes, commit hash). Esto permite ver el avance en cualquier momento.
-6. **Commit** del archivo de tareas actualizado en el repo principal (`main`).
+5. **Commit** atómico en el repo de desarrollo con mensaje descriptivo en español (ej. `feat(spec-026): CheckoutSteps con indicador de pasos`).
+6. **Marcar la tarea como `done`** en `docs/tareas/SPEC-XXX-tareas.json` **inmediatamente**, anotando en `description` el resultado (tests verdes, commit hash). Esto permite ver el avance en cualquier momento.
+7. **Commit** del archivo de tareas actualizado en el repo principal (`main`).
 
 ## 4. Tests E2E
 
@@ -58,6 +59,7 @@ Para **cada** tarea del `SPEC-XXX-tareas.json`:
 - [ ] Tareas desglosadas en `docs/tareas/SPEC-XXX-tareas.json` desde el inicio
 - [ ] Rama feature creada en **cada** repo de desarrollo afectado
 - [ ] Cada tarea tiene su test unitario (nuevo o actualizado)
+- [ ] Variables nuevas documentadas en el `.env.example` (ver `rules/common/environment-variables.md`)
 - [ ] Cada tarea tiene su commit atómico
 - [ ] Tareas marcadas `done` **en tiempo real**, no al final
 - [ ] Tests E2E agregados para los flujos de la SPEC

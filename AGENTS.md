@@ -60,10 +60,11 @@ plataforma_qr_cursor/
    - **Repos de desarrollo** (`qr-app`, `backend-portaqr`, `qr-cms`, `e2e-tests-portaqr`): crea una rama feature por SPEC en **cada repo afectado** (`feat/spec-XXX-descripcion`). Nunca commitees directo a `main` en estos repos.
    - **Repo principal** (`plataforma_qr_cursor`, donde viven `docs/`, `AGENTS.md`, `rules/`): **NO usar ramas** — los cambios de documentación y tareas se commitean **directo a `main`**.
 4. **Ciclo por tarea**: implementa cada tarea con su **test unitario** (nuevo o actualizado), valida (`tsc --noEmit`, `lint`, `jest`), haz un **commit atómico** por tarea, y **marca la tarea como `done` en tiempo real** (no al final) para reflejar el avance.
-5. **Tests E2E**: agrega tests E2E (Playwright) en `e2e-tests-portaqr` para los **flujos que toca la SPEC**.
-6. **TypeScript**: Todo el código debe pasar validaciones de tipos sin errores antes de commitear.
-7. **Salvaguardas**: Nunca uses `--no-verify` o `-n` para saltarte los hooks de Husky.
-8. **Documentación**: La documentación vive en `docs/` (vault Obsidian). Usa wikilinks `[[...]]`, frontmatter y callouts.
+5. **Variables de entorno**: toda variable nueva debe documentarse en el `.env.example` del proyecto (qué hace, valores aceptados, uso, ejemplo). Ver `rules/common/environment-variables.md`.
+6. **Tests E2E**: agrega tests E2E (Playwright) en `e2e-tests-portaqr` para los **flujos que toca la SPEC**.
+7. **TypeScript**: Todo el código debe pasar validaciones de tipos sin errores antes de commitear.
+8. **Salvaguardas**: Nunca uses `--no-verify` o `-n` para saltarte los hooks de Husky.
+9. **Documentación**: La documentación vive en `docs/` (vault Obsidian). Usa wikilinks `[[...]]`, frontmatter y callouts.
 
 ## Herramientas de análisis de código
 
