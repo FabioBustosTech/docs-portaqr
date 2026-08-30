@@ -31,6 +31,7 @@ Plataforma web para la **creación, gestión y seguimiento de códigos QR**. Per
 | Autenticación | JWT (backend), NextAuth (frontend)                                    |
 | Pagos         | Webpay / Transbank (`transbank-sdk`)                                  |
 | Email         | Nodemailer + plantillas EJS                                           |
+| CMS           | Payload CMS 3.x (Next.js) + Cloudflare R2 + MongoDB (`portaqr_cms`)   |
 | Infraestructura | Docker Compose, Railway                                              |
 
 ---
@@ -52,15 +53,21 @@ flowchart LR
         MONO["backend-portaqr<br/>(NestJS :3004) — monolito modular en migración"]
     end
 
-    DB[("MongoDB<br/>BD 'sistema'")]
+    subgraph CMS["CMS"]
+        QR_CMS["qr-cms<br/>(Payload CMS :3005)"]
+    end
+
+    DB[("MongoDB<br/>BD 'sistema' + 'portaqr_cms'")]
 
     APP -->|"HTTP + JWT"| BFF
     APP -->|"HTTP + JWT"| MONO
+    APP -->|"REST API (server-side)"| QR_CMS
     BFF -->|"HTTP"| US
     BFF -->|"HTTP"| QRS
     US --> DB
     QRS --> DB
     MONO --> DB
+    QR_CMS --> DB
 ```
 
 > **Nota**: `bff-service`, `user-service` y `qr-service` están siendo unificados en `backend-portaqr` (SPEC-001). El frontend puede apuntar a cualquiera de los dos bordes durante la transición.
@@ -74,7 +81,8 @@ flowchart LR
 | `bff-service`   | NestJS               | 3001   | BFF (proxies hacia user/qr-service) — ⚠️ deprecado |
 | `user-service`  | NestJS               | 3002   | Usuarios, auth (JWT), email — ⚠️ deprecado     |
 | `qr-service`    | NestJS               | 3003   | Dominio QR: qr, scan, plan, pet-tag, webpay… — ⚠️ deprecado |
-| `mongo`         | MongoDB              | 27017  | Base de datos `sistema`                        |
+| `qr-cms`        | Payload CMS 3.x (Next.js) | 3005 | CMS del blog (admin + REST API) — BD `portaqr_cms` |
+| `mongo`         | MongoDB              | 27017  | Base de datos `sistema` + `portaqr_cms`        |
 | `mongo-express` | mongo-express        | 8081   | UI de administración de MongoDB                |
 
 ---
@@ -99,6 +107,7 @@ Servicios disponibles tras el arranque:
 | ------------- | ---------------------------------- |
 | Frontend      | http://localhost:3000              |
 | API (BFF)     | http://localhost:3001              |
+| CMS (admin)   | http://localhost:3005/admin        |
 | Mongo Express | http://localhost:8081              |
 | Healthcheck   | http://localhost:3001/health       |
 
@@ -112,6 +121,7 @@ Cada servicio lee su configuración desde su archivo `.env` (no versionado):
 | `bff-service`    | `bff-service/bffService.env` |
 | `user-service`   | `user-service/userService.env` |
 | `qr-service`     | `qr-service/qrService.env` |
+| `qr-cms`         | `qr-cms/qrCms.env`         |
 | `backend-portaqr`| `backend-portaqr/backendPortaqr.env` |
 
 > [!WARNING]
@@ -128,6 +138,7 @@ plataforma_qr_cursor/
 │   ├── mongo-init.js       # Inicialización de MongoDB
 │   ├── backend-portaqr/    # Monolito modular NestJS (activo)
 │   ├── qr-app/             # Frontend Next.js (activo)
+│   ├── qr-cms/             # CMS del blog — Payload CMS 3.x (activo)
 │   ├── e2e-tests-portaqr/  # Tests E2E (activo)
 │   ├── bff-service/        # BFF NestJS (deprecado → backend-portaqr)
 │   ├── user-service/       # Microservicio usuarios (deprecado → backend-portaqr)
@@ -151,6 +162,7 @@ Cada componente del entorno se versiona en un repositorio remoto independiente:
 | ---------- | ----------- | ----------- |
 | `qr-app` | [FabioBustosTech/qr-app](https://github.com/FabioBustosTech/qr-app) | Frontend Next.js de la plataforma |
 | `backend-portaqr` | [FabioBustosTech/backend-portaqr](https://github.com/FabioBustosTech/backend-portaqr) | Monolito modular NestJS (fusión de los 3 servicios) |
+| `qr-cms` | [FabioBustosTech/cms-qr-portaqr](https://github.com/FabioBustosTech/cms-qr-portaqr) | CMS del blog (Payload CMS 3.x) |
 | `e2e-tests-portaqr` | [FabioBustosTech/e2e-tests-portaqr](https://github.com/FabioBustosTech/e2e-tests-portaqr) | Suite de tests E2E de la plataforma |
 
 ### Deprecados
@@ -174,6 +186,16 @@ Cada componente del entorno se versiona en un repositorio remoto independiente:
 | [ADR-001-01](docs/adr/ADR-001-01-monolito-modular-backend-portaqr.md) | Decisión: monolito modular backend-portaqr |
 | [ADR-001-02](docs/adr/ADR-001-02-jwtstrategy-con-bd.md) | Decisión: JwtStrategy con consulta a BD |
 | [ADR-001-03](docs/adr/ADR-001-03-controllers-user-qr-service-como-base.md) | Decisión: controllers de user/qr-service como base |
+
+### Blog + CMS (SPEC-023)
+
+| Spec | Descripción |
+| ---- | ----------- |
+| [SPEC-023](docs/spec/SPEC-023-blog-payload-cms-isr.md) | Blog con Payload CMS + Cloudflare R2 + MongoDB + ISR en qr-app |
+| [SPEC-023-A](docs/spec/SPEC-023-A-imagenes-cms-blog.md) | Pipeline de imágenes (WebP, sanitización, aspect ratios) + layouts |
+| [SPEC-023-B](docs/spec/SPEC-023-B-blog-avanzado-toc-autores-cta.md) | Blog avanzado: autores (E-E-A-T), TOC, CTA, relacionados, schema BlogPosting |
+| [SPEC-023-C](docs/spec/SPEC-023-C-blog-hibrido-isr-inmediato.md) | Blog híbrido ISR inmediato — revalidación granular por post |
+| [SPEC-023-D](docs/spec/SPEC-023-D-media-r2-flag-y-binding.md) | Flag R2_ENABLED para media + binding de carpeta media en qr-cms |
 
 ### API pública (contrato BFF)
 
