@@ -17,9 +17,8 @@
     "chrome-devtools": {
       "type": "local",
       "command": [
-        "npx",
-        "-y",
-        "chrome-devtools-mcp@0.6.1"
+        "node",
+        "C:/Users/Admin/AppData/Roaming/npm/node_modules/chrome-devtools-mcp/build/src/index.js"
       ],
       "enabled": true
     },
@@ -28,6 +27,22 @@
       "command": [
         "playwright-mcp"
       ],
+      "enabled": true
+    },
+    "payload": {
+      "type": "remote",
+      "url": "http://localhost:3005/api/mcp",
+      "headers": {
+        "Authorization": "Bearer pk_mcp_ed0931dcc2e69adac9f78488bf7531b96c3c01c0c02efee1"
+      },
+      "enabled": true
+    },
+    "payload-prod": {
+      "type": "remote",
+      "url": "https://cms-qr-portaqr-production.up.railway.app/api/mcp",
+      "headers": {
+        "Authorization": "Bearer 2b9a69a3-d834-4782-8327-7239f54c5cb7"
+      },
       "enabled": true
     }
   }
