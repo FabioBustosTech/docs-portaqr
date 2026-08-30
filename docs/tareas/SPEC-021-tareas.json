@@ -1,0 +1,74 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-021] Rama feat/spec-021-fecha-vencimiento-tabla-admin-qrs",
+                      "description":  "Rama creada en desarrollo-qr/qr-app desde main. Enfoque: mostrar la fecha de vencimiento (expiration) de cada QR en la tabla admin global /dashboard/admin/qrs (SPEC-015). Verificado: el backend YA expone expiration (schema qr.schema.ts L92, mapper qr-mongo.mapper.ts L21, aggregate findAllWithSearch usa toEntity, API route /api/admin/qr propaga items tal cual, interfaz QrResponse.expiration L190) â€” NO se toca backend-portaqr. Solo frontend: columna Vencimiento en QrsAdminTable.tsx.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-021",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-021] Frontend UI: columna Vencimiento en QrsAdminTable.tsx",
+                      "description":  "qr-app: en src/components/admin/QrsAdminTable.tsx agregar columna \u0027Vencimiento\u0027 (header tras \u0027Estado\u0027, antes de \u0027Contenido\u0027) + celda por fila: (1) si qr.expiration existe â†’ formatDate(qr.expiration) (helper src/lib/format.ts, es-ES dd/mm/aaaa); (2) si no hay expiration â†’ \u0027No expira\u0027 (mismo criterio que QrCard.tsx L99); (3) si new Date(qr.expiration) \u003c new Date() â†’ fecha en rojo (text-red-600) + title \u0027Vencido\u0027 (resaltado visual de vencidos). Sin cambios de contrato de datos ni de backend.",
+                      "status":  "done",
+                      "priority":  "high",
+                      "tag":  "spec-021",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-021] Tests: ampliar page.spec.tsx con casos de vencimiento",
+                      "description":  "qr-app: ampliar src/app/dashboard/admin/qrs/page.spec.tsx (11 tests existentes de SPEC-015) con: (1) la columna \u0027Vencimiento\u0027 es visible en el header; (2) un QR con expiration muestra la fecha formateada dd/mm/aaaa; (3) un QR sin expiration muestra \u0027No expira\u0027; (4) un QR con expiration anterior a hoy muestra la fecha resaltada (rojo/vencido). Criterios CA-02..04.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-021",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-021] ValidaciÃ³n: tsc, lint, build, tests + verificaciÃ³n navegador",
+                      "description":  "tsc --noEmit + lint + build en qr-app. Suite de tests completa verde (incluye page.spec.tsx ampliado). Verificar sin regresiÃ³n en SPEC-015 (vista admin QRs), SPEC-013 (paginaciÃ³n users) y SPEC-014 (perfil/desactivaciÃ³n). VerificaciÃ³n en navegador en /dashboard/admin/qrs: columna Vencimiento con fechas formateadas, \u0027No expira\u0027 en QRs sin fecha y vencidos en rojo.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-021",
+                      "dependencies":  [
+                                           "3"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-021] Cierre: SPEC a implementado, commits y merge",
+                      "description":  "SPEC-021 a status implementado, tareas done, commits en espaÃ±ol por tarea, merge de la rama.",
+                      "status":  "done",
+                      "priority":  "medium",
+                      "tag":  "spec-021",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}

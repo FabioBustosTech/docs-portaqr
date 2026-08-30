@@ -4,7 +4,7 @@
             "id": "1",
             "content": "[SPEC-025] Preparación: rama feat/spec-025-colores-internos + tag pre-spec-025-colores",
             "description": "Crear rama desde feat/spec-024-look-feel-portaqrtest (o main si ya se mergeó) y tag de seguridad pre-spec-025-colores en el repo qr-app (punto de restauración exacto).",
-            "status": "pending",
+            "status": "done",
             "priority": "high",
             "tag": "spec-025",
             "dependencies": [],
@@ -13,23 +13,23 @@
         {
             "id": "2",
             "content": "[SPEC-025] Fase 1 - Re-tokenización CSS: paleta nueva en los tokens legacy (solo globals.css)",
-            "description": "Redefinir en globals.css los VALORES de la capa puente: escala accent-50..950 -> rampa brand (accent-500=var(--brand), 600/700=color-mix más oscuro, 50=brand-soft), escala primary-50..950 -> rampa neutra hue 250 con la lightness de la escala vieja, utilidades bg-light-*/bg-dark-* -> var(--background|--card|--secondary), text-light-*/text-dark-* -> var(--foreground|--muted-foreground). CERO cambios fuera de globals.css. Calibrar hover accent-600 en navegador.",
-            "status": "pending",
+            "description": "Redefinir en globals.css los VALORES de la capa puente: escala accent-50..950 -> rampa brand (accent-500=var(--brand), 600/700=color-mix más oscuro, 50=brand-soft), escala primary-50..950 -> rampa neutra hue 250 con la lightness de la escala vieja, utilidades bg-light-*/bg-dark-* -> var(--background|--card|--secondary), text-light-*/text-dark-* -> var(--foreground|--muted-foreground). CERO cambios fuera de globals.css. Calibrar hover accent-600 en navegador. [2026-08-25: CSS re-tokenizado y QA automático verde]",
+            "status": "in-progress",
             "priority": "high",
             "tag": "spec-025",
             "dependencies": ["1"],
             "subtasks": [
-                { "id": "2.1", "content": "Re-tokenizar escala accent-* a rampa brand", "status": "pending" },
-                { "id": "2.2", "content": "Re-tokenizar escala primary-* a neutra hue 250", "status": "pending" },
-                { "id": "2.3", "content": "Re-tokenizar utilidades bg-light-*/bg-dark-*/text-light-*/text-dark-* a vars semánticas", "status": "pending" },
-                { "id": "2.4", "content": "Calibración de hover (accent-600) y contrastes en navegador", "status": "pending" }
+                { "id": "2.1", "content": "Re-tokenizar escala accent-* a rampa brand", "status": "done" },
+                { "id": "2.2", "content": "Re-tokenizar escala primary-* a neutra hue 250", "status": "done" },
+                { "id": "2.3", "content": "Re-tokenizar utilidades bg-light-*/bg-dark-*/text-light-*/text-dark-* a vars semánticas", "status": "done" },
+                { "id": "2.4", "content": "Calibración de hover (accent-600) y contrastes en navegador — resolución verificada en runtime; falta ojo humano sobre hover/contrastes del portal (requiere sesión)", "status": "pending" }
             ]
         },
         {
             "id": "3",
             "content": "[SPEC-025] QA Fase 1 - revisión visual light/dark portal completo + públicas con compartidos",
-            "description": "tsc/lint/jest/build verdes (deben quedar intactos - no se toca código). Guardián legacy-tokens.guard.spec verde. Revisión visual light/dark de: dashboard home, qr, qr/stats, qr/pay, qr/pay/webpay, qr/activate, admin/qrs, admin/pet-tag, users, settings, plan/edit, contact + login, signup, contacto, onboarding, forgot-password, verify-email, home (generador), pet-tag público. Commit único de Fase 1.",
-            "status": "pending",
+            "description": "QA automático YA VERDE (2026-08-25): tsc/lint/jest 414/414 (guardián 3/3)/build OK, tokens re-tokenizados verificados en CSS de producción y en runtime del navegador (accent-500 == --brand, bg-dark-secondary -> var(--card)). Pendiente manual: revisión visual de dashboard home, qr, qr/stats, qr/pay, qr/pay/webpay, qr/activate, admin/qrs, admin/pet-tag, users, settings, plan/edit, contact + login, signup, contacto, onboarding, forgot-password, verify-email, home (generador), pet-tag público; calibración fina del hover de CTAs. Commit único de Fase 1 al aprobar el visual.",
+            "status": "in-progress",
             "priority": "high",
             "tag": "spec-025",
             "dependencies": ["2"],

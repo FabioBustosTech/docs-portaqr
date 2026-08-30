@@ -9,7 +9,7 @@ tags:
   - seo
   - cloudflare
   - infraestructura
-status: borrador
+status: desestimada
 aliases:
   - SPEC-010
   - Blog Astro independiente
@@ -17,15 +17,18 @@ aliases:
 
 # SPEC-010: Blog independiente con Astro + Cloudflare Pages
 
-> [!abstract] Decisión clave
+> [!warning] DESESTIMADA (2026-08-19)
+> Esta spec queda **desestimada** por decisión del equipo. El blog se implementará con **Payload CMS + Cloudflare R2 + MongoDB + ISR en qr-app** — ver [[SPEC-023-blog-payload-cms-isr]]. Se conserva como registro histórico de la alternativa evaluada (Astro + Cloudflare Pages).
+
+> [!abstract] Decisión clave (histórica)
 > Extraer el blog del monolito `qr-app` (Next.js) a un **proyecto Astro independiente** (`qr-blog`) desplegado en **Cloudflare Pages**, de modo que **publicar un artículo = push de un archivo Markdown = build de ~15 s del blog** sin tocar jamás la plataforma (Railway). El mismo dominio `portaqr.cl` se mantiene gracias a una **Origin Rule de Cloudflare** que enruta `/blog/*` → Pages y `/*` → Railway, sin subdominios (SEO intacto) y sin cookies/sesiones compartidas.
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Desestimada (2026-08-19)
 > - **Fecha:** 2026-08-09
 > - **Autor:** Equipo Plataforma QR
 > - **Componente destino:** `desarrollo-qr/qr-blog/` (nuevo) + `desarrollo-qr/qr-app/` (limpieza) + Cloudflare (regla)
-> - **Relacionado:** [[SPEC-003]] (auditoría dependencias qr-app — contexto de deploy), [[SPEC-004]] (React Doctor qr-app)
+> - **Relacionado:** [[SPEC-003]] (auditoría dependencias qr-app — contexto de deploy), [[SPEC-004]] (React Doctor qr-app), [[SPEC-023-blog-payload-cms-isr]] (reemplaza)
 
 ---
 

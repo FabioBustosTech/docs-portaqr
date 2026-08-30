@@ -1,0 +1,245 @@
+﻿{
+    "tasks":  [
+                  {
+                      "id":  "1",
+                      "content":  "[SPEC-023] Rama feat/spec-023-blog-payload-cms-isr",
+                      "description":  "Rama creada en desarrollo-qr desde main. Objetivo: blog con Payload CMS (app separada qr-cms) + Cloudflare R2 (imagenes) + MongoDB (BD portaqr_cms) + YouTube (videos) + ISR en qr-app (/blog y /blog/[slug]). Reemplaza la SPEC-010 (Astro + Cloudflare Pages, desestimada 2026-08-19). El blog publico vive en qr-app con ISR (revalidate 3600 + webhook on-demand); el CMS es app Next.js separada (qr-cms, puerto 3005) cuyo admin NO se expone en portaqr.cl (decision usuario 2026-08-19: en produccion se usa URL directa de Railway, solo lectura via REST).",
+                      "status":  "pending",
+                      "priority":  "high",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "2",
+                      "content":  "[SPEC-023] Crear repo cms-qr-portaqr + proyecto qr-cms (Payload 3.x + Next.js)",
+                      "description":  "REPO INDEPENDIENTE (decision usuario 2026-08-19): qr-cms tiene su propio repositorio Git (sugerido cms-qr-portaqr, patron del proyecto: cada servicio es un repo separado clonado en desarrollo-qr/\u003cservicio\u003e/; el .gitignore raiz ya ignora desarrollo-qr/* excepto docker-compose.yml). Pasos: (1) crear repo Git cms-qr-portaqr; (2) clonarlo en desarrollo-qr/qr-cms; (3) npx create-payload-app@latest (template blank o website) dentro; (4) versionar en el repo: Dockerfile (ya creado), .dockerignore (ya creado), .env.example (ya creado); qrCms.env es local (no versionado). Dependencias: payload, @payloadcms/next, @payloadcms/ui, @payloadcms/db-mongodb, @payloadcms/richtext-lexical, @payloadcms/storage-s3, sharp. next.config.ts envuelto con withPayload. NOTA: qr-cms es proyecto independiente - puede usar la version de Next que Payload requiera (no necesariamente 16; verificar compatibilidad en instalacion). qrCms.env con PAYLOAD_SECRET, DATABASE_URL=mongodb://root:example@mongo_qr:27017/portaqr_cms?authSource=admin, R2_BUCKET/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY/R2_ENDPOINT/R2_PUBLIC_URL, QR_APP_URL=http://qr-app:3000, REVALIDATE_SECRET, SERVER_PORT=3005. Verificar que el admin responde en http://localhost:3005/admin.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "3",
+                      "content":  "[SPEC-023] Configurar Payload: MongoDB + R2 + colecciones",
+                      "description":  "qr-cms/payload.config.ts: mongooseAdapter({ url: DATABASE_URL }) (BD portaqr_cms, misma instancia mongo:7.0 del stack), lexicalEditor(), s3Storage con config R2 (region \u0027auto\u0027, forcePathStyle: true, endpoint solo uploads, R2_PUBLIC_URL para servir, disablePayloadAccessControl + generateFileURL), sharp. Colecciones: Users (auth admin), Media (upload -\u003e R2, formatos jpg/png/webp), Categories (name, slug), Posts (RF-3: title requerido, slug unico indexado, excerpt, content richText Lexical, cover upload-\u003emedia, category relationship, tags array, author text, youtubeUrl text opcional, publishedAt date, status select draft|published default draft). SEO: integrar @payloadcms/plugin-seo (collections [\u0027posts\u0027], uploadsCollection \u0027media\u0027, generateTitle \u0027{title} | Porta QR\u0027, generateDescription excerpt, generateImage cover) + campos custom via fields (RF-3.1): canonicalURL, noindex checkbox, keywords, ogTitle/ogDescription/ogImage, ogType select article|website, twitterTitle/twitterDescription/twitterImage, twitterCard select summary|summary_large_image, structuredData JSON. Verificar previews en vivo en el admin (Google/OG/Twitter).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "4",
+                      "content":  "[SPEC-023] Webhook de revalidacion en Posts (afterChange/afterDelete)",
+                      "description":  "qr-cms/collections/Posts/hooks/revalidate.ts: hook revalidatePost que hace POST {QR_APP_URL}/api/revalidate con header x-revalidate-secret = REVALIDATE_SECRET y body { slug } en try/catch (error -\u003e payload.logger.error, no re-throw - RN-4). Registrado en afterChange y afterDelete de Posts. Unit tests: hook llama fetch con header correcto; sin REVALIDATE_SECRET/QR_APP_URL -\u003e skip; fetch falla -\u003e log sin throw.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "3"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "5",
+                      "content":  "[SPEC-023] Seed: migrar los 6 posts existentes + imagenes a R2",
+                      "description":  "Migrar los 6 posts hardcodeados de qr-app/src/app/blog/page.tsx a la coleccion Posts (status published, publishedAt original, excerpt actual, slug segun tabla SPEC-023 3.7: marketing-digital, seguridad, tendencias-2024, qr-restaurantes, tipos-codigos-qr, qr-eventos). Subir public/blog/*.jpg a la coleccion Media (-\u003e R2) y asignar como cover. Script de seed o insercion via admin. Limpieza posterior en qr-app: eliminar array hardcodeado y public/blog/*.jpg del bundle.",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "3"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "6",
+                      "content":  "[SPEC-023] Blog publico en qr-app con ISR (/blog y /blog/[slug])",
+                      "description":  "qr-app: (1) src/app/blog/page.tsx -\u003e server component con fetch a {CMS_URL}/api/posts?where[status][equals]=published\u0026sort=-publishedAt\u0026limit=100\u0026depth=1 con next: { tags: [\u0027blog\u0027] } y cache force-cache; export const revalidate = 3600; si fetch falla -\u003e lista vacia (RN-4, se sirve cache). (2) NUEVO src/app/blog/[slug]/page.tsx: export const revalidate = 3600, dynamicParams = true, generateStaticParams (slugs publicados), generateMetadata (mapeo completo del bloque seo RF-3.1: title/description/OG/Twitter/canonical/robots con regla de precedencia - ver tarea 8), render con cover (next/image), RichText Lexical del content, YouTubeEmbed si youtubeUrl, JSON-LD Article; post no encontrado -\u003e notFound(). (3) CMS_URL en qrApp.env (server-side, NUNCA NEXT_PUBLIC_) + REVALIDATE_SECRET compartido. Unit tests: page renderiza posts publicados; slug inexistente -\u003e notFound; metadata correcta.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "3",
+                                           "5"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "6.1",
+                                           "content":  "src/app/blog/page.tsx -\u003e server component con ISR (revalidate 3600) + fetch a CMS (tags [\u0027blog\u0027]) + grid de posts (RN-4: falla -\u003e lista vacia)",
+                                           "status":  "pending",
+                                           "priority":  "high"
+                                       },
+                                       {
+                                           "id":  "6.2",
+                                           "content":  "src/app/blog/[slug]/page.tsx -\u003e generateStaticParams + generateMetadata (bloque seo RF-3.1) + render (cover, RichText Lexical, YouTubeEmbed, JSON-LD) + notFound",
+                                           "status":  "pending",
+                                           "priority":  "high"
+                                       },
+                                       {
+                                           "id":  "6.3",
+                                           "content":  "Unit tests: page renderiza posts publicados; slug inexistente -\u003e notFound; metadata correcta",
+                                           "status":  "pending",
+                                           "priority":  "high"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "6b",
+                      "content":  "[SPEC-023] Busqueda y filtros del blog (RF-11/RF-12)",
+                      "description":  "qr-app: (1) NUEVO src/services/blog.service.ts (clase BlogService, patron qr.service.ts): getPosts({ page, limit, q, tag }) construye query params de Payload - where[status][equals]=published, sort=-publishedAt, page/limit/depth=1, where[tags][contains]=tag si tag, where[or][0][title][like]=%q% + where[or][1][excerpt][like]=%q% si q - con next: { tags: [\u0027blog\u0027] } y cache force-cache; si fetch falla -\u003e { docs: [], totalPages: 0 } (RN-4); getPostBySlug(slug); getAllTags() (dedupe de tags de posts publicados). (2) src/app/blog/page.tsx: lee searchParams (q/tag/page, Promise en Next 16), llama getPosts + getAllTags, renderiza BlogSearchBar + BlogTagFilter + grid BlogPostCard + BlogPagination. (3) NUEVO src/components/blog/: BlogSearchBar (client, submit -\u003e router.push(\u0027/blog?q=...\u0027), NO fetch en cliente), BlogTagFilter (client, chips -\u003e router.push(\u0027/blog?tag=...\u0027), tag activo resaltado), BlogPostCard (server, cover next/image R2 + titulo + excerpt + categoria + fecha + tags), BlogPagination (reutiliza ui/PaginationControls.tsx, preserva q/tag en links). (4) NUEVO src/interfaces/blog.ts (tipos Post, PaginatedResponse). Unit tests: getPosts construye query params correctos (q, tag, combinados); getAllTags dedupe; BlogSearchBar navega con q; BlogTagFilter navega con tag.",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "6"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "6b.1",
+                                           "content":  "src/interfaces/blog.ts (tipos Post, PostSeo, PaginatedResponse) + src/services/blog.service.ts (getPosts/getPostBySlug/getAllTags) + unit tests de construccion de query params",
+                                           "status":  "pending",
+                                           "priority":  "high"
+                                       },
+                                       {
+                                           "id":  "6b.2",
+                                           "content":  "src/components/blog/BlogSearchBar.tsx (client) + BlogTagFilter.tsx (client) + unit tests (navegacion con q/tag)",
+                                           "status":  "pending",
+                                           "priority":  "high"
+                                       },
+                                       {
+                                           "id":  "6b.3",
+                                           "content":  "src/components/blog/BlogPostCard.tsx (server) + BlogPagination.tsx (reutiliza ui/PaginationControls) + unit tests",
+                                           "status":  "pending",
+                                           "priority":  "high"
+                                       },
+                                       {
+                                           "id":  "6b.4",
+                                           "content":  "src/app/blog/page.tsx: searchParams (q/tag/page) + getPosts + getAllTags + render de componentes de busqueda",
+                                           "status":  "pending",
+                                           "priority":  "high"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "7",
+                      "content":  "[SPEC-023] Route handler /api/revalidate en qr-app",
+                      "description":  "qr-app/src/app/api/revalidate/route.ts: POST que valida header x-revalidate-secret === REVALIDATE_SECRET (si no -\u003e 401, CA-09), ejecuta revalidateTag(\u0027blog\u0027) + revalidatePath(\u0027/blog\u0027) y responde { revalidated: true }. Unit tests: sin secreto -\u003e 401; con secreto -\u003e 200 y revalidateTag/revalidatePath llamados (mock de next/cache).",
+                      "status":  "completed",
+                      "priority":  "high",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "6"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "7.1",
+                                           "content":  "src/app/api/revalidate/route.ts (POST, valida secreto, revalidateTag + revalidatePath)",
+                                           "status":  "pending",
+                                           "priority":  "high"
+                                       },
+                                       {
+                                           "id":  "7.2",
+                                           "content":  "Unit tests: sin secreto -\u003e 401; con secreto -\u003e 200 y revalidate llamados (mock next/cache)",
+                                           "status":  "pending",
+                                           "priority":  "high"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "8",
+                      "content":  "[SPEC-023] SEO: sitemap con posts + remotePatterns R2 + YouTubeEmbed",
+                      "description":  "qr-app: (1) src/app/sitemap.ts: agregar posts publicados (fetch a CMS con tags [\u0027blog\u0027]) a las rutas existentes (el sitemap ya es force-dynamic, no rompe ISR); drafts NUNCA en sitemap (RN-1). (2) next.config.ts: remotePatterns para el dominio publico de R2 en images (next/image). (3) NUEVO src/components/blog/YouTubeEmbed.tsx (client): extrae videoId de youtubeUrl (regex watch?v=/youtu.be//embed/), iframe https://www.youtube-nocookie.com/embed/{videoId}, loading lazy, allowFullScreen, aspect-video. (4) generateMetadata de /blog/[slug] mapea TODOS los campos del bloque seo (RF-3.1) con regla de precedencia: title = seo.meta.title ?? post.title; description = seo.meta.description ?? excerpt; canonical = seo.canonicalURL ?? baseUrl/blog/slug; robots noindex si seo.noindex; openGraph (ogTitle/ogDescription/ogImage/ogType/url/publishedTime/modifiedTime); twitter (twitterCard/twitterTitle/twitterDescription/twitterImage); JSON-LD Article con override por seo.structuredData. Unit tests: YouTubeEmbed con URL valida -\u003e iframe youtube-nocookie; URL invalida -\u003e null; mapeo SEO con overrides y sin overrides.",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "6"
+                                       ],
+                      "subtasks":  [
+                                       {
+                                           "id":  "8.1",
+                                           "content":  "src/components/blog/YouTubeEmbed.tsx (client) + unit tests (URL valida -\u003e youtube-nocookie; invalida -\u003e null)",
+                                           "status":  "pending",
+                                           "priority":  "medium"
+                                       },
+                                       {
+                                           "id":  "8.2",
+                                           "content":  "next.config.ts: remotePatterns para dominio publico de R2 en images",
+                                           "status":  "pending",
+                                           "priority":  "medium"
+                                       },
+                                       {
+                                           "id":  "8.3",
+                                           "content":  "src/app/sitemap.ts: agregar posts publicados (drafts nunca)",
+                                           "status":  "pending",
+                                           "priority":  "medium"
+                                       }
+                                   ]
+                  },
+                  {
+                      "id":  "9",
+                      "content":  "[SPEC-023] docker-compose: servicio qr-cms + variables qr-app",
+                      "description":  "PARCIALMENTE HECHO (2026-08-19): Dockerfile multi-stage creado en desarrollo-qr/qr-cms/Dockerfile (builder/development/production, node:20-alpine, ARG PAYLOAD_SECRET/DATABASE_URL en builder) + .dockerignore + .env.example + qrCms.env local (secretos generados) + servicio qr-cms agregado a docker-compose.yml (puerto 3005, healthcheck /admin, depends_on mongo) + qrApp.env actualizado con CMS_URL=http://qr-cms:3005 y REVALIDATE_SECRET compartido. docker compose config valido. PENDIENTE: verificar arranque completo del stack (requiere que exista el proyecto qr-cms - tarea 2).",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "10",
+                      "content":  "[SPEC-023] Verificacion final CA-01 a CA-11",
+                      "description":  "Validar: CA-01 admin local 3005 crea/edita posts; CA-02 publicar post -\u003e aparece en /blog sin redeploy (webhook + ISR on-demand en navegador); CA-03 /blog/[slug] 200 con metadata + JSON-LD valido; CA-04 sitemap con posts publicados y sin drafts; CA-05 imagenes servidas desde R2; CA-06 youtubeUrl embebido con youtube-nocookie; CA-07 6 posts migrados accesibles; CA-08 qr-app sin regresion (tsc --noEmit, lint, build, suite tests); CA-09 /api/revalidate 401 sin secreto / 200 con secreto; CA-10 con qr-cms apagado /blog sigue respondiendo (cache ISR); CA-11 /blog?q=\u003ctexto\u003e filtra por titulo/excerpt y /blog?tag=\u003ctag\u003e filtra por tag (combinables, URL compartible). Actualizar SPEC-023 a estado implementado al cerrar.",
+                      "status":  "pending",
+                      "priority":  "high",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "4",
+                                           "6b",
+                                           "7",
+                                           "8",
+                                           "9"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  },
+                  {
+                      "id":  "11",
+                      "content":  "[SPEC-023-C] Mejoras listado blog desde prototipo portaqrtest-main (destacado, stats, meta tarjetas, paginacion numerica)",
+                      "description":  "Aplicadas al blog de qr-app las mejoras del prototipo /blog (3100): (1) qr-cms: campo featured (checkbox sidebar) en Posts.ts; (2) blog.service.ts: getFeaturedPost() (where featured=true, sort -publishedAt, limit 1) + interfaz Post.featured; (3) BlogFeaturedPost.tsx: tarjeta grande con badge \u0027Artículo destacado\u0027, CTA \u0027Leer ahora\u0027, overlay con categoria + readingTime + fecha; se muestra solo en pagina 1 sin filtros; (4) BlogPostCard: readingTime (\u0027X min de lectura\u0027) + autor (\u0027Por X\u0027); (5) BlogPagination: numeros de pagina con ventana + elipsis (getPageNumbers) preservando q/tag/category; (6) page.tsx: hero con stats (N articulos + N temas para explorar), contador de resultados, estado vacio amigable. REDISENO UI FILTROS (2026-08-20): panel de filtros unificado (borde + fondo) con busqueda con icono de lupa (submit con Enter, sin boton), chips de categoria mas grandes con hover, tags integrados al panel con label \u0027Explora por tag\u0027 + scroll horizontal (se elimino la seccion \u0027Explora por etiquetas\u0027 del final), indicador de filtro activo (\u0027Tag: X\u0027 / \u0027Categoria: X\u0027 / \u0027Resultados para q\u0027) + enlace \u0027Limpiar filtros\u0027. Tests: 111/111 verdes, tsc --noEmit y eslint OK. Verificado en navegador (desktop + filtros activos). UX CATEGORIAS (2026-08-20): la categoria \u0027Bienvenida\u0027 no era tematica (era el post de bienvenida) - renombrada a \u0027Novedades\u0027 en el CMS (name+slug) y el tag \u0027bienvenida\u0027 -\u003e \u0027novedades\u0027. getAllCategories() ahora solo devuelve categorias con posts publicados (2 fetches: posts -\u003e ids en uso -\u003e filtrar). Hallazgo: el hook revalidatePost esta en Posts, no en Categories - actualizar una categoria no dispara revalidacion ISR; limpiar con docker exec qr-app rm -rf /app/.next/cache + restart. DETALLE POST (2026-08-20): mejoras desde el prototipo 3100 aplicadas a /blog/[slug]: (1) link \u0027Volver al blog\u0027 con flecha + breadcrumb; (2) meta compacta en una linea \u0027Categoria · fecha · X min de lectura\u0027 (antes \u0027Tiempo de lectura: X min\u0027 verboso); (3) tags como chips arriba (cerca del titulo, sin \u0027#\u0027) - se eliminaron los tags del final del contenido; (4) seccion relacionados con encabezado \u0027Sigue explorando\u0027 + \u0027Mas ideas para tu marca\u0027 + link \u0027Ver todos\u0027 a /blog. Tests: 112/112 verdes. ICONOGRAFIA (2026-08-20): iconos de calendario (fecha) y reloj (tiempo de lectura) en la meta de /blog/[slug] y en las tarjetas del listado (BlogPostCard) - SVGs heroicons outline inline, aria-hidden, h-4 w-4 en detalle y h-3.5 w-3.5 en tarjetas. La fecha/lectura van en spans propios para accesibilidad y tests. Tests: 112/112 verdes. DESTACADO POR CATEGORIA (2026-08-20): nuevo campo featuredCategory (checkbox sidebar) en Posts.ts del CMS - independiente del featured global. getFeaturedPost(category?) en blog.service.ts: sin category busca featured=true (portada); con category busca featuredCategory=true + category.slug (destacado de esa categoria). page.tsx: el destacado se muestra sin filtros (global) o con solo category (por categoria); con q/tag no se muestra. Post bienvenidos-a-porta-qr marcado con ambos flags. Tests: 114/114 verdes. SEO CATEGORIAS (2026-08-20): URLs limpias por categoria /blog/categoria/[slug] (decision del usuario). Nueva ruta con ISR + generateStaticParams + metadata propia (title \u0027X | Blog Porta QR\u0027, canonical) + destacado de categoria (featuredCategory) + panel de filtros + grid + paginacion. Redireccion permanente (308) desde /blog?category= (solo sin q/tag combinados) via permanentRedirect. Links de categoria actualizados a la ruta limpia (BlogCategoryFilter, BlogPostCard, [slug]/page). Sitemap incluye /blog/categoria/\u003cslug\u003e. Servicio: getCategoryBySlug(). Tests: 122/122 verdes. FIX basePath (2026-08-20): bug - al seleccionar un tag en /blog/categoria/[slug] se perdia la categoria (navegaba a /blog?tag=X). Solucion: prop basePath en BlogTagFilter (hrefs basePath?tag=X), BlogSearchBar (router.push basePath?q=X) y BlogPagination (categoria va en el path, se omite del query cuando hay basePath). La pagina de categoria pasa basePath=/blog/categoria/\u003cslug\u003e a los 3. Tests: 127/127 verdes.",
+                      "status":  "completed",
+                      "priority":  "medium",
+                      "tag":  "spec-023",
+                      "dependencies":  [
+                                           "6b"
+                                       ],
+                      "subtasks":  [
+
+                                   ]
+                  }
+              ]
+}

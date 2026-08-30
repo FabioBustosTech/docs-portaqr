@@ -381,10 +381,11 @@ h1.pantalla-titulo { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
           <select style="width:auto"><option>Más recientes</option><option>Más escaneados</option><option>A-Z</option></select>
         </div>
 
-        <!-- Grid de cards rediseñadas -->
+        <!-- Grid de cards rediseñadas — la info interna viene en la respuesta
+             del listado (SIN llamar al servicio de estadísticas por card) -->
         <div class="qr-grid">
 
-          <!-- Card 1: activa, favorita -->
+          <!-- Card 1: URL — muestra el destino -->
           <article class="qcard">
             <div class="qcard-top">
               <span class="tipo-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg> URL</span>
@@ -396,23 +397,19 @@ h1.pantalla-titulo { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
             <div class="qcard-nombre">
               <span class="estado-dot on"></span> Mi sitio
             </div>
-            <div class="qcard-url">https://mi-tienda.cl</div>
-            <div class="qcard-meta">
-              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg> 128 escaneos</span>
-              <span>·</span>
-              <span>12 mar 2026</span>
+            <div class="qcard-info">
+              <div class="info-fila"><span class="info-ico">🔗</span> https://mi-tienda.cl</div>
             </div>
             <div class="qcard-foot">
-              <button class="btn sm">Estadísticas</button>
+              <button class="btn sm">Editar</button>
               <div class="qcard-iconos">
                 <button class="icon-btn sm" title="Compartir">⇪</button>
-                <button class="icon-btn sm" title="Editar">✎</button>
                 <button class="icon-btn sm" title="Eliminar">🗑</button>
               </div>
             </div>
           </article>
 
-          <!-- Card 2: WhatsApp, no favorita -->
+          <!-- Card 2: WhatsApp — muestra el teléfono -->
           <article class="qcard">
             <div class="qcard-top">
               <span class="tipo-chip wa"><svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px"><path d="M12 2a10 10 0 00-8.6 15L2 22l5.2-1.4A10 10 0 1012 2zm5 13.6c-.2.6-1.2 1.2-1.7 1.2-.4.1-1 .1-1.6-.1-.4-.1-.9-.3-1.5-.6-2.6-1.1-4.3-3.8-4.4-4-.1-.2-1-1.4-1-2.6 0-1.2.6-1.8.9-2 .2-.3.5-.4.7-.4h.5c.2 0 .4 0 .6.4l.8 2c.1.2.1.4 0 .6l-.4.6-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.7-.1l1-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.6.3.1.2.1.7-.1 1.3z"/></svg> WhatsApp</span>
@@ -424,23 +421,47 @@ h1.pantalla-titulo { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
             <div class="qcard-nombre">
               <span class="estado-dot on"></span> Ventas
             </div>
-            <div class="qcard-url">https://wa.me/56912345678</div>
-            <div class="qcard-meta">
-              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg> 1.102 escaneos</span>
-              <span>·</span>
-              <span>2 ene 2026</span>
+            <div class="qcard-info">
+              <div class="info-fila"><span class="info-ico">📱</span> +56 9 1234 5678</div>
+              <div class="info-fila"><span class="info-ico">💬</span> Mensaje: "Hola, quiero info…"</div>
             </div>
             <div class="qcard-foot">
-              <button class="btn sm">Estadísticas</button>
+              <button class="btn sm">Editar</button>
               <div class="qcard-iconos">
                 <button class="icon-btn sm" title="Compartir">⇪</button>
-                <button class="icon-btn sm" title="Editar">✎</button>
                 <button class="icon-btn sm" title="Eliminar">🗑</button>
               </div>
             </div>
           </article>
 
-          <!-- Card 3: desactivada -->
+          <!-- Card 3: MULTI LINK — muestra los enlaces internos -->
+          <article class="qcard">
+            <div class="qcard-top">
+              <span class="tipo-chip multi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg> Multi Link</span>
+              <button class="star" title="Favorito">★</button>
+            </div>
+            <div class="qr-tile">
+              <svg viewBox="0 0 21 21"><rect width="21" height="21" fill="#fff"/><path fill="#000" d="M0 0h21v3H0zM0 5h3v3H0zM5 5h3v3H5zM10 5h3v3h-3zM15 5h3v3h-3zM0 10h21v3H0zM3 15h3v3H3zM8 15h3v3H8zM13 15h3v3h-3zM18 15h3v3h-3zM0 20h21v1H0z"/></svg>
+            </div>
+            <div class="qcard-nombre">
+              <span class="estado-dot on"></span> Mis enlaces
+            </div>
+            <div class="qcard-info multi">
+              <div class="info-fila"><span class="info-ico">🌐</span> mi-tienda.cl</div>
+              <div class="info-fila"><span class="info-ico">📷</span> instagram.com/mitienda</div>
+              <div class="info-fila"><span class="info-ico">🎵</span> tiktok.com/@mitienda</div>
+              <div class="info-fila mas">+ 2 enlaces más</div>
+            </div>
+            <div class="qcard-foot">
+              <button class="btn sm">Editar enlaces</button>
+              <div class="qcard-iconos">
+                <button class="icon-btn sm" title="Compartir">⇪</button>
+                <button class="icon-btn sm" title="Eliminar">🗑</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 4: PetTag — muestra datos de la mascota -->
           <article class="qcard inactiva">
             <div class="qcard-top">
               <span class="tipo-chip pet">🐾 PetTag</span>
@@ -452,11 +473,9 @@ h1.pantalla-titulo { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
             <div class="qcard-nombre">
               <span class="estado-dot off"></span> Firulais
             </div>
-            <div class="qcard-url">Desactivado · suscripción expirada</div>
-            <div class="qcard-meta">
-              <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg> 56 escaneos</span>
-              <span>·</span>
-              <span>8 nov 2025</span>
+            <div class="qcard-info">
+              <div class="info-fila"><span class="info-ico">🐶</span> Golden Retriever · 4 años</div>
+              <div class="info-fila"><span class="info-ico">📞</span> +56 9 8765 4321 (contacto)</div>
             </div>
             <div class="qcard-foot">
               <button class="btn sm ghost">Reactivar</button>
@@ -466,7 +485,7 @@ h1.pantalla-titulo { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
             </div>
           </article>
 
-          <!-- Card 4: estática -->
+          <!-- Card 5: Texto — preview del contenido -->
           <article class="qcard">
             <div class="qcard-top">
               <span class="tipo-chip txt">T Texto</span>
@@ -478,14 +497,36 @@ h1.pantalla-titulo { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
             <div class="qcard-nombre">
               <span class="estado-dot on"></span> Menú del día
             </div>
-            <div class="qcard-url">Texto estático · sin escaneos registrados</div>
-            <div class="qcard-meta">
-              <span>Estático</span>
-              <span>·</span>
-              <span>1 mar 2026</span>
+            <div class="qcard-info">
+              <div class="info-fila"><span class="info-ico">📄</span> "Hamburguesa casera, bebidas…"</div>
             </div>
             <div class="qcard-foot">
               <button class="btn sm ghost">Descargar</button>
+              <div class="qcard-iconos">
+                <button class="icon-btn sm" title="Compartir">⇪</button>
+                <button class="icon-btn sm" title="Eliminar">🗑</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 6: vCard — contacto -->
+          <article class="qcard">
+            <div class="qcard-top">
+              <span class="tipo-chip vcard">👤 vCard</span>
+              <button class="star off" title="Favorito">☆</button>
+            </div>
+            <div class="qr-tile">
+              <svg viewBox="0 0 21 21"><rect width="21" height="21" fill="#fff"/><path fill="#000" d="M0 0h21v2H0zM0 4h21v2H0zM0 8h21v2H0zM0 12h21v2H0zM0 16h21v2H0zM0 20h21v1H0z"/></svg>
+            </div>
+            <div class="qcard-nombre">
+              <span class="estado-dot on"></span> Tarjeta comercial
+            </div>
+            <div class="qcard-info">
+              <div class="info-fila"><span class="info-ico">👤</span> Ana Rojas — Diseñadora</div>
+              <div class="info-fila"><span class="info-ico">📧</span> ana@estudio.cl</div>
+            </div>
+            <div class="qcard-foot">
+              <button class="btn sm">Editar</button>
               <div class="qcard-iconos">
                 <button class="icon-btn sm" title="Compartir">⇪</button>
                 <button class="icon-btn sm" title="Eliminar">🗑</button>

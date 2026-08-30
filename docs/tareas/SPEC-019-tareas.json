@@ -1,0 +1,84 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-019] Rama feat/spec-019-correo-activacion-qr",
+            "description": "Rama creada en desarrollo-qr/backend-portaqr desde main. Objetivo: correo de confirmacion cuando un QR es activado (flujo Webpay pagado y activacion admin) con: imagen del QR (PNG generado en backend con libreria qrcode, attachment cid), pagina de aterrizaje ({FRONTEND_URL}/qr/{idQr}?origen=qr), fecha de activacion (campo activationDate que hoy nunca se setea - se persiste en el momento de la activacion) y fecha de cierre (qrList[].expirationDate). Misma linea grafica de registerEmail.ejs/passwordReset.ejs. Reutiliza EmailService (nodemailer + EJS) y GetUserUseCase (UsersModule). NO se toca qr-app, ni bff-service/user-service/qr-service. Dependencia nueva: qrcode ^1.5.x.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-019",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+"id": "2",
+            "content": "[SPEC-019] Backend: dependencia qrcode + template qrActivated.ejs (linea grafica registerEmail)",
+            "description": "backend-portaqr: (1) package.json: agregar qrcode ^1.5.x (CommonJS, sin dependencias) + @types/qrcode en devDeps; (2) nuevo src/templateEmail/qrActivated.ejs con MISMA linea grafica de registerEmail.ejs (body #E5E7EB, contenedor #F9FAFB radius 8px, titulo #1E3A8A 24px, texto #4B5563 16px, boton CTA #1E3A8A texto blanco, footer #9CA3AF con soporte@portaqr.cl y (c), @media 600px) pero SOLO MODO CLARO: NO incluir @media (prefers-color-scheme: dark) (decision usuario 2026-08-17 - un solo modo de correo; registerEmail/passwordReset si lo traen, este no). Textos de la tarjeta con contraste alto sobre blanco: detalles #374151, titulo/links #1E3A8A, badge #DBEAFE/#1E3A8A. Estructura: header con LOGO Porta QR (RF-1.2: <a href='{baseUrl}'><img src='{baseUrl}/PORTA_QR_LOGO_HORIZONTAL.png' alt='Porta QR' width=200></a> - PNG no SVG, Gmail/Outlook bloquean SVG ADR-019.7) + titulo 'Tu QR esta activado' + saludo con nombre; tarjeta POR QR: <img src='cid:qr-{idQr}'> ~160px fondo blanco borde + TITULO = name si existe (solo QRs list lo tienen) si no el codigo 'QR #abc123' + BADGE DE TIPO (RF-1.1: background #DBEAFE, texto #1E3A8A, radius 12px, 12px bold - ej. 'QR Dinamico', 'QR Multi links') + 'Pagina de aterrizaje: {baseUrl}/qr/{idQr}?origen=qr' (texto + link) + 'Fecha de activacion: dd/mm/yyyy' + 'Fecha de cierre: dd/mm/yyyy'; resumen (methodActivation, total $CLP formateado); CTA 'Ver mis QRs' -> {dashboardUrl}; footer estandar. Variables EJS: userName, qrItems[] {code,name?,typeLabel,plan,duration,activationDate,expirationDate,landingUrl}, methodActivation, totalPrice, dashboardUrl, baseUrl. (3) nuevo mapa QR_TYPE_LABELS en src/modules/qr-activate/domain/constants/qr-type-labels.ts (RF-1.1; lo consume la tarea 4 - servicio de notificacion) con los 12 tipos del enum QrType",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-019",
+            "dependencies": ["1"],
+            "subtasks": []
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-019] Backend: EmailService.sendQrActivatedEmail con PNG + attachments cid",
+            "description": "backend-portaqr/src/shared/email/email.service.ts: (1) interfaz QrActivatedEmailPayload { to, userName, qrItems[] {code,name?,typeQr,typeLabel,plan?,duration?,activationDate?,expirationDate?,landingUrl}, methodActivation, totalPrice }; (2) metodo sendQrActivatedEmail(payload) que implementa ESTRUCTURALMENTE el puerto ICanSendQrActivatedEmail (ADR-019.8 - la firma debe coincidir con qr-activate-email.port.ts): por cada qrItem -> QRCode.toBuffer(item.landingUrl, { width: 200, margin: 2, errorCorrectionLevel: 'H' }) (mismo nivel H que QrDisplay.tsx del frontend); ejs.render(qrActivated.ejs, payload); subject 'Tus codigos QR han sido activados | Porta QR'; from EMAIL_FROM; attachments: [{ filename: 'qr-{code}.png', content: pngBuffer, cid: 'qr-{code}' }] (NO data URI - Outlook desktop las bloquea, ADR-019.5); logs CustomLogger (mismo patron sendVerificationEmail); throw en fallo (el caller decide best-effort). NOTA: usar el patron de transporte del NodemailerContactAdapter (port numerico, secure: false) - NO copiar el bug SMTP_TTL/string del constructor actual. Unit tests email.service.spec.ts: sendMail llamado con to/subject/html conteniendo cid:qr-... y landingUrl; un attachment por QR con cid unico y buffer PNG no vacio (mock QRCode.toBuffer); error propagado.",
+            "status": "completed",
+ "priority": "high",
+            "tag": "spec-019",
+            "dependencies": ["2"],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-019] Backend: QrActivatedNotificationService (best-effort)",
+            "description": "backend-portaqr: (1) NUEVO src/modules/qr-activate/domain/ports/queries/qr-activate-email.port.ts con puerto ICanSendQrActivatedEmail { sendQrActivatedEmail(payload: QrActivatedEmailPayload): Promise<void> } (ADR-019.8 - la capa de aplicacion NUNCA inyecta EmailService directo; los unicos cruces con clase concreta son use cases de otros modulos); (2) + token QR_ACTIVATE_EMAIL_PORT en domain/constants/qr-activate.tokens.ts; (3) NUEVO src/modules/qr-activate/domain/constants/qr-type-labels.ts con el mapa QR_TYPE_LABELS (RF-1.1, 12 tipos del enum QrType importado de modules/qr/application/dto/create-qr.dto, fallback valor crudo); (4) NUEVO src/modules/qr-activate/application/services/qr-activated-notification.service.ts con notify(activation, tracking): GetUserUseCase.execute(activation.userId) -> User (404 -> warn + skip, RN-4); POR CADA QR de qrList -> GetQrUseCase.execute(qr.qrCode) para resolver typeQr/name/id (QrElement no guarda el tipo - verificado 2026-08-17) y armar qrItems { code, name?, typeQr, typeLabel (mapa), plan?, duration, activationDate: activation.activationDate ?? activation.createdAt, expirationDate, landingUrl: {FRONTEND_URL}/qr/{qr.id}?origen=qr }; userName = firstName + paternalLastName; totalPrice = activation.price.TotalPrice (RN-5); emailSender.sendQrActivatedEmail(payload) via @Inject(QR_ACTIVATE_EMAIL_PORT) TODO en try/catch: error -> traceService.error + log email_activation_failed { activationId, userId, reason }, NO re-throw (ADR-019.2). Unit tests: envio ok (typeLabel correcto por typeQr), SMTP falla -> no re-throw + log, usuario inexistente -> skip + warn, activationDate fallback a createdAt (mockear el puerto por token, no la clase).",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-019",
+            "dependencies": ["3"],
+            "subtasks": []
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-019] Backend: disparo Webpay + persistir activationDate (UpdateWebpayQrActivateUseCase)",
+            "description": "backend-portaqr/src/modules/qr-activate/application/use-cases/update-webpay-qr-activate.usecase.ts: (1) inyectar QrActivatedNotificationService; en la rama state = PAYED (commit AUTHORIZED + amount == snapshot, SPEC-009 B12), DESPUES del updater.update (con `updated`, para que el correo lea activationDate ya persistido - ADR-019.6), invocar notify(updated, tracking) envuelto en try/catch defensivo (el servicio nunca re-throw por contrato, pero un fallo aqui jamas debe romper el callback de Webpay - RN-2); (2) RF-8: el updater.update de la rama PAYED ahora incluye activationDate: new Date() -> { state: PAYED, activationDate, WebpayTransaction: AUTHORIZED } (hoy el campo existe en schema/entidad/mapper pero nunca se asigna - ADR-019.6). El update corre SIEMPRE (el correo nunca bloquea la persistencia - RN-2). NO se envia en FAILED ni amount mismatch (CA-05). Actualizar spec: PAYED -> notify llamado con updated + activationDate persistido; FAILED/mismatch -> notify NO llamado; SMTP falla -> state sigue PAYED y update corre.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-019",
+            "dependencies": ["4"],
+            "subtasks": []
+        },
+        {
+            "id": "6",
+            "content": "[SPEC-019] Backend: disparo admin + activationDate en creacion (CreateQrActivateUseCase.executeAdmin)",
+            "description": "backend-portaqr/src/modules/qr-activate/application/use-cases/create-qr-activate.usecase.ts: (1) inyectar QrActivatedNotificationService; en executeAdmin, DESPUES del activateMany exitoso, invocar notify(created, tracking) envuelto en try/catch defensivo - el correo va al CLIENTE (activation.userId = dto.userId, RN-3/ADR-019.4), no al admin; (2) RF-8: en la construccion del QrActivateEntity de execute (o del create base cuando methodActivation ADMIN) incluir activationDate: new Date() (la activacion admin nace activa). La respuesta al admin no cambia. Actualizar create-qr-activate.usecase.spec.ts: admin activa por cliente -> notify llamado con userId del cliente + activationDate seteado; sin qrList -> notify NO llamado.",
+            "status": "completed",
+            "priority": "high",
+            "tag": "spec-019",
+            "dependencies": ["4"],
+            "subtasks": []
+        },
+        {
+            "id": "7",
+            "content": "[SPEC-019] Backend: wiring qr-activate.module.ts + tsc/jest verdes",
+            "description": "backend-portaqr/src/modules/qr-activate/qr-activate.module.ts: importar UsersModule (exporta GetUserUseCase) y EmailModule (exporta EmailService); registrar QrActivatedNotificationService como provider; BINDING del puerto de email (ADR-019.8): { provide: QR_ACTIVATE_EMAIL_PORT, useExisting: EmailService } - EmailService implementa estructuralmente ICanSendQrActivatedEmail (mismo patron puerto->adaptador de modules/mail con NodemailerContactAdapter; sin duplicar nodemailer). Sin cambios de contrato de API (no hay endpoints nuevos). Cerrar validacion: npx tsc --noEmit sin errores + suites jest de qr-activate, webpay, users y email verdes (sin regresion en SPEC-009/011/012).",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-019",
+            "dependencies": ["5", "6"],
+            "subtasks": []
+        },
+        {
+            "id": "8",
+            "content": "[SPEC-019] E2E opcional + verificacion manual + nota de despliegue",
+            "description": "(1) E2E opcional en e2e-tests-portaqr: activacion admin -> verificar en logs/BD que el servicio de notificacion fue invocado (mockear SMTP en CI, no enviar correos reales) - OPCIONAL, queda como mejora; (2) verificacion manual local: activar por Webpay (modo integracion) -> correo recibido con LOGO Porta QR visible (link a portaqr.cl), imagen QR escaneable (lleva a /qr/{idQr}?origen=qr), landing URL, BADGE DE TIPO correcto (ej. 'QR Dinamico' para dynamic, 'QR Multi links' para list), fecha de activacion y fecha de cierre dd/mm/yyyy, linea grafica identica a registerEmail (solo modo claro); activar por panel admin -> correo al cliente; romper SMTP_HOST -> activacion OK + email_activation_failed en logs; mongosh: qractivates tiene activationDate poblado - queda como CHECKLIST post-despliegue (requiere SMTP real + Transbank integracion), documentado en la nota; (3) NUEVA docs/produccion/NOTA-despliegue-produccion-SPEC-019.md siguiendo patron de NOTA-despliegue-produccion-SPEC-016 (sin variables nuevas: reutiliza SMTP_*/EMAIL_FROM/FRONTEND_URL; solo redeploy Railway con npm install de qrcode + verificacion post-despliegue; ADEMAS: deploy de qr-app ANTES que backend para publicar PORTA_QR_LOGO_HORIZONTAL.png).",
+            "status": "completed",
+            "priority": "medium",
+            "tag": "spec-019",
+            "dependencies": ["7"],
+            "subtasks": []
+        }
+    ]
+}
