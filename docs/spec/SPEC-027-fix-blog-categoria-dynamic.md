@@ -104,9 +104,12 @@ next dev (local Docker)        next build (prod standalone)
 > El servicio `qr-app` del `docker-compose.yml` corre `command: sh -c "npm install && npm run dev"` (etapa `development` del Dockerfile). **`npm run dev` nunca ejecuta `generateStaticParams` ni la prerenderización estática** — solo `npm run build` lo hace. Por eso, aunque `qrApp.env` define `CMS_URL=http://qr-cms:3005` (idéntico a prod), en local Docker el error no aparece: la página nunca se prerenderiza como shell estático.
 >
 > Para reproducir en local Docker:
-> 1. Cambiar el `command` del servicio a `sh -c "npm install && npm run build && npm start"` (o ejecutar dentro del contenedor `docker compose exec qr-app sh -c "npm run build && npm start"`).
+> 1. Cambiar el `command` del servicio a `sh -c "npm install && NODE_ENV=production npm run build && NODE_ENV=production npm start"` (o ejecutar dentro del contenedor `docker compose exec qr-app sh -c "NODE_ENV=production npm run build && NODE_ENV=production npm start"`).
 > 2. Asegurar que `qr-cms` esté corriendo (para que `generateStaticParams` obtenga categorías reales).
 > 3. Visitar `http://localhost:3000/blog/categoria/novedades` → 500 `DYNAMIC_SERVER_USAGE`.
+>
+> > [!warning] `NODE_ENV=production` es OBLIGATORIO para `build`/`start` en docker
+> > `qrApp.env` y el compose setean `NODE_ENV=development`. Con `NODE_ENV=development`, `next build` **falla prerenderizando páginas estáticas** (`/ayuda`, `/documentacion`, `/_global-error`) con `TypeError: Cannot read properties of null (reading 'useContext'/'useReducer')`. `next build`/`next start` esperan `NODE_ENV=production`. Se añadió además `src/app/_global-error.tsx` explícito (client component sin AuthProvider) para que el `_global-error` por defecto de Next 16 no renderice el layout raíz (AuthProvider → useReducer) durante la prerenderización.
 
 Log Railway 03:31-03:55 x42 confirma triple `DYNAMIC_SERVER_USAGE` por request (metadata+page+layout). Log 03:21 `sitemap.ts:26 qrData.data.map` es bug separado defensivo.
 
