@@ -1,0 +1,104 @@
+{
+  "tasks": [
+    {
+      "id": "1",
+      "content": "[SPEC-030] CMS colección subscribers + config (done: commit 568f41b, vitest 16/16, tsc src limpio; pre-existente: scripts/fix-demo-layouts.ts con error TS1117 no tocado)",
+      "description": "qr-cms/src/collections/Subscribers.ts (email unique normalizado, name?, status pending/subscribed/unsubscribed/bounced, source, userId index, consentAt, consentTextVersion v1-2026-09, unsubscribeToken rotativo, confirmToken+expira 48h) + registro en payload.config.ts sin exponer en mcpPlugin + vitest transiciones/idempotencia/rotación.",
+      "status": "done",
+      "priority": "high",
+      "tag": "spec-030",
+      "dependencies": [],
+      "subtasks": []
+    },
+    {
+      "id": "2",
+      "content": "[SPEC-030] CMS endpoints subscribe/confirm/resend + mail transaccional (done: commit 266f727, vitest 42/42, eslint 0 errores)",
+      "description": "qr-cms endpoints subscribe|confirm|resend-confirm (honeypot, consent, RFC+MX+desechables, throttle IP+email 3/24h, token un solo uso 48h, RN-10) + IMPLEMENTA correo aceptación RF-11 (newsletter-confirm.ejs: CTA 48h + URL plana + footer baja) vía sendNewsletterConfirmEmail + bienvenida RF-11b (welcomeSentAt) + headers List-Unsubscribe + .env.example. Tests render/envío/un solo uso/expirado.",
+      "status": "done",
+      "priority": "high",
+      "tag": "spec-030",
+      "dependencies": ["1"],
+      "subtasks": []
+    },
+    {
+      "id": "3",
+      "content": "[SPEC-030] CMS endpoints unsubscribe + sync privado (done: commit 9321e91, vitest 24/24 nuevas + 42/42 previas, tsc/lint limpios)",
+      "description": "qr-cms/src/app/api/newsletter/unsubscribe (GET+POST por token, idempotente, 404 genérico), request-unsubscribe por email, sync + unsubscribe-by-email privados con x-newsletter-api-key. Tests routes + auth 401/403.",
+      "status": "done",
+      "priority": "high",
+      "tag": "spec-030",
+      "dependencies": ["2"],
+      "subtasks": []
+    },
+    {
+      "id": "4",
+      "content": "[SPEC-030] Backend sync newsletter best-effort (done: commits 20a4715+bd1a018, users+auth 27 suites/279 tests verdes, tsc limpio)",
+      "description": "backend-portaqr: CreateUserDto.newsletterOptIn opcional, schema users + newsletterOptIn/newsletterSyncedAt, NewsletterSyncService (POST CMS timeout 5s, kill-switch NEWSLETTER_SYNC_ENABLED, warn newsletter_sync_failed sin throw), hook en CreateUserUseCase y UpdateUserUseCase (sync/baja onboarding/settings). .env.example CMS_BASE_URL/CMS_NEWSLETTER_API_KEY. Jest sin regresión users/auth/email.",
+      "status": "done",
+      "priority": "high",
+      "tag": "spec-030",
+      "dependencies": ["3"],
+      "subtasks": []
+    },
+    {
+      "id": "5",
+      "content": "[SPEC-030] qr-app signup + onboarding con opt-in",
+      "description": "SignUpForm state/helpers/index checkbox newsletterOptIn default false + privacy link, proxy signup whitelist, auth.service SignUpData, OnboardingPageClient checkbox → PATCH newsletterOptIn (cubre Google). Tests SignUpForm + proxy.",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-030",
+      "dependencies": ["4"],
+      "subtasks": []
+    },
+    {
+      "id": "6",
+      "content": "[SPEC-030] qr-app NewsletterSubscribe reutilizable (sin cuenta)",
+      "description": "components/NewsletterSubscribe (index + useNewsletterSubscribe + spec): props source/variant/showName/title/description, email+name?, consent obligatorio no premarcado, honeypot, isValidEmail, useToast, estados idle/sending/pending/error, a11y. Montado en Footer (footer/compact), blog/[slug] (blog/full) y /newsletter (newsletter-page/full); extensible a home/precios/contacto solo con source. services/newsletter.service.ts + proxies /api/newsletter/* con throttle SPEC-006. Tests componente + proxies.",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-030",
+      "dependencies": ["3"],
+      "subtasks": []
+    },
+    {
+      "id": "7",
+      "content": "[SPEC-030] qr-app página de baja 1-clic",
+      "description": "/newsletter/baja (noindex, auto-POST con ?token=, motivo opcional, flujo alterno por email) compatible con List-Unsubscribe-Post sin JS. Tests página.",
+      "status": "pending",
+      "priority": "medium",
+      "tag": "spec-030",
+      "dependencies": ["6"],
+      "subtasks": []
+    },
+    {
+      "id": "8",
+      "content": "[SPEC-030] Legal + variables entorno",
+      "description": "Cláusula #newsletter en /privacidad (texto v1-2026-09: qué se envía, frecuencia, baja 1-clic, contacto) + .env.example en qr-cms/backend-portaqr documentando todas las vars (qué hace, valores, ejemplo) según rules/common/environment-variables.md.",
+      "status": "pending",
+      "priority": "medium",
+      "tag": "spec-030",
+      "dependencies": ["5", "6"],
+      "subtasks": []
+    },
+    {
+      "id": "9",
+      "content": "[SPEC-030] Validación tsc/lint/tests + E2E",
+      "description": "tsc --noEmit + lint + suites verdes en qr-cms/backend-portaqr/qr-app sin regresión (SPEC-006/019/020/023). Playwright en e2e-tests-portaqr: alta footer → confirm → baja por token; signup opt-in → visible en CMS (stub).",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-030",
+      "dependencies": ["4", "5", "6", "7"],
+      "subtasks": []
+    },
+    {
+      "id": "10",
+      "content": "[SPEC-030] Spec implementado + memoria",
+      "description": "Actualizar docs/spec/SPEC-030-newsletter-cms-suscripciones.md a implementado al terminar + Engram mem_save (decisión CMS fuente de verdad, sync best-effort, doble opt-in mixto). Ramas feat/spec-030-newsletter-* por repo, commits atómicos por tarea.",
+      "status": "pending",
+      "priority": "medium",
+      "tag": "spec-030",
+      "dependencies": ["9"],
+      "subtasks": []
+    }
+  ]
+}
