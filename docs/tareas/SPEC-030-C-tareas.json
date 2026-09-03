@@ -1,0 +1,63 @@
+{
+  "tasks": [
+    {
+      "id": "1",
+      "content": "[SPEC-030-C] Extraer processDueIssues() a lib importable (RF-1)",
+      "description": "qr-cms: mover la lógica de send-due/route.ts a src/lib/newsletter-schedule.ts (pura, testeable). La ruta queda como wrapper fino. CA-04.",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-030-C",
+      "dependencies": [],
+      "subtasks": []
+    },
+    {
+      "id": "2",
+      "content": "[SPEC-030-C] Scheduler con single-flight + kill-switch (RF-1/RF-2/RF-3)",
+      "description": "qr-cms src/lib/newsletter-scheduler.ts: setInterval NEWSLETTER_SCHEDULER_INTERVAL_MS (default 300000), skip si job en curso, NEWSLETTER_SCHEDULER_ENABLED kill-switch, logs español. Spec con timers falsos (CA-03).",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-030-C",
+      "dependencies": [
+        "1"
+      ],
+      "subtasks": []
+    },
+    {
+      "id": "3",
+      "content": "[SPEC-030-C] Encendido en instrumentation.ts (RF-1/RN-C2)",
+      "description": "qr-cms src/instrumentation.ts con register() que enciende el scheduler una vez. Verificar no-duplicación con HMR en dev.",
+      "status": "pending",
+      "priority": "high",
+      "tag": "spec-030-C",
+      "dependencies": [
+        "2"
+      ],
+      "subtasks": []
+    },
+    {
+      "id": "4",
+      "content": "[SPEC-030-C] Botón admin Procesar programados ahora (RF-4)",
+      "description": "NewsletterIssues admin: botón que invoca processDueIssues() con sesión admin. Misma función que el loop.",
+      "status": "pending",
+      "priority": "medium",
+      "tag": "spec-030-C",
+      "dependencies": [
+        "1"
+      ],
+      "subtasks": []
+    },
+    {
+      "id": "5",
+      "content": "[SPEC-030-C] Muerte de CRON_SECRET + docs (RF-5/RF-6)",
+      "description": "Quitar CRON_SECRET de .env.example; send-due a sesión-admin o eliminar; actualizar NOTA prod + SPEC-030-A (RF-6 histórico); CA-01/CA-02 verificados en vivo; tsc/eslint/vitest verdes.",
+      "status": "pending",
+      "priority": "medium",
+      "tag": "spec-030-C",
+      "dependencies": [
+        "2",
+        "4"
+      ],
+      "subtasks": []
+    }
+  ]
+}
