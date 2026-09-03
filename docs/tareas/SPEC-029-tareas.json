@@ -1,0 +1,99 @@
+{
+    "tasks": [
+        {
+            "id": "1",
+            "content": "[SPEC-029] Decisión enlace externo + registro del tipo Reseñas",
+            "description": "Confirmado con usuario: enlace externo a reseñas (Google/TripAdvisor/Yelp/Facebook), NO sistema propio. Entrada reviews/Reseñas en qr-app/src/constants/social.const.ts (pattern review|rating|/rate|reseñ|calific|opini|tripadvisor|yelp|g.page, ANTES de google maps) + icono estrella src/components/icon/reviews.tsx registrado en src/components/icon/index.tsx. Sin cambios backend (RF-12).",
+            "status": "done",
+            "priority": "high",
+            "tag": "spec-029",
+            "dependencies": [],
+            "subtasks": []
+        },
+        {
+            "id": "2",
+            "content": "[SPEC-029] Formulario: preservación URL + placeholder + sync",
+            "description": "qr-app/src/components/qr/forms/: ListUrlForm.helpers.ts extractRelevantUrl devuelve URL completa para type reviews (sin mutilar g.page/.../review); ListUrlRow.tsx placeholder https://g.page/tu-negocio/review. Sin cambios en buildUrlList/useListUrlSync (round-trip Reseñas<->reviews por name<->id ya funciona).",
+            "status": "done",
+            "priority": "high",
+            "tag": "spec-029",
+            "dependencies": [
+                "1"
+            ],
+            "subtasks": []
+        },
+        {
+            "id": "3",
+            "content": "[SPEC-029] Landing UrlList + resumen dashboard",
+            "description": "qr-app/src/components/qr/UrlList.tsx: getIconForType->reviews, getColorForType->bg-amber-500 hover:bg-amber-600, getDisplayName->Reseñas (id + 6 variantes es). qr-app/src/lib/qr-content-summary.ts formatListItem->Reseñas: <dominio>. Botón ámbar con estrella abre en pestaña nueva.",
+            "status": "done",
+            "priority": "high",
+            "tag": "spec-029",
+            "dependencies": [
+                "1"
+            ],
+            "subtasks": []
+        },
+        {
+            "id": "4",
+            "content": "[SPEC-029] Validación tsc + eslint + jest sin regresión",
+            "description": "npx tsc --noEmit limpio; eslint limpio en 7 archivos; npx jest 71 suites/535 tests verdes (UrlList, ListUrlForm.helpers, useListUrlSync, qr-content-summary). Verificación manual del pattern: review/g.page/tripadvisor/yelp matchean, maps puro e instagram no.",
+            "status": "done",
+            "priority": "high",
+            "tag": "spec-029",
+            "dependencies": [
+                "2",
+                "3"
+            ],
+            "subtasks": []
+        },
+        {
+            "id": "5",
+            "content": "[SPEC-029] Deploy local Docker + fix boot npm install",
+            "description": "docker restart qr-app evidenció loop por ETIMEDOUT de registry.npmjs.org en npm install (restart:always nunca llegaba al build). Fix desarrollo-qr/docker-compose.yml: npm install || true + comentario. Recreate OK, healthy, Reseñas verificado en .next/static/chunks servidos en :3000. Caso real Dementes Publicidad: link /place tal cual (manual) o variante /reviews?hl=es (autodetecta).",
+            "status": "done",
+            "priority": "high",
+            "tag": "spec-029",
+            "dependencies": [
+                "4"
+            ],
+            "subtasks": []
+        },
+        {
+            "id": "8",
+            "content": "[SPEC-029] Ancho consistente landing (RF-14 w-full)",
+            "description": "UrlList raíz: max-w-lg mx-auto w-full. Causa: padre QrRedirectClient flex-col items-center + body flex encogían el contenedor al contenido (444 con nombre largo vs 234 sin nombre). Verificado con chrome-devtools en prod y local. Spec RF-14 + historial.",
+            "status": "done",
+            "priority": "medium",
+            "tag": "spec-029",
+            "dependencies": [
+                "4"
+            ],
+            "subtasks": []
+        },
+        {
+            "id": "6",
+            "content": "[SPEC-029] Spec + tareas + memoria",
+            "description": "docs/spec/SPEC-029-resenas-multilink.md (status implementado, 4 ADRs, RF-1..12, CA-01..08) y docs/tareas/SPEC-029-tareas.json. Memoria Engram del patrón y del incidente de boot Docker.",
+            "status": "done",
+            "priority": "medium",
+            "tag": "spec-029",
+            "dependencies": [
+                "5"
+            ],
+            "subtasks": []
+        },
+        {
+            "id": "7",
+            "content": "[SPEC-029] CTA atractivo reseñas en landing (RF-13 + CA-09)",
+            "description": "UrlList.tsx: helper isReviewType como fuente única (reemplaza casos sueltos en getIconForType/getColorForType/getDisplayName); rama propia de render para reseña con url: 5 estrellas SVG + Déjanos una reseña (aria-label) + bajada Tu opinión nos ayuda a mejorar, ámbar con sombra y hover elevate; reseña sin url no se renderiza. 3 tests nuevos en UrlList.spec.tsx (CTA + variantes reviews/Reseñas + sin url). Spec actualizada (abstract, beneficios, RF-8/9/10/13, CA-07/09, historial).",
+            "status": "done",
+            "priority": "high",
+            "tag": "spec-029",
+            "dependencies": [
+                "4"
+            ],
+            "subtasks": []
+        }
+    ]
+}

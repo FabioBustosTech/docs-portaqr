@@ -187,7 +187,10 @@ services:
     # (dev no prerenderiza). NODE_ENV=production es OBLIGATORIO: con development,
     # next build falla prerenderizando páginas estáticas (useContext/useReducer null).
     # Revertir a `npm run dev` tras la prueba.
-    command: sh -c "npm install && NODE_ENV=production npm run build && NODE_ENV=production npm start"
+    # NOTA 2026-09-03: `npm install || true` — si el registry no responde
+    # (ETIMEDOUT), el boot continúa con los node_modules del volumen.
+    # Sin esto, un fallo de red deja a qr-app en loop de reinicios.
+    command: sh -c "npm install || true && NODE_ENV=production npm run build && NODE_ENV=production npm start"
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
       interval: 30s
