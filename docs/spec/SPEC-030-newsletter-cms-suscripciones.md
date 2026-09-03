@@ -66,7 +66,7 @@ aliases:
 | Checkbox newsletter en signup | **No existe**. `SignUpForm` solo tiene `email/password/confirmPassword/acceptTerms`; proxy `api/auth/signup` whitelistea `{ email, password }`; `auth.service SignUpData = { email, password }` (SPEC-020) | Agregar `newsletterOptIn` en form + state + helpers + proxy + DTO backend |
 | Flag newsletter en backend users | **No existe**. Grep `newsletter\|marketing\|optIn\|consent` en `modules/users` = 0 resultados | Agregar `newsletterOptIn` (DTO efímero) + `newsletterSyncedAt` opcional para auditoría; fuente de verdad sigue siendo el CMS |
 | Sync backend → CMS | **No existe** | Nuevo `NewsletterSyncService` server-to-server con API key, best-effort |
-| Formulario público (no usuarios) | **No existe**. `Footer` solo tiene marca, social y columnas legales; sin formulario | Nuevo `NewsletterForm` en footer + `/blog` |
+| Formulario público (no usuarios) | **No existe**. `Footer` solo tiene marca, social y columnas legales; sin formulario | Nueva `NewsletterSection` en home + `/blog` + `/newsletter` (nunca en footer) |
 | Página de baja | **No existe** | Nueva `/newsletter/baja` (token) |
 | Template email newsletter | **No existe**. Solo `registerEmail/welcomeEmail/passwordReset/qrActivated.ejs` en `backend-portaqr` (transaccionales, sin footer de baja ni `List-Unsubscribe`) | Nuevos templates en `qr-cms` (confirmación + bienvenida newsletter) con footer de baja |
 | Headers `List-Unsubscribe` | **No existen** en ningún `sendMail` | Agregar en todos los correos newsletter (obligatorio CA-06) |
@@ -100,9 +100,9 @@ aliases:
 
 **Bloque B — CMS: endpoints públicos (`qr-cms/src/app/api/newsletter/*`)**
 
-- **RF-3 (POST `/api/newsletter/subscribe`)**. Body `{ email, name?, source, honeypot?, consent: true }`. Valida: `consent === true` (400 si falta — consentimiento explícito), honeypot vacío (si lleno → `200 ok` falso, log `newsletter_honeypot`), email válido, throttle (ver RF-9), `source` en enum público (`footer|blog|home|precios|contacto|newsletter-page|signup|onboarding|settings`; `manual|import` rechazados). Lógica:
+- **RF-3 (POST `/api/newsletter/subscribe`)**. Body `{ email, name?, source, honeypot?, consent: true }`. Valida: `consent === true` (400 si falta — consentimiento explícito), honeypot vacío (si lleno → `200 ok` falso, log `newsletter_honeypot`), email válido, throttle (ver RF-9), `source` en enum público (`blog|home|precios|contacto|newsletter-page|signup|onboarding|settings`; `manual|import` rechazados; sin `footer` — la suscripción no vive en el footer, ajuste 2026-09-03). Lógica:
   - Normaliza email → busca suscriptor.
-  - Nuevo → crea `pending` (orígenes públicos sin cuenta: `footer|blog|home|precios|contacto|newsletter-page`) o `subscribed` (orígenes cuenta `signup|onboarding|settings`, que ya pasaron verificación de email del flujo auth) + `confirmToken` solo si `pending` → envía confirmación (RF-8) → `201 { status: 'pending-confirmation' | 'subscribed' }`.
+  - Nuevo → crea `pending` (orígenes públicos sin cuenta: `blog|home|precios|contacto|newsletter-page`) o `subscribed` (orígenes cuenta `signup|onboarding|settings`, que ya pasaron verificación de email del flujo auth) + `confirmToken` solo si `pending` → envía confirmación (RF-8) → `201 { status: 'pending-confirmation' | 'subscribed' }`.
   - Existente → idempotencia RF-2 → `200` con status correspondiente. **Nunca 409 por duplicado** (no revelar existencia más allá de lo necesario; el mensaje público es genérico).
   - Respuesta pública genérica para `pending`: `{ ok: true, message: 'Revisa tu correo para confirmar la suscripción.' }` (no confirma si el email existía).
 - **RF-4 (GET+POST `/api/newsletter/unsubscribe`)**. Acepta `?token=` (GET, para 1-clic desde el email y `List-Unsubscribe-Post`) y body `{ token, reason? }` (POST). Token inválido → `404 { ok: false }` genérico (sin distinguir). Token válido → set `status: 'unsubscribed'`, `unsubscribedAt: now`, `reason?`, limpia `confirmToken` → `200 { ok: true }` idempotente (baja repetida = mismo 200). Log `newsletter_unsubscribed { source }`.
@@ -126,14 +126,14 @@ aliases:
 
 **Bloque D — Formulario público + página de baja (`qr-app`)**
 
-- **RF-9 (componente reutilizable `NewsletterSubscribe` — suscripción sin cuenta, `qr-app`)**. Componente client autocontenido para captar **personas sin cuenta**, pensado para reutilizarse en cualquier punto de la app con una sola línea (`<NewsletterSubscribe source="footer" />`). Patrón visual/lógico = `ContactForm.tsx` (`useState` + `isValidEmail` + `useToast` + `Button/Input/Label` de `@/components/ui`). Estructura `qr-app/src/components/NewsletterSubscribe/`: `index.tsx` (wrapper + variantes), `useNewsletterSubscribe.ts` (estado + POST al proxy), `NewsletterSubscribe.spec.tsx`.
-  - Props: `{ source: 'footer'|'blog'|'home'|'precios'|'contacto'|'newsletter-page', variant?: 'compact'|'full', showName?: boolean, title?: string, description?: string, className?: string }`. `variant: 'compact'` (solo email + botón, para footer) vs `'full'` (email + `name?` + checkbox + textos legales, para blog/página). `source` viaja al CMS tal cual (auditoría `source`); valores fuera del enum → el proxy lo rechaza (400).
+- **RF-9 (componente reutilizable `NewsletterSubscribe` — suscripción sin cuenta, `qr-app`)**. Componente client autocontenido para captar **personas sin cuenta**, pensado para reutilizarse en cualquier punto de la app con una sola línea (`<NewsletterSection source="home" />`). **NO se usa en el footer** (decisión usuario 2026-09-03: fuera del footer). Patrón visual/lógico = `ContactForm.tsx` (`useState` + `isValidEmail` + `useToast` + `Button/Input/Label` de `@/components/ui`). Estructura `qr-app/src/components/NewsletterSubscribe/`: `index.tsx` (wrapper + variantes), `useNewsletterSubscribe.ts` (estado + POST al proxy), `NewsletterSubscribe.spec.tsx`.
+  - Props (`NewsletterSubscribe`): `{ source: 'blog'|'home'|'precios'|'contacto'|'newsletter-page', variant?: 'compact'|'full', showName?: boolean, title?: string, description?: string, className?: string }`. `variant: 'compact'` (solo email + botón, reservada sin uso inicial) vs `'full'` (email + `name?` + checkbox + textos legales). Wrapper `NewsletterSection` (`qr-app/src/components/NewsletterSection/`: `index.tsx` + spec): tarjeta estándar (`max-w-xl rounded-2xl border bg-card p-6`) con `NewsletterSubscribe full + showName`; props `{ source, title?, description?, className? }`. `source` viaja al CMS tal cual (auditoría `source`); valores fuera del enum → el proxy lo rechaza (400).
   - Campos: `email` (required, max 254, validación `isValidEmail` en cliente + servidor), `name?` (opcional, max 100, solo `full` con `showName`, strip HTML), checkbox consentimiento **obligatorio y no premarcado** ("Acepto recibir la newsletter de Porta QR. Puedo darme de baja cuando quiera. Ver [privacidad](/privacidad#newsletter)." — sin él no hay submit), honeypot oculto (`tabIndex={-1}`, `aria-hidden`, autocomplete off; si lleno → éxito falso local sin llamar a la API).
   - Servicio `qr-app/src/services/newsletter.service.ts`: `subscribe({ email, name?, source, consent, honeypot }) → POST /api/newsletter/subscribe` (proxy qr-app → CMS; el navegador nunca ve `CMS_BASE_URL` ni API key). Timeout 10s; error de red → mensaje genérico "No pudimos procesar tu suscripción. Inténtalo de nuevo." (anti-enumeración: nunca revela si el email existía).
   - Estados: `idle|sending|pending-confirmation|error` con `role="status"`/`aria-live`; éxito → mensaje "Revisa tu correo para confirmar la suscripción." + limpia el form (flujo doble opt-in RF-3); conserva `source` para analytics.
   - A11y/i18n: `Label` real por campo, foco visible, botón `aria-label="Suscribirme a la newsletter"`, mensajes en español, compatible dark mode único (SPEC-025).
   - Throttle del proxy: reutiliza `SENSITIVE_ENDPOINT_THROTTLE` (SPEC-006).
-  - Puntos de uso iniciales (todos con el mismo componente, solo cambia `source`/`variant`): `Footer` (`<NewsletterSubscribe source="footer" variant="compact" />` bajo el tagline) + final de `app/blog/[slug]/page.tsx` (`source="blog" variant="full"`) + nueva página `/newsletter` (`source="newsletter-page" variant="full"` + explicación + link a baja). Extensión futura sin cambios al componente: `home` (bajo hero), `precios` (bajo planes), `contacto` (lateral del form) — solo importar y montar con su `source`.
+  - Puntos de uso (todos con `<NewsletterSection source="..." />`, solo cambia `source`): home (`HomePageClient`, entre `Features` y `CtaSection`) + final de `app/blog/[slug]/page.tsx` (`source="blog"`) + página `/newsletter` (`source="newsletter-page"` + explicación + link a baja). Extensión futura sin cambios: `precios` (bajo planes), `contacto` (lateral del form) — solo importar y montar con su `source`.
 - **RF-10 (página `/newsletter/baja`)**. Pública, `metadata robots: noindex`. Lee `?token=`: sin token → formulario para pegar email (flujo alterno: `POST /api/newsletter/request-unsubscribe { email }` → el CMS envía email con link tokenizado si existe, mensaje genérico siempre); con token → auto-`POST` unsubscribe + confirmación visual + motivo opcional (`reason` select) + link "volver a suscribirme". Soporta `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (el POST del proveedor de correo llega sin JS — el Route Handler lo procesa igual).
 
 **Bloque E — Correos newsletter (plantillas + headers)**
@@ -155,7 +155,7 @@ aliases:
 - **RN-1**. El CMS es la **única fuente de verdad** de suscripciones. El backend nunca decide estado; solo reporta intents. El admin edita en `/admin` (colección `subscribers`).
 - **RN-2**. El sync signup es **best-effort**: un fallo CMS/red **nunca** rompe el 201 de `POST /users` ni el login (log `newsletter_sync_failed`; `newsletterSyncedAt = null` permite reintento).
 - **RN-3**. Consentimiento **explícito y no premarcado** en todos los formularios (checkbox `false` por defecto). Sin consentimiento no hay alta (400 en endpoint público; no-op en sync).
-- **RN-4**. **Doble opt-in obligatorio para público** (todos los `source` sin cuenta: `footer|blog|home|precios|contacto|newsletter-page` → `pending` + confirmación 48h de un solo uso); **simple opt-in solo para cuentas** (`signup|onboarding|settings` → `subscribed` directo, el email se verifica por el flujo auth de todos modos). Fundamento: la única forma de probar que el email existe y que quien lo ingresó es su dueño es que **alguien con acceso a esa bandeja haga clic**. Sin ese clic no hay suscripción ni envíos.
+- **RN-4**. **Doble opt-in obligatorio para público** (todos los `source` sin cuenta: `blog|home|precios|contacto|newsletter-page` → `pending` + confirmación 48h de un solo uso); **simple opt-in solo para cuentas** (`signup|onboarding|settings` → `subscribed` directo, el email se verifica por el flujo auth de todos modos). Fundamento: la única forma de probar que el email existe y que quien lo ingresó es su dueño es que **alguien con acceso a esa bandeja haga clic**. Sin ese clic no hay suscripción ni envíos.
 - **RN-5**. La baja es **inmediata, gratuita, sin login y en 1 clic** (token en URL + headers). Token inválido → 404 genérico (no filtrar existencia).
 - **RN-6**. Re-suscripción **rota el `unsubscribeToken`** (los links viejos mueren) y actualiza `consentAt` + `consentTextVersion`.
 - **RN-7**. **Nunca 409 por email duplicado** en endpoints públicos (idempotencia + mensajes genéricos anti-enumeración).
@@ -165,14 +165,14 @@ aliases:
 
 ### 3.3 Criterios de aceptación (CA)
 
-- **CA-01**: `POST /api/newsletter/subscribe { email nuevo, consent: true, source: footer }` → `201 pending-confirmation`, doc `pending` con `confirmToken`, **1 correo de confirmación** con botón (token válido 48h, un solo uso). Sin clic → jamás recibe bienvenida ni bulk (RN-10a). Email de un tercero ingresado por un atacante → el dueño lo ignora y expira; el atacante no obtiene nada (respuesta genérica) y el throttle frena reintentos.
+- **CA-01**: `POST /api/newsletter/subscribe { email nuevo, consent: true, source: home }` → `201 pending-confirmation`, doc `pending` con `confirmToken`, **1 correo de confirmación** con botón (token válido 48h, un solo uso). Sin clic → jamás recibe bienvenida ni bulk (RN-10a). Email de un tercero ingresado por un atacante → el dueño lo ignora y expira; el atacante no obtiene nada (respuesta genérica) y el throttle frena reintentos.
 - **CA-02**: `GET /api/newsletter/confirm?token=` válido → `subscribed`, `confirmToken` limpio, correo bienvenida con footer de baja.
 - **CA-03**: signup `qr-app` con `newsletterOptIn: true` → `201` cuenta + doc `subscribed` en CMS con `source: signup` y `userId` del nuevo usuario (mock del sync en unit test; verificación real con `mongosh` en CMS).
 - **CA-04**: signup con `newsletterOptIn: false/ausente` → cuenta creada, **cero** llamadas al CMS.
 - **CA-05**: Google → onboarding con checkbox marcado → `PATCH` sincroniza (`source: onboarding`); toggle off en settings → baja en CMS.
 - **CA-06**: todo `sendMail` newsletter contiene header `List-Unsubscribe` con `unsubscribeUrl` del suscriptor + footer HTML con link de baja (verificado con mock `sendMail`).
 - **CA-07**: `POST /api/newsletter/unsubscribe { token válido }` → `unsubscribed` + `unsubscribedAt`; segunda llamada mismo token → mismo `200` (idempotente); token inválido → `404` genérico.
-- **CA-08**: no-usuario se suscribe desde footer del blog → aparece en admin CMS (`source: blog`, `consentTextVersion: v1-2026-09`); se da de baja desde el link del correo sin login → estado visible en admin.
+- **CA-08**: no-usuario se suscribe desde la sección del blog → aparece en admin CMS (`source: blog`, `consentTextVersion: v1-2026-09`); se da de baja desde el link del correo sin login → estado visible en admin.
 - **CA-09**: CMS caído durante signup con opt-in → cuenta `201` igual, warn `newsletter_sync_failed`, `newsletterSyncedAt = null`.
 - **CA-10**: honeypot lleno o `consent !== true` → sin alta (`200` falso / `400` respectivamente); throttle público no bloquea el flujo cuenta (orígenes distintos).
 - **CA-11**: `tsc --noEmit` + suites jest/vitest verdes en los 3 proyectos (sin regresión SPEC-006/019/020/023).
@@ -203,7 +203,7 @@ aliases:
 ### 4.2 Flujo de datos — suscripción pública (doble opt-in)
 
 ```
-[qr-app] Footer/Blog NewsletterForm { email, name?, consent: true, honeypot }
+[qr-app] NewsletterSection (home/blog/landing) { email, name?, consent: true, honeypot }
   │ POST /api/newsletter/subscribe (proxy qr-app → CMS, throttle sensible)
   ▼
 [qr-cms] POST /api/newsletter/subscribe
@@ -229,7 +229,7 @@ GET /api/newsletter/confirm?token= → subscribed → sendWelcome
 ```
 # qr-cms (nuevos Route Handlers)
 POST /api/newsletter/subscribe        público, throttle estricto
-  req:  { email, name?, source: footer|blog|home|precios|contacto|newsletter-page|signup|onboarding|settings, consent: true, honeypot? }
+  req:  { email, name?, source: blog|home|precios|contacto|newsletter-page|signup|onboarding|settings, consent: true, honeypot? }
   res:  201 { ok, status: 'pending-confirmation'|'subscribed' } | 200 { ok, status: 'already-subscribed' }
 GET  /api/newsletter/confirm?token=   público → 302 página éxito | 404 | 410 expirado
 POST /api/newsletter/resend-confirm   público { email } → 200 genérico (throttle estricto)
@@ -298,8 +298,9 @@ export const Subscribers = {
 | `qr-app/src/app/api/auth/signup/route.ts` + `services/auth.service.ts` | whitelist + tipo `newsletterOptIn` |
 | `qr-app/src/app/onboarding/OnboardingPageClient.tsx` | Checkbox newsletter → PATCH `newsletterOptIn` |
 | `qr-app/src/components/NewsletterSubscribe/` (nuevo: `index.tsx` + `useNewsletterSubscribe.ts` + spec) | RF-9 reutilizable sin cuenta (`compact`/`full`, `source` por punto de uso) + spec |
-| `qr-app/src/components/Footer/index.tsx` | Montar `<NewsletterSubscribe source="footer" variant="compact" />` |
-| `qr-app/src/app/blog/[slug]/page.tsx` | Montar `<NewsletterSubscribe source="blog" variant="full" />` al final del artículo |
+| `qr-app/src/components/home/HomePageClient.tsx` | Montar `<NewsletterSection source="home" />` entre `Features` y `CtaSection` |
+| `qr-app/src/components/NewsletterSection/` (nuevo: `index.tsx` + spec) | Wrapper tarjeta reutilizable (`full` + `showName`, sin footer) + spec |
+| `qr-app/src/app/blog/[slug]/page.tsx` | Montar `<NewsletterSection source="blog" />` al final del artículo |
 | `qr-app/src/app/newsletter/page.tsx` + `/newsletter/baja/page.tsx` (nuevas) | Landing + baja por token (noindex) + specs |
 | `qr-app/src/app/api/newsletter/*/route.ts` (nuevos proxies) | Forward al CMS con throttle (SPEC-006) |
 | `qr-app/src/app/privacidad/*` + `/terminos` | Cláusula `#newsletter` (texto v1-2026-09) |
@@ -342,7 +343,7 @@ export const Subscribers = {
 ## 5. Mockups / Referencias
 
 - **Signup**: bajo `TermsCheckbox`, nuevo `NewsletterCheckbox` (unchecked): "Quiero recibir la newsletter de Porta QR con novedades y tips (puedo darme de baja cuando quiera). Ver [política de privacidad](/privacidad#newsletter)." — no bloquea "Crear Cuenta".
-- **Footer**: bloque compacto bajo el tagline: input email + botón "Suscribirme" + microcopy "Al suscribirte aceptas nuestra política de privacidad. Baja en 1 clic." → éxito: "Revisa tu correo para confirmar."
+- **Sección** (`NewsletterSection`, home/blog/`/newsletter`): tarjeta con título + descripción + email (+ nombre) + checkbox + botón "Suscribirme" + microcopy "Baja en 1 clic" → éxito: "Revisa tu correo para confirmar." (sin presencia en el footer).
 - **Blog**: tarjeta al final del artículo: título "Recibe tips de QR en tu correo", `name?` + email + checkbox + botón.
 - **Baja**: `/newsletter/baja?token=...` → "Te diste de baja correctamente. [Volver a suscribirme]" + motivo opcional; sin token → input email + "Enviarme el link de baja".
 - **Emails**: header logo Porta QR (PNG, patrón SPEC-019 RF-1.2) + botón CTA azul `#1E3A8A` + footer con baja (RF-11) + headers RF-12.
@@ -385,8 +386,8 @@ export const Subscribers = {
 
 - **qr-cms**: vitest colección (transiciones, normalización, unicidad, rotación) + routes (honeypot, consent, idempotencia, auth sync, token inválido) + mail (headers + footer). `tsc --noEmit` + `lint` limpios.
 - **backend**: jest `newsletter-sync.service` (no-op sin opt-in, POST con key, timeout, kill-switch, no-throw) + `create/update-user` (CA-03/04/05/09). Sin regresión suites `users/auth/email`.
-- **qr-app**: jest `NewsletterForm` (consent requerido, honeypot, estados), `SignUpForm` (opt-in en payload), página baja (token/no-token), proxies (forward + throttle). `tsc` + `lint` limpios.
-- **E2E** (`e2e-tests-portaqr`, Playwright): alta footer → confirmación (bandeja fake) → baja por token; signup con opt-in → visible en CMS (stub API key en entorno E2E).
+- **qr-app**: jest `NewsletterSubscribe`/`NewsletterSection` (consent requerido, honeypot, estados, sources), `SignUpForm` (opt-in en payload), página baja (token/no-token), proxies (forward + throttle). `tsc` + `lint` limpios.
+- **E2E** (`e2e-tests-portaqr`, Playwright): alta en sección home/landing → confirmación (bandeja fake) → baja por token; signup con opt-in → visible en CMS (stub API key en entorno E2E).
 - **Accesibilidad/legal**: checkbox con label real, foco visible, mensajes `role=status`; cláusula `/privacidad#newsletter` publicada antes del deploy.
 
 ## 9. Tareas
@@ -412,5 +413,6 @@ export const Subscribers = {
 | Fecha | Detalle |
 | --- | --- |
 | 2026-09-03 | **SPEC creada** (borrador). Investigación verificada: grep `newsletter\|suscrib\|...` = 0 resultados en `desarrollo-qr`; `payload.config.ts` sin colección; `SignUpForm`/proxy/DTO sin opt-in; `modules/users` sin campo marketing; `Footer` sin formulario; emails sin `List-Unsubscribe`. Diseño: CMS fuente de verdad + sync backend best-effort + doble opt-in público + baja 1-clic + Fase 2 ESP. |
+| 2026-09-03 | **Ajuste usuario**: suscripción fuera del footer. Nueva `NewsletterSection` reutilizable (home entre `Features`/`CtaSection`, blog, `/newsletter`); eliminado el origen `footer` del enum (CMS+qr-app+spec+E2E). Commits: qr-cms `83d258b`, qr-app `fa4954c`, e2e `b564a96`. Suites verdes (cms 113/113, qr-app 77/77). |
 | 2026-09-03 | **Implementada** en ramas `feat/spec-030-newsletter` (qr-cms: `568f41b` colección+helpers, `266f727` endpoints+aceptación, `9321e91` baja+sync; backend: `20a4715` sync best-effort, `bd1a018` fixtures; qr-app: `502e598` opt-in signup/onboarding, `2a7bb0c` NewsletterSubscribe+proxies+landing, `ed1377f` baja, `f9515a6` legal; e2e: `79e27c8` POM+3 specs). Validación: qr-cms vitest 113/113, backend jest 159 suites/1343 tests, qr-app jest 76 suites/556 tests, e2e tsc limpio. Pre-existentes no tocados: `scripts/fix-demo-layouts.ts` (TS1117), lint en `forgot-password.usecase.spec.ts`/`users.controller.ts`. E2E browser pendiente de stack con ramas spec (CI/staging). |
 | 2026-09-03 | **Auditoría línea gráfica** (requerimiento usuario): leídos `registerEmail.ejs` + `welcomeEmail.ejs` + `passwordReset.ejs` + `qrActivated.ejs` en `backend-portaqr/src/templateEmail/`. Base de copia fijada en **`welcomeEmail.ejs`** (logo PNG remoto linkeado + solo modo claro); prohibido copiar `registerEmail.ejs` (sin logo + con dark mode). Tokens exactos volcados en RF-11 (paleta, botón, footer, responsive, estructura `table[role=presentation]`). |
