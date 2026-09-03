@@ -37,13 +37,16 @@ aliases:
 
 ## Variables de entorno
 
-| Variable                         | Descripción                                                                                                                                                      | ¿Nueva? | Dónde            |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ---------------- |
-| `NEXT_PUBLIC_ENABLE_ANALYTICS`   | Master switch. Solo el string exacto `true` habilita la inyección (`false` o ausente → GTM jamás carga)                                                          | **Sí**  | qr-app (Railway) |
-| `NEXT_PUBLIC_GTM_ID`             | Container ID `GTM-NLJXTZG4` (formato `GTM-` + 4+ alfanuméricos; placeholders no matchean y bloquean la carga)                                                     | **Sí**  | qr-app (Railway) |
+| Variable                       | Descripción                                                                                                   | ¿Nueva? | Dónde            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- | ------- | ---------------- |
+| `NEXT_PUBLIC_ENABLE_ANALYTICS` | Master switch. Solo el string exacto `true` habilita la inyección (`false` o ausente → GTM jamás carga)       | **Sí**  | qr-app (Railway) |
+| `NEXT_PUBLIC_GTM_ID`           | Container ID `GTM-NLJXTZG4` (formato `GTM-` + 4+ alfanuméricos; placeholders no matchean y bloquean la carga) | **Sí**  | qr-app (Railway) |
 
 > [!warning] Build-time, no runtime
 > Ambas son `NEXT_PUBLIC_*`: quedan bakeadas en el bundle. Todo cambio exige **redeploy** del servicio `qr-app`. Verificar en los logs del build que el deploy tomó las variables (un redeploy sin cambios de código igual re-hornea).
+
+> [!important] Railway + Dockerfile: declarar ARG o el build sale sin variables
+> Incidente 2026-09-03: con las variables seteadas en el dashboard y redeploy hecho, producción seguía compilando `{"gtmId":"","enabled":false}` (verificado en el flight data del HTML). Causa raíz: **Railway solo inyecta variables al build Dockerfile si están declaradas con `ARG` en la etapa que las usa** ([docs Railway](https://docs.railway.com/guides/build-time-vs-runtime-secrets)). Nuestro `Dockerfile` no declaraba ninguna → `npm run build` horneaba TODAS las `NEXT_PUBLIC_*` vacías (GTM off, `SITE_URL` en localhost, etc.). Fix: commit `3799a39` (`fix/spec-028-docker-build-args`) declara los 14 `ARG NEXT_PUBLIC_*` en la etapa `builder` con defaults = comportamiento local. Sin `ARG`, setear variables + redeployar NO sirve de nada.
 
 > [!note] Sin cambios de infraestructura
 > No hay cambios de backend, Mongo, CORS ni R2. `NEXT_PUBLIC_GA_TRACKING_ID` / `NEXT_PUBLIC_GOOGLE_ANALYTICS_TRACKING_ID` legacy **no se leen** (el Measurement ID vive dentro del container GTM). El banner pesa ~2KB y con el gate OFF el costo Google es 0 bytes.
