@@ -2,8 +2,8 @@
   "tasks": [
     {
       "id": "1",
-      "content": "[SPEC-031] SignUpWizard con pasos cuenta/condiciones (RF-1)",
-      "description": "qr-app app/signup: nuevo SignUpWizard (paso cuenta | condiciones, estado en memoria). Extraer AccountStep del SignUpForm actual sin casillas. RTL navegación entre pasos + foco gestionado (RN-3).",
+      "content": "[SPEC-031] TermsModal con bloque newsletter opcional (RF-2)",
+      "description": "qr-app TermsModal/index.tsx: props newsletterOptIn? + onNewsletterChange?; casilla no premarcada + link /privacidad#newsletter entre resumen y documento completo. RTL: render opcional, default sin bloque, check explícito.",
       "status": "pending",
       "priority": "high",
       "tag": "spec-031",
@@ -12,8 +12,8 @@
     },
     {
       "id": "2",
-      "content": "[SPEC-031] TermsStep estilo Google con gating por scroll (RF-1/RF-2)",
-      "description": "qr-app: pantalla Privacidad y Condiciones (hero + En resumen TERMS_SUMMARY + texto TERMS_SECTIONS con scroll-spy bottom). Botón Acepto deshabilitado hasta leer + nota. Reutilizar patrón scroll de TermsPageClient. RTL.",
+      "content": "[SPEC-031] SignUpForm sin casillas, un solo camino popup (RF-1/RF-3)",
+      "description": "qr-app SignUpForm/index.tsx: fuera TermsCheckbox + casilla newsletter; botón 'Leer y aceptar términos' + estado pendiente/aceptado; acceptTerms solo vía onAccept; Crear deshabilitado sin aceptar + nota. RTL CA-01/03.",
       "status": "pending",
       "priority": "high",
       "tag": "spec-031",
@@ -24,8 +24,8 @@
     },
     {
       "id": "3",
-      "content": "[SPEC-031] Newsletter opcional en TermsStep + flujos email/Google (RF-3/RF-4)",
-      "description": "Casilla newsletter no premarcada en TermsStep; email: viaja en signup (newsletterOptIn actual); Google: paso2 -> redirect /api/auth/google?mode=signup, newsletter queda para onboarding. RTL + CA-02/03.",
+      "content": "[SPEC-031] Popup auto-open ?acceptTerms=1 + flujo Google (RF-4/RF-5)",
+      "description": "initialAcceptTerms abre el popup al cargar (estado inicial, sin effect); Google mantiene pendingGoogleRedirect con CTA contextual. RTL CA-04 + flujo Google.",
       "status": "pending",
       "priority": "high",
       "tag": "spec-031",
@@ -36,27 +36,14 @@
     },
     {
       "id": "4",
-      "content": "[SPEC-031] Retorno /terminos y ?acceptTerms=1 al paso 2 (RF-5/RF-6)",
-      "description": "CTA /terminos aterriza en paso 2 ya leído; ?acceptTerms=1 legacy lleva a paso 2 sin auto-aceptar. Actualizar TermsPageClient CTA + signup page. RTL.",
+      "content": "[SPEC-031] Submit con newsletter del popup + E2E (RN-1/CA-02/CA-05)",
+      "description": "buildSubmitData sin cambios (lee newsletterOptIn del form, seteado desde el popup); e2e signup-optin vía popup (marcar/no-marcar); tsc/lint/jest verdes.",
       "status": "pending",
       "priority": "medium",
       "tag": "spec-031",
       "dependencies": [
-        "1",
-        "2"
-      ],
-      "subtasks": []
-    },
-    {
-      "id": "5",
-      "content": "[SPEC-031] Prueba de consentimiento + E2E (RN-1/RN-2/CA-05)",
-      "description": "Registrar termsAcceptedAt + termsVersion al crear cuenta (coordinar campo backend si aplica); E2E signup wizard actualizado (gating scroll, Google, retorno terminos); tsc/lint/jest verdes.",
-      "status": "pending",
-      "priority": "medium",
-      "tag": "spec-031",
-      "dependencies": [
-        "3",
-        "4"
+        "2",
+        "3"
       ],
       "subtasks": []
     }

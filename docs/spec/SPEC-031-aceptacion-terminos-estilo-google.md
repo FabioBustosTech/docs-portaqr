@@ -1,5 +1,5 @@
 ---
-title: "SPEC-031: Aceptación de términos estilo Google (pantalla Acepto explícito)"
+title: "SPEC-031: Aceptación unificada en popup (términos bloqueantes + newsletter opcional)"
 date: 2026-09-03
 tags:
   - spec
@@ -9,90 +9,88 @@ tags:
 status: borrador
 ---
 
-# SPEC-031: Aceptación de términos estilo Google (pantalla Acepto explícito)
+# SPEC-031: Aceptación unificada en popup (términos bloqueantes + newsletter opcional)
 
 > [!abstract] Decisión clave
-> El registro (`/signup`) pasa a **2 pasos**: 1) datos de cuenta, 2) **pantalla "Privacidad y Condiciones"** como la de crear una cuenta Google — resumen en lenguaje claro + texto completo con scroll + botón **"Acepto"** explícito (habilitado solo tras leer) y **"Atrás"**. La casilla obligatoria del paso 1 desaparece (la aceptación vive en la pantalla); la newsletter queda como casilla **opcional y separada** en esa misma pantalla. Reutiliza `terms-content.ts` (fuente única).
+> Un **solo camino**: el formulario `/signup` no lleva ninguna casilla. La sección "Términos y Condiciones" tiene un botón que abre un **popup único** con el resumen de términos + botón **"Aceptar"** (clic implícito = aceptación, bloqueante, sin casilla) + casilla **opcional no-tickeada** de newsletter. Como Google: el popup es solo aceptación; el marketing va separado pero en el mismo paso para no perderlo. Reutiliza `TermsModal` + `terms-content.ts`.
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Borrador (en implementación)
 > - **Fecha:** 2026-09-03
-> - **Componente destino:** `desarrollo-qr/qr-app/` (signup, pantalla aceptación, onboarding/Google)
-> - **Origen:** Pedido del usuario (2026-09-03): seguir "la forma de Google para la aceptación" — pantalla con Acepto explícito, no solo casilla.
+> - **Componente destino:** `desarrollo-qr/qr-app/` (SignUpForm, TermsModal) + `e2e-tests-portaqr` (signup-optin)
+> - **Origen:** Pedido del usuario (2026-09-03): el popup de Google acepta términos sin newsletter; tener casilla fuera + popup es confuso — "vamos por un solo camino: los dos con popup, con click implícito no tickeado; términos bloqueantes, newsletter opcional".
+> - Historial: v1 proponía pantalla completa estilo Google; v2 (esta) mantiene el popup, que es lo que Google realmente levanta.
 
 ---
 
 ## 1. Objetivo
 
-Subir el estándar legal y de UX del registro al patrón que usa Google al crear una cuenta: aceptación **informada y explícita** (el usuario ve el resumen, puede leer el texto completo y pulsa "Acepto"), en vez de una casilla premarcable junto al formulario. Beneficios: prueba de consentimiento más sólida (Ley 19.628), menos fricción visual en el paso 1, y la newsletter queda claramente separada como marketing opcional (como hace Google con sus opt-ins).
+Eliminar la confusión de la doble aceptación (casilla fuera + popup): un solo gesto de aceptación dentro del popup. Los términos se aceptan con el **clic en "Aceptar"** (sin casilla que tickear — el clic ES la aceptación, bloqueante para crear la cuenta). La newsletter vive en el **mismo popup** como casilla **opcional, no premarcada** (separación legal preservada: aceptar términos no suscribe).
 
 ## 2. Especificación
 
 ### 2.1 Requisitos funcionales
 
-- **RF-1 (wizard 2 pasos)**. `/signup` se divide en:
-  - **Paso 1 — Tu cuenta**: email + contraseña + botón Google (sin casillas; solo una línea "Al continuar verás los Términos y la Privacidad").
-  - **Paso 2 — Privacidad y Condiciones** (pantalla completa): hero con título + fecha de actualización, tarjeta "En resumen" (bullets `TERMS_SUMMARY`), texto completo con scroll (`TERMS_SECTIONS`), casilla opcional newsletter, botones **"Atrás"** (secundario) y **"Acepto y crear cuenta"** (primario).
-- **RF-2 (lectura para aceptar)**. El botón "Acepto" se habilita solo cuando el usuario llega al final del texto (scroll-spy, mismo patrón de `/terminos`). Nota honesta "Debes leer hasta el final para aceptar".
-- **RF-3 (newsletter separada)**. En la pantalla, casilla opcional **no premarcada**: "Quiero recibir la newsletter de Porta QR (puedo darme de baja cuando quiera)" + link a `/privacidad#newsletter`. Su valor viaja en el `signup` (email) igual que hoy (`newsletterOptIn`).
-- **RF-4 (flujo Google)**. "Continuar con Google" (paso 1) lleva primero a la pantalla de aceptación; al pulsar "Acepto" redirige a `/api/auth/google?mode=signup`. La newsletter de usuarios Google se decide en el **onboarding** (ya existe) — el round-trip OAuth no preserva estado del form.
-- **RF-5 (retorno de /terminos)**. El CTA de `/terminos` ("Aceptar términos y crear cuenta") aterriza en el **paso 2** ya leído (scroll al final + botón habilitado), no en el paso 1.
-- **RF-6 (retrocompatibilidad)**. `?acceptTerms=1` antiguo: aterriza en paso 2 con lectura pendiente (la aceptación vieja por casilla no se hereda como "leído").
+- **RF-1 (sin casillas en el form)**. `SignUpForm` elimina `TermsCheckbox` y la casilla `newsletterOptIn` externa. La sección "Términos y Condiciones" muestra: texto "Para crear tu cuenta debes aceptar los Términos..." + botón **"Leer y aceptar términos"** que abre el popup + estado ("✓ Aceptados el ..." / pendiente).
+- **RF-2 (popup unificado)**. `TermsModal` suma bloque opcional newsletter (props `newsletterOptIn`, `onNewsletterChange`): casilla no premarcada "Quiero recibir la newsletter de Porta QR (puedo darme de baja cuando quiera)" + link `/privacidad#newsletter`. Estructura: resumen términos → newsletter opcional → link documento completo → footer [Cerrar] [**Aceptar y continuar**].
+- **RF-3 (clic implícito bloqueante)**. `acceptTerms` pasa a estado interno: solo se marca vía `onAccept` del popup. Sin "Aceptar" no hay cuenta (email: botón Crear deshabilitado + nota; Google: el botón abre el popup).
+- **RF-4 (flujo Google)**. Igual que hoy: Google sin aceptar → popup (CTA "Aceptar y continuar con Google") → aceptar → redirect OAuth. La casilla newsletter del popup **no sobrevive** al round-trip OAuth: usuarios Google deciden en el **onboarding** (ya existe, SPEC-030).
+- **RF-5 (retorno /terminos)**. `?acceptTerms=1` **abre el popup automáticamente** al cargar (sin effect: estado inicial), para que el que viene de leer acepte en un clic.
 
 ### 2.2 Reglas de negocio
 
-- **RN-1 (prueba de consentimiento)**. Al crear la cuenta se registra `termsAcceptedAt + termsVersion` (= `TERMS_LAST_UPDATED`) junto a los datos (el backend ya guarda prueba de newsletter; esto la extiende a términos — coordinar campo con backend si aplica).
-- **RN-2 (sin lectura, sin cuenta)**. No existe camino (email ni Google) que cree cuenta sin pasar por la pantalla y pulsar "Acepto".
-- **RN-3 (accesibilidad)**. La pantalla usa `main`, headings jerárquicos, foco gestionado al avanzar/retroceder (el lector anuncia el paso), botón deshabilitado con `aria-disabled` + explicación visible.
+- **RN-1 (separación legal)**. Aceptar términos jamás suscribe: `newsletterOptIn` default `false`, solo el check explícito lo pone `true` (Ley 19.628).
+- **RN-2 (sin aceptación, sin cuenta)**. Ningún camino (email/Google) crea cuenta sin `onAccept` del popup.
+- **RN-3 (prueba de consentimiento)**. Se mantiene `consentAt/source` de newsletter; términos = `acceptTerms` interno del submit (extensión a `termsAcceptedAt` en backend queda fuera de esta SPEC).
 
 ### 2.3 Criterios de aceptación
 
-- **CA-01**: completar paso 1 → pantalla de aceptación con resumen + texto completo; "Acepto" deshabilitado hasta scroll final.
-- **CA-02**: "Acepto" crea la cuenta (email) con `newsletterOptIn` según la casilla; redirige a `/verify-email` como hoy.
-- **CA-03**: flujo Google: paso 1 → pantalla → "Acepto" → Google → cuenta creada; newsletter se ofrece en onboarding.
-- **CA-04**: `/terminos` CTA → paso 2 directo; `?acceptTerms=1` → paso 2 (no auto-aceptado).
-- **CA-05**: `tsc`, `lint`, `jest` verdes + RTL del wizard (pasos, gating por scroll, newsletter opcional) + E2E signup actualizado.
+- **CA-01**: `/signup` sin casillas; botón abre popup con resumen + newsletter no-tickeada.
+- **CA-02**: "Aceptar" con newsletter marcada → cuenta + `subscribed` (source signup); sin marcar → cuenta sin suscripción.
+- **CA-03**: sin aceptar, "Crear Cuenta" deshabilitado; Google abre el popup.
+- **CA-04**: `?acceptTerms=1` abre el popup al cargar.
+- **CA-05**: `tsc`, `lint`, `jest` verdes + RTL + E2E signup-optin actualizado al popup.
 
 ## 3. Diseño Técnico
 
 ```
-app/signup/
-  page.tsx                 → monta <SignUpWizard/>
-  SignUpWizard.tsx (nuevo) → paso: 'cuenta' | 'condiciones'; guarda formData + newsletterOptIn
-  steps/
-    AccountStep.tsx (nuevo)→ form actual SIN casillas (extraído de SignUpForm)
-    TermsStep.tsx (nuevo)  → pantalla estilo Google:
-                              PageHero "Privacidad y Condiciones" + fecha
-                              tarjeta "En resumen" (TERMS_SUMMARY)
-                              <div scroll> texto completo (TERMS_SECTIONS) + scroll-spy bottom
-                              checkbox newsletter (opcional, default false)
-                              [Atrás] [Acepto y crear cuenta / Aceptar y continuar con Google]
+SignUpForm (sin TermsCheckbox ni casilla newsletter)
+  sección "Términos y Condiciones"
+    ├─ texto + estado (pendiente/aceptado)
+    └─ botón "Leer y aceptar términos" → setIsTermsModalOpen(true)
+  TermsModal open
+    ├─ resumen (TERMS_SUMMARY) + link /terminos
+    ├─ [NUEVO] checkbox newsletter (props opcionales, default false)
+    └─ [Cerrar] [Aceptar y continuar(- con Google)]
+         └─ onAccept → acceptTerms=true (+ redirect Google si pendiente)
 ```
 
-- Estado entre pasos: memoria del wizard (sin query params con PII; solo `?paso=condiciones` opcional para deep-link, sin datos).
-- Scroll-gating: `onScroll` del contenedor → `scrollTop + clientHeight >= scrollHeight - 8` → `hasRead=true`.
-- `TermsCheckbox`/`TermsModal` actuales: el modal se retira del signup (queda `/terminos` como lectura); evaluar reutilizar piezas visuales.
-- Backend (si RN-1 requiere persistencia): nuevo campo `termsAcceptedAt/termsVersion` en `CreateUserDto` — SPEC hija o alcance de esta (decidir al implementar).
+| Archivo | Cambio |
+|---|---|
+| `TermsModal/index.tsx` | Props `newsletterOptIn?`, `onNewsletterChange?`; bloque casilla + link privacidad |
+| `SignUpForm/index.tsx` | Fuera `TermsCheckbox` + casilla newsletter; botón abre-popup + estado; `initialAcceptTerms` → popup abierto inicial |
+| `TermsModal.spec.tsx`, `SignUpForm` specs, `helpers.spec.tsx` | RTL popup unificado (CA-01/02/04) |
+| `e2e-tests-portaqr` signup-optin | Flujo vía popup (CA-02/03) |
 
 ### 3.1 ADRs
 
-> [!info] ADR-031.1 — ¿Paso dentro de /signup o ruta nueva (/signup/condiciones)?
-> **Decisión**: **paso dentro de `/signup`** (estado en memoria, sin PII en URL).
-> - Ruta nueva obligaría a persistir email/contraseña entre rutas (query = PII en historial; sessionStorage = más piezas). El wizard de 1 ruta es el mismo UX "pantalla" con menos riesgo.
+> [!info] ADR-031.1 — ¿Pantalla completa o popup?
+> **Decisión v2**: **popup** (lo que Google realmente levanta). La pantalla completa (v1) añadía fricción y una ruta nueva sin beneficio legal extra: la aceptación por clic en el popup con resumen + link al documento es el estándar observado.
 
 ## 4. Referencias
 
-- Patrón Google: creación de cuenta → pantalla "Privacidad y Condiciones" (resumen + texto + "Acepto").
-- `src/lib/terms-content.ts` (fuente única), `app/terminos/TermsPageClient.tsx` (scroll-spy a reutilizar).
-- [[SPEC-030-newsletter-cms-suscripciones]] (RF-7 newsletter en signup — se mueve al paso 2).
+- Patrón Google: popup de aceptación de términos (sin marketing adentro como aceptación).
+- `src/lib/terms-content.ts`, `TermsModal`, `TermsPageClient` (CTA `?acceptTerms=1`).
+- [[SPEC-030-newsletter-cms-suscripciones]] (RF-7: checkbox se mueve del form al popup).
 
 ## 5. Trade-offs
 
-- **Pro**: consentimiento más sólido y auditable; UX por pasos reduce carga cognitiva; newsletter separada = marketing claramente opcional (mejor entregabilidad/reputación).
-- **Contra**: +1 clic en el registro (fricción medible — vigilar conversión); más código que mantener en el wizard; flujo Google con parada intermedia (aceptable: Google hace lo mismo).
+- **Pro**: un solo camino, cero confusión; separación legal intacta; menos elementos en el form.
+- **Contra**: la newsletter queda a un clic más de distancia (dentro del popup) — posible baja en opt-ins, compensada por onboarding + `/newsletter`.
 
 ---
 
 | Fecha | Detalle |
 |---|---|
-| 2026-09-03 | **SPEC creada** (borrador). Pendiente de implementación. |
+| 2026-09-03 | **SPEC creada** (v1 pantalla completa). |
+| 2026-09-03 | **Reescrita a v2** (popup unificado): el usuario aclara que Google levanta popup y que la confusión es casilla-fuera + popup — un solo camino. En implementación. |
