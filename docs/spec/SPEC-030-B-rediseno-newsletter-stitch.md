@@ -7,7 +7,7 @@ tags:
   - qr-app
   - ux-ui
   - stitch
-status: borrador
+status: implementado
 aliases:
   - SPEC-030-B
   - newsletter stitch
@@ -20,7 +20,7 @@ aliases:
 > Rediseñar `NewsletterSection`/`NewsletterSubscribe` de `qr-app` con el lenguaje del proyecto Stitch **PortaQR Design System** (pantallas "Rediseño Componente Newsletter" y "Newsletter Contenido de Valor"): isla oscura (`#121D2F`, borde mint con glow), badge "NEWSLETTER MENSUAL · 0% SPAM", línea de lead magnet, CTA pill mint full-width, microcopy legal y fila de confianza. **Alcance cerrado**: solo el componente newsletter (decisión usuario 2026-09-03); el resto de `qr-app` no se toca. Cero cambios de comportamiento (doble opt-in, honeypot, consent, throttle) y se suma el eslabón faltante del diseño: **reenvío de confirmación** ("¿No llegó? Reenviar correo" → proxy nuevo a `resend-confirm` del CMS).
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado (2026-09-03)
 > - **Fecha:** 2026-09-03
 > - **Componente destino:** `desarrollo-qr/qr-app/` (`NewsletterSubscribe`, `NewsletterSection`, proxies, `/newsletter`)
 > - **Origen:** Proyecto Stitch `17646060013543541217` ("PortaQR Design System"), pantallas "Rediseño Componente Newsletter" (`c1cb18ea…`), "Newsletter Contenido de Valor (Blog & Estrategia)" (`1b1332ca…`) y "Newsletter con Cumplimiento Legal Chile" (`762716ee…`). Tokens: canvas `#0B111E`, card `#121D2F`, primario mint `#00C49F` + glow `rgba(0,196,159,.28)`, texto `#FFFFFF`, muted `#94A3B8`, Inter, radius 16px card / pill CTA, inputs `#121D2F` borde `rgba(148,163,184,.2)`.
@@ -141,4 +141,5 @@ trustItems?: string[] // default ['1 correo al mes','Sin compromisos','Contenido
 
 | Fecha | Detalle |
 | --- | --- |
+| 2026-09-03 | **Implementada** en rama `feat/spec-030-newsletter` (qr-app, misma rama): `54dba70` isla dark/mint, `a8e57db` badge/lead/confianza, `489eb94` éxito Variante C + proxy resend-confirm, `e2aa670` defaults + full 564/564. Visual verificado en navegador vs Stitch. |
 | 2026-09-03 | **SPEC creada** (borrador). Base 100% Stitch (pantallas + tokens volcados en metadatos). Alcance cerrado por usuario: solo componente + solo newsletter. |
