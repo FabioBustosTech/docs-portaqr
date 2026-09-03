@@ -28,18 +28,18 @@ aliases:
 
 ### qr-cms (servicio CMS en Railway)
 
-| Variable | Descripción | Nueva? |
-| --- | --- | --- |
-| `NEWSLETTER_API_KEY` | Secreto server-to-server (header `x-newsletter-api-key` en `POST /sync`). Generar: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (**secreto**, debe coincidir con `CMS_NEWSLETTER_API_KEY` del backend) | Sí (requerida) |
-| `NEWSLETTER_PUBLIC_URL` | URL pública de qr-app para links de correos (`confirmUrl`, `unsubscribeUrl`). Ej prod: `https://portaqr.cl` | Sí (requerida) |
-| `NEWSLETTER_DOUBLE_OPT_IN` | Doble opt-in en orígenes públicos. **Default `true`** (solo `'false'` lo desactiva). **No configurar en prod** | Sí (opcional) |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS` / `SMTP_TTL` | SMTP transaccional (confirmación/bienvenida/baja). **Mismos nombres y valores que backend-portaqr** (puerto 465 = SSL implícito) | No (reutilizadas) |
-| `EMAIL_FROM` | Remitente transaccional (mismo del backend) | No (reutilizada) |
-| `RESEND_API_KEY` | API key de Resend (**ESP para masivos**). Sin ella, `send` responde 503 explicativo | Sí (requerida para bulk) |
-| `NEWSLETTER_FROM` | Remitente bulk DEDICADO, ej `newsletter@news.portaqr.cl` (verificado en Resend; ver §DNS) | Sí (requerida para bulk) |
-| `NEWSLETTER_BULK_BATCH_SIZE` | Tamaño de lote del job. **Default `100`** | Sí (opcional) |
-| `CRON_SECRET` | Secreto del cron `send-due` (header `x-cron-secret`). Generar como la API key | Sí (requerida si hay cron) |
-| `RESEND_WEBHOOK_SECRET` | Secreto del webhook Resend/Svix (Dashboard Resend > Webhooks). Sin él, el webhook responde 503 | Sí (requerida para rebotes) |
+| Variable                                                                           | Descripción                                                                                                                                                                                                                          | Nueva?                      |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
+| `NEWSLETTER_API_KEY`                                                               | Secreto server-to-server (header `x-newsletter-api-key` en `POST /sync`). Generar: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (**secreto**, debe coincidir con `CMS_NEWSLETTER_API_KEY` del backend) | Sí (requerida)              |
+| `NEWSLETTER_PUBLIC_URL`                                                            | URL pública de qr-app para links de correos (`confirmUrl`, `unsubscribeUrl`). Ej prod: `https://portaqr.cl`                                                                                                                          | Sí (requerida)              |
+| `NEWSLETTER_DOUBLE_OPT_IN`                                                         | Doble opt-in en orígenes públicos. **Default `true`** (solo `'false'` lo desactiva). **No configurar en prod**                                                                                                                       | Sí (opcional)               |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS` / `SMTP_TTL` | SMTP transaccional (confirmación/bienvenida/baja). **Mismos nombres y valores que backend-portaqr** (puerto 465 = SSL implícito)                                                                                                     | No (reutilizadas)           |
+| `EMAIL_FROM`                                                                       | Remitente transaccional (mismo del backend)                                                                                                                                                                                          | No (reutilizada)            |
+| `RESEND_API_KEY`                                                                   | API key de Resend (**ESP para masivos**). Sin ella, `send` responde 503 explicativo                                                                                                                                                  | Sí (requerida para bulk)    |
+| `NEWSLETTER_FROM`                                                                  | Remitente bulk DEDICADO, ej `newsletter@news.portaqr.cl` (verificado en Resend; ver §DNS)                                                                                                                                            | Sí (requerida para bulk)    |
+| `NEWSLETTER_BULK_BATCH_SIZE`                                                       | Tamaño de lote del job. **Default `100`**                                                                                                                                                                                            | Sí (opcional)               |
+| `CRON_SECRET`                                                                      | Secreto del cron `send-due` (header `x-cron-secret`). Generar como la API key                                                                                                                                                        | Sí (requerida si hay cron)  |
+| `RESEND_WEBHOOK_SECRET`                                                            | Secreto del webhook Resend/Svix (Dashboard Resend > Webhooks). Sin él, el webhook responde 503                                                                                                                                       | Sí (requerida para rebotes) |
 
 ### backend-portaqr
 
@@ -63,6 +63,47 @@ Sin variables nuevas (los proxies reutilizan `CMS_URL` server-side — verificar
 3. Cron cada 5 min → `POST {CMS}/api/newsletter/issues/send-due` con `x-cron-secret` (Railway cron o Vercel Cron).
 4. Registrar webhook en Resend → `POST {CMS}/api/newsletter/webhooks/resend` (bounced/complained → `bounced`).
 5. Calentamiento: primeros masivos a listas pequeñas (reputación de dominio nuevo).
+
+## Valores actuales en local (desarrollo, 2026-09-03)
+
+> [!warning] Secretos fuera de git
+> Los valores marcados 🔒 (`SMTP_USER`, `SMTP_PASS`, `NEWSLETTER_API_KEY`,
+> `CMS_NEWSLETTER_API_KEY`, `RESEND_API_KEY`, `CRON_SECRET`,
+> `RESEND_WEBHOOK_SECRET`) **existen solo** en `qr-cms/qrCms.env` y
+> `backend-portaqr/backendPortaqr.env` (no versionados) y deberán cargarse a
+> mano en el dashboard de Railway. **Jamás se commitean.** Abajo solo van los
+> valores no secretos.
+
+### qr-cms/qrCms.env (local)
+
+| Variable | Valor local | En prod cambiar a |
+| --- | --- | --- |
+| `SMTP_HOST` | `srv61.benzahosting.cl` | El mismo (hosting actual) |
+| `SMTP_PORT` | `465` (SSL implícito) | El mismo |
+| `SMTP_USER` / `SMTP_PASS` | 🔒 (las del backend, ya copiadas) | Los mismos |
+| `EMAIL_FROM` | `noreplay@portaqr.cl` | El mismo |
+| `NEWSLETTER_PUBLIC_URL` | `http://localhost:3000` | `https://portaqr.cl` |
+| `NEWSLETTER_DOUBLE_OPT_IN` | `true` | No configurar (default) |
+| `NEWSLETTER_API_KEY` | 🔒 (generada 64 hex, comparte valor con backend) | Regenerar una nueva para prod |
+| `RESEND_API_KEY` | (vacía en local — bulk responde 503) | Key real de Resend |
+| `NEWSLETTER_FROM` | (vacía, default del ejemplo) | `newsletter@news.portaqr.cl` (verificado) |
+| `NEWSLETTER_BULK_BATCH_SIZE` | (vacía, default 100) | No configurar (default) |
+| `CRON_SECRET` | (vacía) | Generar uno nuevo para prod |
+| `RESEND_WEBHOOK_SECRET` | (vacía, webhook en 503) | El de Resend Dashboard |
+
+### backend-portaqr/backendPortaqr.env (local)
+
+| Variable | Valor local | En prod cambiar a |
+| --- | --- | --- |
+| `CMS_BASE_URL` | `http://qr-cms:3005` (red docker) | URL pública del CMS en Railway (sin slash) |
+| `CMS_NEWSLETTER_API_KEY` | 🔒 (igual a la del CMS local) | Igual a la `NEWSLETTER_API_KEY` de prod |
+| `NEWSLETTER_SYNC_ENABLED` | `true` | No configurar (default) |
+
+### qr-app/qrApp.env (local)
+
+| Variable | Valor local | En prod cambiar a |
+| --- | --- | --- |
+| `CMS_URL` | (interno docker) | URL pública del CMS en Railway |
 
 ## Checklist de despliegue
 
