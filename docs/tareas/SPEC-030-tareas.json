@@ -42,9 +42,9 @@
     },
     {
       "id": "5",
-      "content": "[SPEC-030] qr-app signup + onboarding con opt-in",
+      "content": "[SPEC-030] qr-app signup + onboarding con opt-in (done: commit 502e598, jest 15/15, tsc+lint limpios)",
       "description": "SignUpForm state/helpers/index checkbox newsletterOptIn default false + privacy link, proxy signup whitelist, auth.service SignUpData, OnboardingPageClient checkbox → PATCH newsletterOptIn (cubre Google). Tests SignUpForm + proxy.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-030",
       "dependencies": ["4"],
