@@ -18,15 +18,15 @@ aliases:
 # SPEC-030-A: Creador de correos y envío masivo en el CMS
 
 > [!abstract] Decisión clave
-> El CMS (`qr-cms`, :3005) suma un **creador de correos**: nueva colección `newsletter-issues` (asunto, preheader, contenido por bloques, audiencia, estado) con **preview por issue** (mismo HTML que se enviará, con link de baja de ejemplo) y **envío masivo** solo a `subscribed` vía ESP (Resend recomendado — react-email es suyo). Sin sidecars: muere el puerto :3002 (`email dev` queda solo como herramienta local opcional). Reutiliza todo SPEC-030 sin cambios (suscriptores, tokens, baja 1-clic, headers).
+> El CMS (`qr-cms`, :3005) suma un **creador de correos**: nueva colección `newsletter-issues` (asunto, preheader, contenido por bloques, audiencia, estado) con **preview por issue** (mismo HTML que se enviará, con link de baja de ejemplo) y **envío masivo** solo a `subscribed` vía SMTP propio con throttling (sin ESP). Sin sidecars: muere el puerto :3002 (`email dev` queda solo como herramienta local opcional). Reutiliza todo SPEC-030 sin cambios (suscriptores, tokens, baja 1-clic, headers).
 
 > [!info] Metadatos
 > - **Estado:** Implementado (2026-09-03)
 > - **Fecha:** 2026-09-03
 > - **Componente destino:** `desarrollo-qr/qr-cms/` (colección, mapper bloques→react-email, preview, job de envío)
 > - **Origen:** Requerimiento del usuario (2026-09-03): "el cms pueda manejar la creación del correo... usar eso para newsletter/correo masivo, ver la preview antes de mandarlo a los que están suscritos". Continúa a [[SPEC-030-newsletter-cms-suscripciones]] (Fase 1 implementada).
-> - **Infraestructura reutilizada:** colección `subscribers` + tokens (`unsubscribeToken`), `newsletter-mail.ts` (transporte nodemailer, headers RF-12), componentes react-email (`EmailLayout`, `EmailParts`), ruta `/api/newsletter/preview` (auth admin), access patterns de `Subscribers`.
-> - **Dependencias nuevas:** `resend` (SDK ESP, solo si se confirma Resend como proveedor).
+> - **Infraestructura reutilizada:** colección `subscribers` + tokens (`unsubscribeToken`), `newsletter-mail.ts` (transporte nodemailer, headers RF-12), componentes react-email solo como motor de templates (`EmailLayout`, `EmailParts`), ruta `/api/newsletter/preview` (auth admin), access patterns de `Subscribers`.
+> - **Dependencias nuevas:** ninguna (nodemailer + react-email ya estaban).
 
 ---
 
@@ -91,13 +91,13 @@ aliases:
 **Bloque C — Envío masivo + programación + rebotes**
 
 - **RF-5 (job de envío)**. `POST /api/newsletter/issues/[id]/send` (auth admin): guarda `sending` y procesa en lotes de 100 (paginación por `createdAt`/`id`, reanudable si cae a mitad: guarda `sendCursor`). Por destinatario `subscribed` (filtrado por audiencia): renderiza UNA vez la plantilla base + sustituye su `unsubscribeUrl` (token real) → envía vía puerto `INewsletterBulkSender`. Fin: `sent` + `sentAt` + `sentCount`. Fallo total: `failed` + `lastError`. **Idempotencia**: un issue `sent` no se reenvía (409); reintento solo desde `failed` (continúa desde `sendCursor`, sin duplicar a los ya enviados — set `sentIssueIds` o marca por lote).
-- **RF-5.1 (puerto + adapters)**. `INewsletterBulkSender` en `src/lib/newsletter-bulk-sender.ts` con DOS adapters (decisión usuario 2026-09-03: exprimir el SMTP propio): `SmtpBulkSender` (**DEFAULT**, `NEWSLETTER_BULK_PROVIDER=smtp`) — pool nodemailer 1 conexión + envío secuencial 1-a-1 con `List-Unsubscribe` por destinatario; `ResendBulkSender` (alternativa, `=resend`, batch API). `bulkSenderFromEnv` elige por env. Tests con fake + transporte mock (assert por-destinatario, fallos 550 no bloquean, `missing-smtp` → 503).
+- **RF-5.1 (puerto SMTP único)**. `INewsletterBulkSender` en `src/lib/newsletter-bulk-sender.ts` con `SmtpBulkSender` (decisión usuario 2026-09-03: sin ESP, 100% hosting propio) — pool nodemailer 1 conexión + envío secuencial 1-a-1 con `List-Unsubscribe` por destinatario + cierre del pool. Tests con fake + transporte mock (assert por-destinatario, fallos 550 no bloquean, `missing-smtp` → 503).
 - **RF-6 (programación)**. Si `status: scheduled` y llega `scheduledAt`: `POST /api/newsletter/issues/send-due` con header `x-cron-secret === CRON_SECRET` ejecuta los pendientes (mismo job RF-5). Cron externo (Railway/Vercel cada 5 min). Sin secreto → 401/403 genérico. Sin cron configurado, el programado simplemente espera (documentado).
-- **RF-7 (webhook rebotes)**. `POST /api/newsletter/webhooks/resend` (firma del ESP según docs Resend al implementar): eventos `bounced`/`complained` → `status: 'bounced'` + `bouncedAt` en `subscribers` (por email). Log `newsletter_bounced { emailHash }`. Otros eventos → 200 ignorado.
+- **RF-7 (higiene sin ESP)**. Sin webhook (no hay ESP): los rebotes permanentes inmediatos (550) marcan `status: 'bounced'` + `bouncedAt` en el acto dentro del job (`markBounced`); los transitorios (4xx/red) solo se loguean. Rebotes tardíos: revisión manual periódica de la casilla (mejora futura: monitoreo IMAP).
 
 **Bloque D — Variables y admin UX**
 
-- **RF-8 (env)**. `RESEND_API_KEY` (requerida para bulk), `NEWSLETTER_FROM=newsletter@news.portaqr.cl` (verificado en Resend + SPF/DKIM del dominio `news.portaqr.cl`), `CRON_SECRET` (32 hex), `NEWSLETTER_BULK_BATCH_SIZE` (default 100). Documentadas en `qr-cms/.env.example` (proceso `rules/common/environment-variables.md`). Sin estas vars, el admin muestra el issue pero `send` responde 503 explicativo (no 500).
+- **RF-8 (env)**. `NEWSLETTER_FROM` (vacío = `EMAIL_FROM`), `NEWSLETTER_BULK_BATCH_SIZE` (default 50), `NEWSLETTER_BULK_PAUSE_MS` (default 30000), `CRON_SECRET` (32 hex). Documentadas en `qr-cms/.env.example`. Sin SMTP configurado, `send` responde 503 explicativo (no 500).
 - **RF-9 (admin UX mínima)**. Descripciones en español en cada campo; `scheduledAt` solo visible si `status: scheduled`; botón doc "ver preview" (link a la ruta RF-3) en la sidebar del issue.
 
 ### 3.2 Reglas de negocio
@@ -180,11 +180,11 @@ class ResendBulkSender implements INewsletterBulkSender // batch/emails de Resen
 | `src/app/api/newsletter/issues/[id]/test/route.ts` (nuevo) | RF-4 (rate-limit, link TEST) |
 | `src/app/api/newsletter/issues/[id]/send/route.ts` (nuevo) | RF-5 (lock, lotes, cursor, stats) |
 | `src/app/api/newsletter/issues/send-due/route.ts` (nuevo) | RF-6 (CRON_SECRET) |
-| `src/app/api/newsletter/webhooks/resend/route.ts` (nuevo) | RF-7 (firma, bounced) |
+| `SendJobStore.markBounced` | RF-7 (550 inmediato → `bounced` + `bouncedAt`, sin ESP) |
 | `src/payload.config.ts` | Registrar `NewsletterIssues` (sin MCP) + `payload-types` |
-| `qr-cms/.env.example` | RF-8 (`RESEND_API_KEY`, `NEWSLETTER_FROM`, `CRON_SECRET`, batch) |
-| `package.json` | + `resend` (SDK) |
-| E2E (`e2e-tests-portaqr`) | Crear issue → preview 200 → test send (stub Resend) — según factibilidad con auth admin |
+| `qr-cms/.env.example` | RF-8 (`NEWSLETTER_FROM`, `BATCH_SIZE/PAUSE_MS`, `CRON_SECRET`) |
+| `package.json` | Sin deps nuevas (nodemailer + react-email ya estaban) |
+| E2E (`e2e-tests-portaqr`) | Guards de rutas (401/403/404) + flujos SPEC-030 — según factibilidad con auth admin |
 
 ### 4.4 ADRs
 
@@ -194,13 +194,13 @@ class ResendBulkSender implements INewsletterBulkSender // batch/emails de Resen
 > - Contra-punto: dos sets de bloques que mantener. Aceptado: el email exige restricciones que el blog no tiene; el mapper es ~100 líneas testeadas.
 
 > [!info] ADR-030A.2 — ¿SMTP propio o ESP (Resend/Brevo/SES)?
-> **Decisión (rev. 2026-09-03, usuario)**: **SMTP propio por defecto** (el hosting es de uso exclusivo del proyecto aunque compartido; sin límites duros más que no caer en spam). Throttling en 3 capas: pool 1 conexión + secuencial (~30-60/min por RTT), pausa configurable entre lotes (`NEWSLETTER_BULK_PAUSE_MS`, default 30s), lotes de 50. **Resend queda como alternativa** vía el mismo puerto (`NEWSLETTER_BULK_PROVIDER=resend`) si el volumen o la entregabilidad lo exigen.
-> - react-email es suyo: `render()` + `resend.emails.send/batch` hablan el mismo idioma; webhooks de bounce simples; DX y docs de primera. Alternativas válidas si el volumen/costo lo pide (Brevo tiene tier gratis generoso).
-> - El puerto `INewsletterBulkSender` deja la puerta abierta a cambiar sin tocar el job.
+> **Decisión final (2026-09-03, usuario)**: **100% SMTP propio, sin ESP**. Se eliminó Resend (código, deps `resend`/`svix`, webhook, vars). Si algún día el volumen lo exige, el puerto `INewsletterBulkSender` permite reintroducir un adapter. Throttling en 3 capas: pool 1 conexión + secuencial (~30-60/min por RTT), pausa configurable entre lotes (`NEWSLETTER_BULK_PAUSE_MS`, default 30s), lotes de 50.
+> - react-email se conserva SOLO como motor de templates (render a HTML); el envío es nodemailer puro.
+> - El puerto `INewsletterBulkSender` permitiría reintroducir un ESP sin tocar el job (código en historial git).
 
 > [!info] ADR-030A.3 — ¿Cola (BullMQ/Payload jobs) o loop paginado en el request?
-> **Decisión**: **loop paginado reanudable en el request** (lotes de 100, `sendCursor`).
-> - Volumen esperado inicial (cientos-miles bajos): un request con streaming de lotes basta; sin infra nueva (el proyecto no tiene Redis/BullMQ). Si el volumen o los timeouts lo exigen, migrar a cola sin cambiar el contrato (el cursor ya es el checkpoint).
+> **Decisión**: **loop paginado reanudable en el request** (lotes de 50 + pausa, `sendCursor`).
+> - Volumen esperado inicial (cientos-miles bajos): un request con lotes de 50 + pausa 30s basta; sin infra nueva (el proyecto no tiene Redis/BullMQ). Si el volumen o los timeouts lo exigen, migrar a cola sin cambiar el contrato (el cursor ya es el checkpoint).
 > - RN-A7 (1 envío concurrente) evita duplicados sin locks distribuidos.
 
 > [!info] ADR-030A.4 — ¿Píxel de apertura?
@@ -272,4 +272,5 @@ class ResendBulkSender implements INewsletterBulkSender // batch/emails de Resen
 | Fecha | Detalle |
 | --- | --- |
 | 2026-09-03 | **Implementada** en rama `feat/spec-030-A-newsletter-issues` (qr-cms, base react-email): `63b4831` colección, `a769aa6` mapper, `0f8811a` preview+test, `20b3867` Resend, `82802e6` job, `f3868e1` cron+webhook, `297c854` fix auth-401; e2e `8496ab0` guards 6/6 chromium. Validación: vitest 167/167, tsc/lint limpios (pre-existente scripts TS1117 no tocado). E2E encontró bug real (payload.auth lanza sin sesión → fix 401). |
+| 2026-09-03 | **Sin ESP**: eliminado Resend (adapter, deps `resend`/`svix`, webhook, vars) + `markBounced` con 550 inmediatos + pausa configurable. Commits qr-cms en `feat/spec-030-A-smtp-bulk`. |
 | 2026-09-03 | **SPEC creada** (borrador). Hija de SPEC-030: el CMS gestiona la creación del correo (issues por bloques), preview antes de enviar y masivo a suscritos, todo en :3005. Se apaga el sidecar :3002. |
