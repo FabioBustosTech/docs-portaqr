@@ -15,8 +15,8 @@ status: borrador
 > Un **solo camino**: el formulario `/signup` no lleva ninguna casilla. La sección "Términos y Condiciones" tiene un botón que abre un **popup único** con el resumen de términos + botón **"Aceptar"** (clic implícito = aceptación, bloqueante, sin casilla) + casilla **opcional no-tickeada** de newsletter. Como Google: el popup es solo aceptación; el marketing va separado pero en el mismo paso para no perderlo. Reutiliza `TermsModal` + `terms-content.ts`.
 
 > [!info] Metadatos
-> - **Estado:** Borrador (en implementación)
-> - **Fecha:** 2026-09-03
+> - **Estado:** Implementado en rama (pendiente merge a main)
+> - **Fecha:** 2026-09-03 (+ verificado en vivo 2026-09-04)
 > - **Componente destino:** `desarrollo-qr/qr-app/` (SignUpForm, TermsModal) + `e2e-tests-portaqr` (signup-optin)
 > - **Origen:** Pedido del usuario (2026-09-03): el popup de Google acepta términos sin newsletter; tener casilla fuera + popup es confuso — "vamos por un solo camino: los dos con popup, con click implícito no tickeado; términos bloqueantes, newsletter opcional".
 > - Historial: v1 proponía pantalla completa estilo Google; v2 (esta) mantiene el popup, que es lo que Google realmente levanta.
@@ -94,3 +94,4 @@ SignUpForm (sin TermsCheckbox ni casilla newsletter)
 |---|---|
 | 2026-09-03 | **SPEC creada** (v1 pantalla completa). |
 | 2026-09-03 | **Reescrita a v2** (popup unificado): el usuario aclara que Google levanta popup y que la confusión es casilla-fuera + popup — un solo camino. En implementación. |
+| 2026-09-04 | **Implementada y verificada**: `qr-app@43596de` (popup unificado), `e2e@54daa76+c9ef93d` (POM + 2/2 chromium en vivo), jest 579/579, tsc/lint limpios. Rebuild qr-app + redeploy local OK. Pendiente merge a main. |
