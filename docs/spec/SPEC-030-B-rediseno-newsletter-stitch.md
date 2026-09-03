@@ -142,4 +142,5 @@ trustItems?: string[] // default ['1 correo al mes','Sin compromisos','Contenido
 | Fecha | Detalle |
 | --- | --- |
 | 2026-09-03 | **Implementada** en rama `feat/spec-030-newsletter` (qr-app, misma rama): `54dba70` isla dark/mint, `a8e57db` badge/lead/confianza, `489eb94` éxito Variante C + proxy resend-confirm, `e2aa670` defaults + full 564/564. Visual verificado en navegador vs Stitch. |
+| 2026-09-03 | **Ajuste v2 usuario**: pantalla correcta es "Contenido de Valor" (artículos destacados, NO regalo). Props editoriales (`consentText`, `ctaLabel`, `microcopy`, `featuredArticle`, `successTitle/Subtitle/Article` con `{privacidad}` inline); Section con defaults edición mensual; leadMagnet oculto sin prop. Commit `f8e82af`, suite 566/566, visual verificado. |
 | 2026-09-03 | **SPEC creada** (borrador). Base 100% Stitch (pantallas + tokens volcados en metadatos). Alcance cerrado por usuario: solo componente + solo newsletter. |
