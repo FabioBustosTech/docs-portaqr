@@ -74,7 +74,7 @@ aliases:
 
 ## 3. Diseño Técnico
 
-### 3.1 Cambios por archivo (`qr-app`, rama `feat/spec-030-B-newsletter-stitch`)
+### 3.1 Cambios por archivo (`qr-app`, rama `feat/spec-030-newsletter` — misma rama, decisión usuario)
 
 | Archivo | Cambio |
 | --- | --- |
@@ -128,7 +128,7 @@ trustItems?: string[] // default ['1 correo al mes','Sin compromisos','Contenido
 ## 7. Tareas
 
 - [ ] `docs/tareas/SPEC-030-B-tareas.json` (formato Taskmaster).
-- [ ] Rama `feat/spec-030-B-newsletter-stitch` (qr-app; e2e si aplica).
+- [ ] Rama `feat/spec-030-newsletter` (misma rama SPEC-030, decisión usuario; e2e si aplica).
 
 ## 8. Referencias
 

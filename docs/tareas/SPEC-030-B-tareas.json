@@ -33,7 +33,7 @@
     {
       "id": "4",
       "content": "[SPEC-030-B] NewsletterSection con defaults + validación final",
-      "description": "Section pasa props Stitch; spec actualizada. tsc+lint+jest full sin regresión, E2E newsletter verdes. Rama feat/spec-030-B-newsletter-stitch. Revisión visual home/blog/newsletter vs Stitch (CA-05).",
+      "description": "Section pasa props Stitch; spec actualizada. tsc+lint+jest full sin regresión, E2E newsletter verdes. Rama feat/spec-030-newsletter (misma). Revisión visual home/blog/newsletter vs Stitch (CA-05).",
       "status": "pending",
       "priority": "medium",
       "tag": "spec-030-B",
