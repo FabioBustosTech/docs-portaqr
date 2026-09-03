@@ -52,9 +52,9 @@
     },
     {
       "id": "6",
-      "content": "[SPEC-030] qr-app NewsletterSubscribe reutilizable (sin cuenta)",
+      "content": "[SPEC-030] qr-app NewsletterSubscribe reutilizable (sin cuenta) (done: commit 2a7bb0c, jest 7/7, tsc+lint limpios)",
       "description": "components/NewsletterSubscribe (index + useNewsletterSubscribe + spec): props source/variant/showName/title/description, email+name?, consent obligatorio no premarcado, honeypot, isValidEmail, useToast, estados idle/sending/pending/error, a11y. Montado en Footer (footer/compact), blog/[slug] (blog/full) y /newsletter (newsletter-page/full); extensible a home/precios/contacto solo con source. services/newsletter.service.ts + proxies /api/newsletter/* con throttle SPEC-006. Tests componente + proxies.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-030",
       "dependencies": ["3"],
