@@ -4,7 +4,7 @@
       "id": "1",
       "content": "[SPEC-031] TermsModal con bloque newsletter opcional (RF-2)",
       "description": "qr-app TermsModal/index.tsx: props newsletterOptIn? + onNewsletterChange?; casilla no premarcada + link /privacidad#newsletter entre resumen y documento completo. RTL: render opcional, default sin bloque, check explícito.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-031",
       "dependencies": [],
@@ -14,7 +14,7 @@
       "id": "2",
       "content": "[SPEC-031] SignUpForm sin casillas, un solo camino popup (RF-1/RF-3)",
       "description": "qr-app SignUpForm/index.tsx: fuera TermsCheckbox + casilla newsletter; botón 'Leer y aceptar términos' + estado pendiente/aceptado; acceptTerms solo vía onAccept; Crear deshabilitado sin aceptar + nota. RTL CA-01/03.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-031",
       "dependencies": [
@@ -26,7 +26,7 @@
       "id": "3",
       "content": "[SPEC-031] Popup auto-open ?acceptTerms=1 + flujo Google (RF-4/RF-5)",
       "description": "initialAcceptTerms abre el popup al cargar (estado inicial, sin effect); Google mantiene pendingGoogleRedirect con CTA contextual. RTL CA-04 + flujo Google.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-031",
       "dependencies": [
@@ -37,8 +37,8 @@
     {
       "id": "4",
       "content": "[SPEC-031] Submit con newsletter del popup + E2E (RN-1/CA-02/CA-05)",
-      "description": "buildSubmitData sin cambios (lee newsletterOptIn del form, seteado desde el popup); e2e signup-optin vía popup (marcar/no-marcar); tsc/lint/jest verdes.",
-      "status": "pending",
+      "description": "buildSubmitData sin cambios (lee newsletterOptIn del form, seteado desde el popup); e2e signup-optin vía popup (marcar/no-marcar); tsc/lint/jest verdes. Pendiente: corrida E2E en vivo + verificación visual del popup.",
+      "status": "in-progress",
       "priority": "medium",
       "tag": "spec-031",
       "dependencies": [
