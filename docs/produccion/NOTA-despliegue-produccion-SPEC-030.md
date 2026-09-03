@@ -76,20 +76,20 @@ Sin variables nuevas (los proxies reutilizan `CMS_URL` server-side — verificar
 
 ### qr-cms/qrCms.env (local)
 
-| Variable | Valor local | En prod cambiar a |
-| --- | --- | --- |
-| `SMTP_HOST` | `srv61.benzahosting.cl` | El mismo (hosting actual) |
-| `SMTP_PORT` | `465` (SSL implícito) | El mismo |
-| `SMTP_USER` / `SMTP_PASS` | 🔒 (las del backend, ya copiadas) | Los mismos |
-| `EMAIL_FROM` | `noreplay@portaqr.cl` | El mismo |
-| `NEWSLETTER_PUBLIC_URL` | `http://localhost:3000` | `https://portaqr.cl` |
-| `NEWSLETTER_DOUBLE_OPT_IN` | `true` | No configurar (default) |
-| `NEWSLETTER_API_KEY` | 🔒 (generada 64 hex, comparte valor con backend) | Regenerar una nueva para prod |
-| `RESEND_API_KEY` | (vacía en local — bulk responde 503) | Key real de Resend |
-| `NEWSLETTER_FROM` | (vacía, default del ejemplo) | `newsletter@news.portaqr.cl` (verificado) |
-| `NEWSLETTER_BULK_BATCH_SIZE` | (vacía, default 100) | No configurar (default) |
-| `CRON_SECRET` | (vacía) | Generar uno nuevo para prod |
-| `RESEND_WEBHOOK_SECRET` | (vacía, webhook en 503) | El de Resend Dashboard |
+| Variable                     | Valor local                                      | En prod cambiar a                         |
+| ---------------------------- | ------------------------------------------------ | ----------------------------------------- |
+| `SMTP_HOST`                  | `srv61.benzahosting.cl`                          | El mismo (hosting actual)                 |
+| `SMTP_PORT`                  | `465` (SSL implícito)                            | El mismo                                  |
+| `SMTP_USER` / `SMTP_PASS`    | 🔒 (las del backend, ya copiadas)                | Los mismos                                |
+| `EMAIL_FROM`                 | `noreplay@portaqr.cl`                            | El mismo                                  |
+| `NEWSLETTER_PUBLIC_URL`      | `http://localhost:3000`                          | `https://portaqr.cl`                      |
+| `NEWSLETTER_DOUBLE_OPT_IN`   | `true`                                           | No configurar (default)                   |
+| `NEWSLETTER_API_KEY`         | 🔒 (generada 64 hex, comparte valor con backend) | Regenerar una nueva para prod             |
+| `RESEND_API_KEY`             | (vacía en local — bulk responde 503)             | Key real de Resend                        |
+| `NEWSLETTER_FROM`            | (vacía, default del ejemplo)                     | `newsletter@news.portaqr.cl` (verificado) |
+| `NEWSLETTER_BULK_BATCH_SIZE` | (vacía, default 100)                             | No configurar (default)                   |
+| `CRON_SECRET`                | (vacía)                                          | Generar uno nuevo para prod               |
+| `RESEND_WEBHOOK_SECRET`      | (vacía, webhook en 503)                          | El de Resend Dashboard                    |
 
 ### backend-portaqr/backendPortaqr.env (local)
 
@@ -104,6 +104,16 @@ Sin variables nuevas (los proxies reutilizan `CMS_URL` server-side — verificar
 | Variable | Valor local | En prod cambiar a |
 | --- | --- | --- |
 | `CMS_URL` | (interno docker) | URL pública del CMS en Railway |
+
+## Anti-spam con SMTP propio (hosting compartido de uso exclusivo)
+
+Sin límites duros más que no caer en spam. Capas de protección:
+
+1. **Throttling**: pool 1 conexión + 1 destinatario por mensaje + secuencial (RTT ~30-60/min) + pausa 30s entre lotes de 50 → ~1.000 suscriptores ≈ 35 min.
+2. **Higiene**: solo `subscribed`, baja 1-clic en cada correo + headers, rebotes 550 inmediatos no bloquean el lote.
+3. **Autenticación**: verificar SPF/DKIM/DMARC del dominio en cPanel (Email Deliverability) + remitente del propio dominio.
+4. **Calentamiento**: primeros masivos a listas pequeñas; confirmar con el proveedor el tope/hora de la cuenta.
+5. **Rebotes tardíos**: sin ESP no hay webhook automático — revisar periódicamente la casilla `noreplay@` y marcar `bounced` manual (mejora futura: monitoreo IMAP).
 
 ## Checklist de despliegue
 

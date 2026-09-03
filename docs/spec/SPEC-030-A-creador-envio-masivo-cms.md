@@ -91,7 +91,7 @@ aliases:
 **Bloque C — Envío masivo + programación + rebotes**
 
 - **RF-5 (job de envío)**. `POST /api/newsletter/issues/[id]/send` (auth admin): guarda `sending` y procesa en lotes de 100 (paginación por `createdAt`/`id`, reanudable si cae a mitad: guarda `sendCursor`). Por destinatario `subscribed` (filtrado por audiencia): renderiza UNA vez la plantilla base + sustituye su `unsubscribeUrl` (token real) → envía vía puerto `INewsletterBulkSender`. Fin: `sent` + `sentAt` + `sentCount`. Fallo total: `failed` + `lastError`. **Idempotencia**: un issue `sent` no se reenvía (409); reintento solo desde `failed` (continúa desde `sendCursor`, sin duplicar a los ya enviados — set `sentIssueIds` o marca por lote).
-- **RF-5.1 (puerto + adapter Resend)**. `INewsletterBulkSender { sendBulk({ to, subject, html, headers, unsubscribeUrl }): Promise<void> }` en `src/lib/newsletter-bulk-sender.ts` + adapter `ResendBulkSender` (`RESEND_API_KEY`, `from: NEWSLETTER_FROM`). Nodemailer SMTP queda SOLO para transaccionales (SPEC-030); el bulk sale por ESP (RN-9 de SPEC-030). Tests con adapter fake (assert por-destinatario: subject, headers, unsubscribe único).
+- **RF-5.1 (puerto + adapters)**. `INewsletterBulkSender` en `src/lib/newsletter-bulk-sender.ts` con DOS adapters (decisión usuario 2026-09-03: exprimir el SMTP propio): `SmtpBulkSender` (**DEFAULT**, `NEWSLETTER_BULK_PROVIDER=smtp`) — pool nodemailer 1 conexión + envío secuencial 1-a-1 con `List-Unsubscribe` por destinatario; `ResendBulkSender` (alternativa, `=resend`, batch API). `bulkSenderFromEnv` elige por env. Tests con fake + transporte mock (assert por-destinatario, fallos 550 no bloquean, `missing-smtp` → 503).
 - **RF-6 (programación)**. Si `status: scheduled` y llega `scheduledAt`: `POST /api/newsletter/issues/send-due` con header `x-cron-secret === CRON_SECRET` ejecuta los pendientes (mismo job RF-5). Cron externo (Railway/Vercel cada 5 min). Sin secreto → 401/403 genérico. Sin cron configurado, el programado simplemente espera (documentado).
 - **RF-7 (webhook rebotes)**. `POST /api/newsletter/webhooks/resend` (firma del ESP según docs Resend al implementar): eventos `bounced`/`complained` → `status: 'bounced'` + `bouncedAt` en `subscribers` (por email). Log `newsletter_bounced { emailHash }`. Otros eventos → 200 ignorado.
 
@@ -107,7 +107,7 @@ aliases:
 - **RN-A3**. Un issue `sent` es inmutable (no se edita ni reenvía). Correcciones = nuevo issue (auditoría).
 - **RN-A4**. El envío es reanudable e idempotente por destinatario (caída a mitad no duplica).
 - **RN-A5**. Programar exige `subject` + ≥1 bloque + audiencia válida; si no, 400 (no se puede dejar `scheduled` inválido).
-- **RN-A6**. El remitente bulk NUNCA es el transaccional (`EMAIL_FROM`): usa `NEWSLETTER_FROM` en subdominio dedicado (reputación separada).
+- **RN-A6**. Remitente bulk = `NEWSLETTER_FROM` con fallback a `EMAIL_FROM` (mismo dominio del hosting; reputación compartida asumida). Si se migra a Resend, usar subdominio dedicado `news.portaqr.cl` (reputación separada).
 - **RN-A7**. Límite de seguridad: máx 1 envío masivo concurrente (lock por `status: sending` — un segundo `send` responde 409).
 
 ### 3.3 Criterios de aceptación (CA)
@@ -174,7 +174,7 @@ class ResendBulkSender implements INewsletterBulkSender // batch/emails de Resen
 | `src/collections/NewsletterIssues.spec.ts` (nuevo) | Estructura + transiciones + RN-A5 |
 | `src/lib/newsletter-issue-render.ts` (nuevo) | RF-2 mapper bloques→react-email + `empty-issue` |
 | `src/lib/newsletter-issue-render.spec.ts` (nuevo) | 1 test por bloque + sanitización links + footer por destinatario |
-| `src/lib/newsletter-bulk-sender.ts` (nuevo) | Puerto + `ResendBulkSender` + fake para tests |
+| `src/lib/newsletter-bulk-sender.ts` (nuevo) | Puerto + `SmtpBulkSender` (default) + `ResendBulkSender` + fake para tests |
 | `src/lib/newsletter-bulk-sender.spec.ts` (nuevo) | Por-destinatario único, headers, batch, 503 sin key |
 | `src/app/api/newsletter/issues/[id]/preview/route.ts` (nuevo) | RF-3 (auth admin, marca VISTA PREVIA) |
 | `src/app/api/newsletter/issues/[id]/test/route.ts` (nuevo) | RF-4 (rate-limit, link TEST) |
@@ -193,8 +193,8 @@ class ResendBulkSender implements INewsletterBulkSender // batch/emails de Resen
 > - Los bloques del blog (Lexical rico, tablas, CTAs con JS-ish) no son email-safe (la mayoría de clientes ignora `<table>` complejos, JS y CSS externo). Un set mínimo garantiza render en Gmail/Outlook/Apple Mail.
 > - Contra-punto: dos sets de bloques que mantener. Aceptado: el email exige restricciones que el blog no tiene; el mapper es ~100 líneas testeadas.
 
-> [!info] ADR-030A.2 — ¿Resend u otro ESP (Brevo/Mailgun/SES)?
-> **Decisión**: **Resend** (a confirmar contra precios/volumen al implementar).
+> [!info] ADR-030A.2 — ¿SMTP propio o ESP (Resend/Brevo/SES)?
+> **Decisión (rev. 2026-09-03, usuario)**: **SMTP propio por defecto** (el hosting es de uso exclusivo del proyecto aunque compartido; sin límites duros más que no caer en spam). Throttling en 3 capas: pool 1 conexión + secuencial (~30-60/min por RTT), pausa configurable entre lotes (`NEWSLETTER_BULK_PAUSE_MS`, default 30s), lotes de 50. **Resend queda como alternativa** vía el mismo puerto (`NEWSLETTER_BULK_PROVIDER=resend`) si el volumen o la entregabilidad lo exigen.
 > - react-email es suyo: `render()` + `resend.emails.send/batch` hablan el mismo idioma; webhooks de bounce simples; DX y docs de primera. Alternativas válidas si el volumen/costo lo pide (Brevo tiene tier gratis generoso).
 > - El puerto `INewsletterBulkSender` deja la puerta abierta a cambiar sin tocar el job.
 
