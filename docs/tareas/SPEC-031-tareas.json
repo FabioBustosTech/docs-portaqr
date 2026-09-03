@@ -37,8 +37,8 @@
     {
       "id": "4",
       "content": "[SPEC-031] Submit con newsletter del popup + E2E (RN-1/CA-02/CA-05)",
-      "description": "buildSubmitData sin cambios (lee newsletterOptIn del form, seteado desde el popup); e2e signup-optin vía popup (marcar/no-marcar); tsc/lint/jest verdes. Pendiente: corrida E2E en vivo + verificación visual del popup.",
-      "status": "in-progress",
+      "description": "buildSubmitData sin cambios (lee newsletterOptIn del form, seteado desde el popup); e2e signup-optin vía popup (marcar/no-marcar) verde en vivo 2/2 chromium; tsc/lint/jest verdes (579/579).",
+      "status": "done",
       "priority": "medium",
       "tag": "spec-031",
       "dependencies": [
