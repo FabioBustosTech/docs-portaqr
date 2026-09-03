@@ -7,7 +7,7 @@ tags:
   - cms
   - bulk
   - qr-cms
-status: borrador
+status: implementado
 aliases:
   - SPEC-030-A
   - newsletter issues
@@ -21,7 +21,7 @@ aliases:
 > El CMS (`qr-cms`, :3005) suma un **creador de correos**: nueva colección `newsletter-issues` (asunto, preheader, contenido por bloques, audiencia, estado) con **preview por issue** (mismo HTML que se enviará, con link de baja de ejemplo) y **envío masivo** solo a `subscribed` vía ESP (Resend recomendado — react-email es suyo). Sin sidecars: muere el puerto :3002 (`email dev` queda solo como herramienta local opcional). Reutiliza todo SPEC-030 sin cambios (suscriptores, tokens, baja 1-clic, headers).
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado (2026-09-03)
 > - **Fecha:** 2026-09-03
 > - **Componente destino:** `desarrollo-qr/qr-cms/` (colección, mapper bloques→react-email, preview, job de envío)
 > - **Origen:** Requerimiento del usuario (2026-09-03): "el cms pueda manejar la creación del correo... usar eso para newsletter/correo masivo, ver la preview antes de mandarlo a los que están suscritos". Continúa a [[SPEC-030-newsletter-cms-suscripciones]] (Fase 1 implementada).
@@ -271,4 +271,5 @@ class ResendBulkSender implements INewsletterBulkSender // batch/emails de Resen
 
 | Fecha | Detalle |
 | --- | --- |
+| 2026-09-03 | **Implementada** en rama `feat/spec-030-A-newsletter-issues` (qr-cms, base react-email): `63b4831` colección, `a769aa6` mapper, `0f8811a` preview+test, `20b3867` Resend, `82802e6` job, `f3868e1` cron+webhook, `297c854` fix auth-401; e2e `8496ab0` guards 6/6 chromium. Validación: vitest 167/167, tsc/lint limpios (pre-existente scripts TS1117 no tocado). E2E encontró bug real (payload.auth lanza sin sesión → fix 401). |
 | 2026-09-03 | **SPEC creada** (borrador). Hija de SPEC-030: el CMS gestiona la creación del correo (issues por bloques), preview antes de enviar y masivo a suscritos, todo en :3005. Se apaga el sidecar :3002. |

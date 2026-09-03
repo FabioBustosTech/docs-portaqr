@@ -2,9 +2,9 @@
   "tasks": [
     {
       "id": "1",
-      "content": "[SPEC-030-A] CMS colección newsletter-issues + config",
+      "content": "[SPEC-030-A] CMS colección newsletter-issues + config (done)",
       "description": "qr-cms/src/collections/NewsletterIssues.ts (title, subject, preheader, content blocks email-safe, audience+audienceSources, status draft/scheduled/sending/sent/failed, scheduledAt, stats readOnly, access solo-admin sin MCP) + registro en payload.config.ts + generate:types. Vitest estructura/transiciones/RN-A5.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-030-A",
       "dependencies": [],
@@ -12,72 +12,88 @@
     },
     {
       "id": "2",
-      "content": "[SPEC-030-A] Mapper bloques a react-email + renderIssueHtml",
+      "content": "[SPEC-030-A] Mapper bloques a react-email + renderIssueHtml (done)",
       "description": "qr-cms/src/lib/newsletter-issue-render.ts (EmailText/Image/Button/Divider/Spacer a componentes, EmailLayout+EmailUnsubscribeFooter por destinatario, sanitización links, error empty-issue) reutilizando src/emails/components/*. Vitest 1 por bloque + footer + vacío.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-030-A",
-      "dependencies": ["1"],
+      "dependencies": [
+        "1"
+      ],
       "subtasks": []
     },
     {
       "id": "3",
-      "content": "[SPEC-030-A] Preview por issue + envío de prueba",
+      "content": "[SPEC-030-A] Preview por issue + envío de prueba (done)",
       "description": "GET /api/newsletter/issues/[id]/preview (auth admin, marca VISTA PREVIA, 404/400) + POST .../[id]/test { to } (rate-limit 5/hora, link TEST, log con hash). Reutiliza renderIssueHtml + transporte existente.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-030-A",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "subtasks": []
     },
     {
       "id": "4",
-      "content": "[SPEC-030-A] Puerto bulk + adapter Resend",
+      "content": "[SPEC-030-A] Puerto bulk + adapter Resend (done)",
       "description": "qr-cms/src/lib/newsletter-bulk-sender.ts (INewsletterBulkSender + ResendBulkSender batch, NEWSLETTER_FROM) + dep resend. Vitest con fake: unicidad por destinatario, headers, batch, 503 sin key. .env.example RESEND_API_KEY/NEWSLETTER_FROM.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-030-A",
-      "dependencies": ["2"],
+      "dependencies": [
+        "2"
+      ],
       "subtasks": []
     },
     {
       "id": "5",
-      "content": "[SPEC-030-A] Job de envío masivo reanudable",
+      "content": "[SPEC-030-A] Job de envío masivo reanudable (done)",
       "description": "POST /api/newsletter/issues/[id]/send (auth admin, lock sending→409, valida RN-A5, lotes 100 solo subscribed+audiencia, unsubscribeUrl por token, sendCursor, sent/failed+stats). Vitest reanuda sin duplicar + 409 concurrente + sent inmutable.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-030-A",
-      "dependencies": ["3", "4"],
+      "dependencies": [
+        "3",
+        "4"
+      ],
       "subtasks": []
     },
     {
       "id": "6",
-      "content": "[SPEC-030-A] Programación + webhook rebotes",
+      "content": "[SPEC-030-A] Programación + webhook rebotes (done)",
       "description": "POST /api/newsletter/issues/send-due (CRON_SECRET, ejecuta scheduled vencidos) + POST /api/newsletter/webhooks/resend (firma ESP, bounced/complained→bounced+bouncedAt). .env.example CRON_SECRET/batch. Vitest ambos.",
-      "status": "pending",
+      "status": "done",
       "priority": "medium",
       "tag": "spec-030-A",
-      "dependencies": ["5"],
+      "dependencies": [
+        "5"
+      ],
       "subtasks": []
     },
     {
       "id": "7",
-      "content": "[SPEC-030-A] Validación tsc/lint/tests + E2E",
+      "content": "[SPEC-030-A] Validación tsc/lint/tests + E2E (done)",
       "description": "tsc --noEmit + lint + vitest full sin regresión SPEC-030. Playwright (si auth admin factible): crear issue → preview 200 → test-send stubbeado. Docs DNS/cron/Railway en la spec.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
       "tag": "spec-030-A",
-      "dependencies": ["5", "6"],
+      "dependencies": [
+        "5",
+        "6"
+      ],
       "subtasks": []
     },
     {
       "id": "8",
-      "content": "[SPEC-030-A] Spec implementado + memoria",
+      "content": "[SPEC-030-A] Spec implementado + memoria (done)",
       "description": "Actualizar SPEC-030-A a implementado + bitácora con commits. Rama feat/spec-030-A-newsletter-issues (qr-cms). Engram: decisión bloques propios/Resend/loop paginado.",
-      "status": "pending",
+      "status": "done",
       "priority": "medium",
       "tag": "spec-030-A",
-      "dependencies": ["7"],
+      "dependencies": [
+        "7"
+      ],
       "subtasks": []
     }
   ]
