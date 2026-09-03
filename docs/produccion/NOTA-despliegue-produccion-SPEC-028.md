@@ -61,6 +61,9 @@ aliases:
 
 ## Verificación post-despliegue
 
+> [!success] Verificado en producción 2026-09-03
+> Tras el fix de `ARG` + redeploy con variables: en incógnito (URL Railway directa y `portaqr.cl`), aceptar el banner inyecta `gtm.js?id=GTM-NLJXTZG4`, `window.dataLayer` queda definido y Tag Assistant detecta el container. Ramas mergeadas a `main` y eliminadas (local + remoto).
+
 1. **Banner en primera visita**: abrir `https://portaqr.cl` en ventana de incógnito → aparece el diálogo "Consentimiento de cookies" con botones **Aceptar/Rechazar** y links a `/cookies` y `/privacidad`.
 2. **Rechazar bloquea**: clic **Rechazar** → el banner se oculta, `localStorage['portaqr-consent']==='rejected'`, recargar no lo reabre y en DevTools → Network **cero** requests a `googletagmanager.com` / `google-analytics.com`.
 3. **Aceptar inyecta**: en otra sesión incógnita, clic **Aceptar** → sin recargar aparece el request `https://www.googletagmanager.com/gtm.js?id=GTM-NLJXTZG4` y `window.dataLayer` queda definido; `localStorage` en `accepted`.
