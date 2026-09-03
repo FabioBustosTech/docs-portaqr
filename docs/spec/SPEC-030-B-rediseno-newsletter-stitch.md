@@ -1,5 +1,5 @@
 ---
-title: "SPEC-031: Rediseño sección newsletter con sistema Stitch"
+title: "SPEC-030-B: Rediseño sección newsletter con sistema Stitch"
 date: 2026-09-03
 tags:
   - spec
@@ -9,12 +9,12 @@ tags:
   - stitch
 status: borrador
 aliases:
-  - SPEC-031
+  - SPEC-030-B
   - newsletter stitch
   - rediseño newsletter
 ---
 
-# SPEC-031: Rediseño sección newsletter con sistema Stitch
+# SPEC-030-B: Rediseño sección newsletter con sistema Stitch
 
 > [!abstract] Decisión clave
 > Rediseñar `NewsletterSection`/`NewsletterSubscribe` de `qr-app` con el lenguaje del proyecto Stitch **PortaQR Design System** (pantallas "Rediseño Componente Newsletter" y "Newsletter Contenido de Valor"): isla oscura (`#121D2F`, borde mint con glow), badge "NEWSLETTER MENSUAL · 0% SPAM", línea de lead magnet, CTA pill mint full-width, microcopy legal y fila de confianza. **Alcance cerrado**: solo el componente newsletter (decisión usuario 2026-09-03); el resto de `qr-app` no se toca. Cero cambios de comportamiento (doble opt-in, honeypot, consent, throttle) y se suma el eslabón faltante del diseño: **reenvío de confirmación** ("¿No llegó? Reenviar correo" → proxy nuevo a `resend-confirm` del CMS).
@@ -74,7 +74,7 @@ aliases:
 
 ## 3. Diseño Técnico
 
-### 3.1 Cambios por archivo (`qr-app`, rama `feat/spec-031-newsletter-stitch`)
+### 3.1 Cambios por archivo (`qr-app`, rama `feat/spec-030-B-newsletter-stitch`)
 
 | Archivo | Cambio |
 | --- | --- |
@@ -127,8 +127,8 @@ trustItems?: string[] // default ['1 correo al mes','Sin compromisos','Contenido
 
 ## 7. Tareas
 
-- [ ] `docs/tareas/SPEC-031-tareas.json` (formato Taskmaster).
-- [ ] Rama `feat/spec-031-newsletter-stitch` (qr-app; e2e si aplica).
+- [ ] `docs/tareas/SPEC-030-B-tareas.json` (formato Taskmaster).
+- [ ] Rama `feat/spec-030-B-newsletter-stitch` (qr-app; e2e si aplica).
 
 ## 8. Referencias
 

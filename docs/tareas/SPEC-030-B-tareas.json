@@ -2,51 +2,51 @@
   "tasks": [
     {
       "id": "1",
-      "content": "[SPEC-031] Isla dark/mint en NewsletterSubscribe (RF-1/RN-2)",
+      "content": "[SPEC-030-B] Isla dark/mint en NewsletterSubscribe (RF-1/RN-2)",
       "description": "qr-app NewsletterSubscribe/index.tsx: tokens Stitch literales scoped (card #121D2F borde mint+glow, textos #FFF/#94A3B8, inputs, CTA pill #00C49F, checkbox). Sin tocar tema global. RTL: clases/roles.",
       "status": "pending",
       "priority": "high",
-      "tag": "spec-031",
+      "tag": "spec-030-B",
       "dependencies": [],
       "subtasks": []
     },
     {
       "id": "2",
-      "content": "[SPEC-031] Badge + lead magnet + confianza + microcopy (RF-2/RF-3)",
+      "content": "[SPEC-030-B] Badge + lead magnet + confianza + microcopy (RF-2/RF-3)",
       "description": "Props opcionales badge/leadMagnet/trustItems con defaults del diseño + microcopy legal con link privacidad. RTL por props/defaults.",
       "status": "pending",
       "priority": "high",
-      "tag": "spec-031",
+      "tag": "spec-030-B",
       "dependencies": ["1"],
       "subtasks": []
     },
     {
       "id": "3",
-      "content": "[SPEC-031] Éxito Variante C + proxy resend-confirm (RF-4/RF-5)",
+      "content": "[SPEC-030-B] Éxito Variante C + proxy resend-confirm (RF-4/RF-5)",
       "description": "Hook: lastEmail + resend() con estados. UI éxito '¡Ya estás casi listo!' + link reenviar. Proxy /api/newsletter/resend-confirm (forward+502) con route.spec. RTL + CA-02/03.",
       "status": "pending",
       "priority": "high",
-      "tag": "spec-031",
+      "tag": "spec-030-B",
       "dependencies": ["2"],
       "subtasks": []
     },
     {
       "id": "4",
-      "content": "[SPEC-031] NewsletterSection con defaults + validación final",
-      "description": "Section pasa props Stitch; spec actualizada. tsc+lint+jest full sin regresión, E2E newsletter verdes. Rama feat/spec-031-newsletter-stitch. Revisión visual home/blog/newsletter vs Stitch (CA-05).",
+      "content": "[SPEC-030-B] NewsletterSection con defaults + validación final",
+      "description": "Section pasa props Stitch; spec actualizada. tsc+lint+jest full sin regresión, E2E newsletter verdes. Rama feat/spec-030-B-newsletter-stitch. Revisión visual home/blog/newsletter vs Stitch (CA-05).",
       "status": "pending",
       "priority": "medium",
-      "tag": "spec-031",
+      "tag": "spec-030-B",
       "dependencies": ["3"],
       "subtasks": []
     },
     {
       "id": "5",
-      "content": "[SPEC-031] Spec implementado + memoria",
-      "description": "SPEC-031 a implementado + bitácora. Engram: isla dark scoped Stitch en qr-app.",
+      "content": "[SPEC-030-B] Spec implementado + memoria",
+      "description": "SPEC-030-B a implementado + bitácora. Engram: isla dark scoped Stitch en qr-app.",
       "status": "pending",
       "priority": "medium",
-      "tag": "spec-031",
+      "tag": "spec-030-B",
       "dependencies": ["4"],
       "subtasks": []
     }
