@@ -92,7 +92,7 @@ Reducir tiempos de install, disco y acoplamiento al registry (store global + har
 - [ ] **CA-02 (Nativos).** Cero `Ignored build scripts` bloqueantes; login `bcrypt` (backend), subida imagen multilink + sanitización PDF con Ghostscript (backend), subida de media (cms), `next/image` (qr-app) funcionan.
 - [ ] **CA-03 (Salud Docker).** `docker compose build --no-cache` + stack verde: `backend /health`, `qr-app /`, `qr-cms /admin`.
 - [ ] **CA-04 (Calidad).** `tsc --noEmit`, `lint`, `jest` (backend/qr-app), `vitest` (cms) verdes con pnpm, mismo umbral que baseline npm.
-- [ ] **CA-05 (E2E smoke).** Suite smoke Playwright (`e2e`, instalado via `pnpm exec`) verde contra el stack pnpm.
+- [ ] **CA-05 (E2E smoke).** Suite smoke Playwright (`e2e`, instalado via `pnpm exec`) verde contra el stack pnpm. NOTA 2026-09-04: la suite FULL tiene ~16 fallos preexistentes verificados en `main` (npm) identicos a la rama pnpm — A/B con mismo stack y mismo Playwright 1.62.1 (el lock npm tambien resuelve 1.62.1). La migracion e2e queda EXONERADA; esos fallos (signup/google, checkout/admin, pet-tag, webpay/GA/R2 externos) son triage aparte fuera de SPEC-033. Criterio T7: **paridad con baseline de main**, no cero-fallos absoluto.
 - [ ] **CA-06 (Phantom deps).** Cero `Cannot find module` nuevos vs. baseline; todo import directo está declarado en su `package.json`.
 - [ ] **CA-07 (Railway).** Deploy preview OK en los 4 servicios con pnpm 11.9.0 (o variable fijada y registrada).
 
