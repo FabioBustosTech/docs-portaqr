@@ -37,10 +37,10 @@ aliases:
 
 ## Variables de entorno
 
-| Variable | Descripción | ¿Nueva? | Dónde |
-| --- | --- | --- | --- |
-| `NEXT_PUBLIC_ENABLE_ANALYTICS` | Master switch **compartido** GTM + Pixel. Solo el string exacto `true` habilita (`false` o ausente → ninguno carga) | No (SPEC-028; verificar que siga `true`) | qr-app (Railway) |
-| `NEXT_PUBLIC_FB_PIXEL_ID` | Pixel ID `24015369744738274` (8–20 dígitos; placeholders no matchean y bloquean la carga). **Distinto** de `NEXT_PUBLIC_FACEBOOK_APP_ID` (SDK de compartir, no se toca) | **Sí** | qr-app (Railway) |
+| Variable                       | Descripción                                                                                                                                                             | ¿Nueva?                                  | Dónde            |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ---------------- |
+| `NEXT_PUBLIC_ENABLE_ANALYTICS` | Master switch **compartido** GTM + Pixel. Solo el string exacto `true` habilita (`false` o ausente → ninguno carga)                                                     | No (SPEC-028; verificar que siga `true`) | qr-app (Railway) |
+| `NEXT_PUBLIC_FB_PIXEL_ID`      | Pixel ID `24015369744738274` (8–20 dígitos; placeholders no matchean y bloquean la carga). **Distinto** de `NEXT_PUBLIC_FACEBOOK_APP_ID` (SDK de compartir, no se toca) | **Sí**                                   | qr-app (Railway) |
 
 > [!warning] Build-time, no runtime
 > Ambas son `NEXT_PUBLIC_*`: quedan bakeadas en el bundle. Todo cambio exige **redeploy** del servicio `qr-app`. Verificar en los logs del build que el deploy tomó las variables (un redeploy sin cambios de código igual re-hornea).
@@ -60,6 +60,9 @@ aliases:
 5. **e2e-tests-portaqr**: merge a `main`.
 
 ## Verificación post-despliegue
+
+> [!success] Verificado en producción 2026-09-04
+> Validación directa en `https://portaqr.cl` con navegador automatizado: consent `accepted` → `fbevents.js` + `signals/config/24015369744738274` + `app_config/json/24015369744738274` (200), `window.fbq` function v2.9.393 con cola vacía (flusheada), `facebook.com/tr/?id=24015369744738274&ev=PageView` 200 en `/` y en `/precios` (sin PII en params), `gtm.js?id=GTM-NLJXTZG4` intacto. Primera visita muestra el banner; **Rechazar** → banner oculto, consent `rejected`, `fbq`/`dataLayer` undefined y cero scripts de tracking. Ramas mergeadas a `main` y eliminadas.
 
 1. **Banner en primera visita**: abrir `https://portaqr.cl` en ventana de incógnito → aparece el diálogo "Consentimiento de cookies" con botones **Aceptar/Rechazar** y links a `/cookies` y `/privacidad`.
 2. **Rechazar bloquea**: clic **Rechazar** → el banner se oculta, `localStorage['portaqr-consent']==='rejected'`, recargar no lo reabre y en DevTools → Network **cero** requests a `connect.facebook.net` / `facebook.com/tr`.
