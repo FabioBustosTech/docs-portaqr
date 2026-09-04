@@ -11,7 +11,7 @@ tags:
   - qr-cms
   - e2e
   - infraestructura
-status: borrador
+status: implementado
 aliases:
   - SPEC-033
   - pnpm migration
@@ -23,7 +23,8 @@ aliases:
 > Migrar los 4 proyectos activos de **npm 10.8.1 → pnpm 11.9.0 (via corepack)** con `packageManager` pineado, locks regenerados con `pnpm import`, Dockerfiles y `docker-compose.yml` convertidos a `pnpm --frozen-lockfile`, y workarounds npm reescritos (`overrides` → `pnpm.overrides`, `legacy-peer-deps` → flags pnpm, `patch-mcp-zod4.mjs` → mecanismo pnpm). **Estrategia gradual por riesgo creciente:** e2e → backend → qr-app → qr-cms. **Sin upgrades de frameworks.**
 
 > [!info] Metadatos
-> - **Estado:** Borrador
+> - **Estado:** Implementado (2026-09-04, merges a `main` en los 4 repos)
+> - **Pendiente usuario:** CA-07 (verificar deploys Railway con pnpm 11.9.0) + triage E2E full (16 fallos preexistentes, paridad con main)
 > - **Fecha:** 2026-09-04
 > - **Componentes destino:** `desarrollo-qr/qr-app/`, `desarrollo-qr/backend-portaqr/`, `desarrollo-qr/qr-cms/`, `desarrollo-qr/e2e-tests-portaqr/`, `desarrollo-qr/docker-compose.yml`
 > - **Relacionado:** [[SPEC-001-migracion-monolito-modular]] (servicios deprecados fuera de alcance), [[SPEC-032-migracion-node-24-lts]] (precedente: pin Node 24.20, rebuild nativos), [[SPEC-023-blog-payload-cms-isr]] (qr-cms, postinstall patch)
