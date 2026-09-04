@@ -61,7 +61,7 @@ Reducir tiempos de install, disco y acoplamiento al registry (store global + har
 - **RF-4 (backend: overrides).** Migrar `"overrides": { "js-yaml": "^5.2.3" }` → `"pnpm": { "overrides": { "js-yaml": "^5.2.3" } }` (mantener compat: verificar que el audit de `js-yaml` sigue forzado con `pnpm why js-yaml`).
 - **RF-5 (qr-cms: peers + patch MCP).** (a) Traducir `.npmrc` `legacy-peer-deps=true` → `strict-peer-dependencies=false` + `auto-install-peers=true` (resolver el conflicto `@modelcontextprotocol/sdk 1.26 vs 1.30` sin `--force`). (b) Reescribir `scripts/patch-mcp-zod4.mjs`: **prohibido escribir dentro de `node_modules`** (symlink al store read-only). Migrar a `pnpm patch @payloadcms/plugin-mcp` + `"pnpm": { "patchedDependencies": { ... } }`, manteniendo idempotencia y el mismo comportamiento (tools create/update exponen campos).
 - **RF-6 (Dockerfiles).** En los 3 stages de cada Dockerfile (`builder`, `development`, `production`):
-  - `COPY package*.json ./` → `COPY package.json pnpm-lock.yaml ./` (+ `COPY scripts/ ./scripts/` donde ya existe por postinstall).
+  - `COPY package*.json ./` → `COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./` (+ `COPY scripts/ ./scripts/` donde ya existe por postinstall). **El `pnpm-workspace.yaml` es obligatorio** (lleva `allowBuilds`): sin él, pnpm falla con `ERR_PNPM_IGNORED_BUILDS` (lección 2026-09-04, build Docker qr-app).
   - `RUN npm ci / npm install [--omit=dev]` → `RUN corepack enable && corepack prepare pnpm@11.9.0 --activate && pnpm install --frozen-lockfile [--prod]`.
   - `CMD ["npm", "run", "dev"]` / `CMD ["npm", "start"]` → equivalentes `pnpm` (`CMD ["pnpm", "dev"]`, `CMD ["pnpm", "start"]`).
   - `RUN npm run build` → `RUN pnpm build`.
