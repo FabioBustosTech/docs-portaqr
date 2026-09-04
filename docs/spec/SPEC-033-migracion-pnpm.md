@@ -51,11 +51,13 @@ Reducir tiempos de install, disco y acoplamiento al registry (store global + har
 
 - **RF-1 (Pin del gestor).** En cada `package.json` agregar `"packageManager": "pnpm@11.9.0"`. Activación via `corepack enable && corepack prepare pnpm@11.9.0 --activate` en local, Docker y Railway. No usar un pnpm global flotante.
 - **RF-2 (Locks regenerados, no a ciegas).** En cada repo: `pnpm import` (genera `pnpm-lock.yaml` desde `package-lock.json`) + `pnpm install --lockfile-only` + `git diff --stat` del árbol auditado. Conservar `package-lock.json` en un tag (`pre-pnpm`) para rollback; eliminarlo del branch solo cuando el deploy preview del repo esté verde.
-- **RF-3 (Build scripts nativos).** Declarar en cada `package.json` que lo necesite:
-  ```json
-  "pnpm": { "onlyBuiltDependencies": ["sharp", "bcrypt", "esbuild"] }
+- **RF-3 (Build scripts nativos, formato pnpm 11).** pnpm 11 **ignora el campo `pnpm` de `package.json`** (WARN) y el formato v10 `onlyBuiltDependencies`. El allowlist vive en `pnpm-workspace.yaml` con formato v11 (aunque el repo NO sea monorepo, el archivo con solo settings es válido):
+  ```yaml
+  allowBuilds:
+    sharp: true
+    bcrypt: true
   ```
-  backend: `sharp + bcrypt`; qr-cms: `sharp`; qr-app: `sharp` (se agrega como dep explícita, ver RF-7) + `esbuild` si aplica. Ejecutar `pnpm approve-builds` y commitear la selección.
+  backend: `sharp + bcrypt`; qr-cms: `sharp`; qr-app: `sharp` (se agrega como dep explícita, ver RF-7) + `@swc/core` + `unrs-resolver` (bindings que pnpm detecta en el install). Generar con `pnpm approve-builds --all` (no interactivo) y commitear el `pnpm-workspace.yaml` resultante. Lección 2026-09-04 (qr-app): `approve-builds` ejecuta los postinstall y persiste `allowBuilds`; verificar con `pnpm install --frozen-lockfile` limpio + `require('sharp')` OK.
 - **RF-4 (backend: overrides).** Migrar `"overrides": { "js-yaml": "^5.2.3" }` → `"pnpm": { "overrides": { "js-yaml": "^5.2.3" } }` (mantener compat: verificar que el audit de `js-yaml` sigue forzado con `pnpm why js-yaml`).
 - **RF-5 (qr-cms: peers + patch MCP).** (a) Traducir `.npmrc` `legacy-peer-deps=true` → `strict-peer-dependencies=false` + `auto-install-peers=true` (resolver el conflicto `@modelcontextprotocol/sdk 1.26 vs 1.30` sin `--force`). (b) Reescribir `scripts/patch-mcp-zod4.mjs`: **prohibido escribir dentro de `node_modules`** (symlink al store read-only). Migrar a `pnpm patch @payloadcms/plugin-mcp` + `"pnpm": { "patchedDependencies": { ... } }`, manteniendo idempotencia y el mismo comportamiento (tools create/update exponen campos).
 - **RF-6 (Dockerfiles).** En los 3 stages de cada Dockerfile (`builder`, `development`, `production`):
