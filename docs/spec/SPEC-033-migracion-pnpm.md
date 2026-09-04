@@ -58,8 +58,15 @@ Reducir tiempos de install, disco y acoplamiento al registry (store global + har
     bcrypt: true
   ```
   backend: `sharp + bcrypt`; qr-cms: `sharp`; qr-app: `sharp` (se agrega como dep explícita, ver RF-7) + `@swc/core` + `unrs-resolver` (bindings que pnpm detecta en el install). Generar con `pnpm approve-builds --all` (no interactivo) y commitear el `pnpm-workspace.yaml` resultante. Lección 2026-09-04 (qr-app): `approve-builds` ejecuta los postinstall y persiste `allowBuilds`; verificar con `pnpm install --frozen-lockfile` limpio + `require('sharp')` OK.
+- **RF-3b (Negar telemetría).** Los scripts innecesarios (ej. `@scarf/scarf`, telemetría de un transitivo) se niegan con `false` **dentro del mismo mapa** — `ignoredBuiltDependencies` NO suprime el error en v11 (el install sigue fallando con `ERR_PNPM_IGNORED_BUILDS`, visto en backend 2026-09-04):
+  ```yaml
+  allowBuilds:
+    bcrypt: true
+    '@scarf/scarf': false
+  ```
+- **RF-3c (Cazar phantom deps).** El `tsc/jest` en host puede pasar con restos del `node_modules` de npm (pnpm mueve lo ajeno a `node_modules/.ignored` con WARN). La prueba que vale es el **build Docker limpio**: en backend expuso `import type { StringValue } from 'ms'` sin declarar (`ms@2.1.3` + `@types/ms@2.1.0` solo hoisteados por npm) → se declaran explícitos con paridad de versión del lock npm. Regla: todo `Cannot find module` en Docker limpio = declarar la dep, no hoistear.
 - **RF-4 (backend: overrides).** Migrar `"overrides": { "js-yaml": "^5.2.3" }` → `"pnpm": { "overrides": { "js-yaml": "^5.2.3" } }` (mantener compat: verificar que el audit de `js-yaml` sigue forzado con `pnpm why js-yaml`).
-- **RF-5 (qr-cms: peers + patch MCP).** (a) Traducir `.npmrc` `legacy-peer-deps=true` → `strict-peer-dependencies=false` + `auto-install-peers=true` (resolver el conflicto `@modelcontextprotocol/sdk 1.26 vs 1.30` sin `--force`). (b) Reescribir `scripts/patch-mcp-zod4.mjs`: **prohibido escribir dentro de `node_modules`** (symlink al store read-only). Migrar a `pnpm patch @payloadcms/plugin-mcp` + `"pnpm": { "patchedDependencies": { ... } }`, manteniendo idempotencia y el mismo comportamiento (tools create/update exponen campos).
+- **RF-5 (qr-cms: peers + patch MCP).** (a) Traducir `.npmrc` `legacy-peer-deps=true` → OJO pnpm 11 **solo lee auth/registry desde `.npmrc`**: poner `strictPeerDependencies: false` + `autoInstallPeers: true` en `pnpm-workspace.yaml` (resolver el conflicto `@modelcontextprotocol/sdk 1.26 vs 1.30` sin `--force`). (b) Reescribir `scripts/patch-mcp-zod4.mjs`: **prohibido escribir dentro de `node_modules`** (symlink al store read-only). Migrar a `pnpm patch @payloadcms/plugin-mcp` + `patchedDependencies` en `pnpm-workspace.yaml` (formato v11, no campo `pnpm` de package.json), manteniendo idempotencia y el mismo comportamiento (tools create/update exponen campos).
 - **RF-6 (Dockerfiles).** En los 3 stages de cada Dockerfile (`builder`, `development`, `production`):
   - `COPY package*.json ./` → `COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./` (+ `COPY scripts/ ./scripts/` donde ya existe por postinstall). **El `pnpm-workspace.yaml` es obligatorio** (lleva `allowBuilds`): sin él, pnpm falla con `ERR_PNPM_IGNORED_BUILDS` (lección 2026-09-04, build Docker qr-app).
   - `RUN npm ci / npm install [--omit=dev]` → `RUN corepack enable && corepack prepare pnpm@11.9.0 --activate && pnpm install --frozen-lockfile [--prod]`.
@@ -101,7 +108,7 @@ backend-portaqr/Dockerfile          3 stages: COPY pnpm-lock + corepack + pnpm i
 qr-app/package.json                 + packageManager ; + sharp (dep) ; npx -> pnpm exec/dlx ; + pnpm.onlyBuiltDependencies [sharp]
 qr-app/Dockerfile                   3 stages: idem backend ; RUN pnpm build ; CMD pnpm start/dev
 qr-app/.npmrc                       nuevo solo si hace falta (auto-install-peers) — por defecto no crear
-qr-cms/package.json                 + packageManager ; postinstall intacto hasta RF-5b ; + pnpm.patchedDependencies (MCP)
+qr-cms/package.json                 + packageManager ; postinstall intacto hasta RF-5b ; + patchedDependencies en pnpm-workspace.yaml (MCP)
                                       + pnpm.onlyBuiltDependencies [sharp]
 qr-cms/.npmrc                       legacy-peer-deps=true -> strict-peer-dependencies=false + auto-install-peers=true
 qr-cms/scripts/patch-mcp-zod4.mjs   REESCRIBIR a `pnpm patch` (no escribir en node_modules)
