@@ -1,0 +1,87 @@
+{
+    "tasks": [
+        {
+            "content": "[SPEC-034] Preparación: rama feat/spec-034-facebook-pixel + baseline",
+            "dependencies": [],
+            "description": "Crear rama feat/spec-034-facebook-pixel en qr-app (desde main). Baseline: tsc/lint/jest verdes antes de tocar código. Sin dependencias nuevas (next/script es built-in). Test que valida: suite existente verde.",
+            "id": "1",
+            "priority": "high",
+            "status": "done",
+            "subtasks": [],
+            "tag": "spec-034"
+        },
+        {
+            "content": "[SPEC-034] Gate puro: isFbPixelIdValid + shouldLoadFbPixel en src/lib/analytics.ts",
+            "dependencies": [
+                "1"
+            ],
+            "description": "Extender src/lib/analytics.ts con isFbPixelIdValid (/^\\d{8,20}$/ + rechazo placeholders 1234567890/your_pixel_id_here/PIXEL_ID) y shouldLoadFbPixel({enabled, pixelId, consent}) espejo de shouldLoadGtm. Test que valida: analytics.spec.ts extendido (válidos/inválidos + tabla 8 combinaciones).",
+            "id": "2",
+            "priority": "high",
+            "status": "done",
+            "subtasks": [],
+            "tag": "spec-034"
+        },
+        {
+            "content": "[SPEC-034] src/lib/facebook-pixel.ts: fbq tipado + trackPageView/trackEvent",
+            "dependencies": [
+                "2"
+            ],
+            "description": "Crear src/lib/facebook-pixel.ts con declare global Window.fbq, trackPageView() y trackEvent(name, params) con guards SSR (sin llamadores de trackEvent en V1). Test que valida: facebook-pixel.spec.ts (fbq mockeado + no-crash sin window).",
+            "id": "3",
+            "priority": "high",
+            "status": "done",
+            "subtasks": [],
+            "tag": "spec-034"
+        },
+        {
+            "content": "[SPEC-034] FacebookPixelGate + wiring layout (cubre /blog, convive con GTM)",
+            "dependencies": [
+                "3"
+            ],
+            "description": "Crear FacebookPixelGate.tsx ('use client', props pixelId+enabled, suscribe consent-changed + storage, next/script afterInteractive con fbq init + PageView, PageView en cambio pathname/searchParams). Wirear en layout.tsx (server lee NEXT_PUBLIC_FB_PIXEL_ID) -> ClientLayout junto a GoogleTagManagerGate. Test que valida: FacebookPixelGate.spec.tsx (jsdom con mock next/script: no render sin gate, init con gate, reacciona a consent-changed, PageView en cambio de ruta).",
+            "id": "4",
+            "priority": "high",
+            "status": "done",
+            "subtasks": [],
+            "tag": "spec-034"
+        },
+        {
+            "content": "[SPEC-034] .env.example + mención Meta en /cookies (/privacidad si aplica)",
+            "dependencies": [
+                "4"
+            ],
+            "description": "Documentar NEXT_PUBLIC_FB_PIXEL_ID en .env.example (qué hace, formato dígitos 8-20, build-time rebuild, ejemplo vacío por defecto + nota sin-ID-activación-futura) + agregar fila Meta (Facebook Pixel) en /cookies (y /privacidad si lista proveedores). Test que valida: grep .env.example + render /cookies contiene mención Meta.",
+            "id": "5",
+            "priority": "medium",
+            "status": "done",
+            "subtasks": [],
+            "tag": "spec-034"
+        },
+        {
+            "content": "[SPEC-034] E2E: banner + bloqueo/inyección Pixel en / y /blog + PageView SPA",
+            "dependencies": [
+                "4"
+            ],
+            "description": "En e2e-tests-portaqr rama feat/spec-034-facebook-pixel: tests/analytics/spec-034-fb-pixel-consent.spec.ts — primera visita ve banner en / y /blog; aceptar inyecta fbevents.js sin reload; rechazar = 0 requests a Meta + persistencia; ID vacío = 0 requests aunque consent accepted; navegación SPA dispara PageView por ruta. Test que valida: suite Playwright spec-034 verde (requests Meta abortadas).",
+            "id": "6",
+            "priority": "high",
+            "status": "done",
+            "subtasks": [],
+            "tag": "spec-034"
+        },
+        {
+            "content": "[SPEC-034] QA final: tsc/lint/jest/build + E2E + SPEC a implementado",
+            "dependencies": [
+                "5",
+                "6"
+            ],
+            "description": "Validación completa qr-app (tsc --noEmit, lint, jest, build) + E2E. Verificar CA-01..07. Actualizar SPEC-034 estado a implementado. Test que valida: todo verde + SPEC actualizada.",
+            "id": "7",
+            "priority": "high",
+            "status": "done",
+            "subtasks": [],
+            "tag": "spec-034"
+        }
+    ]
+}
