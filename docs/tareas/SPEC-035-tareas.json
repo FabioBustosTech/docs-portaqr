@@ -1,0 +1,88 @@
+﻿{
+    "tasks":  [
+                  {
+                      "content":  "[SPEC-035] PreparaciÃ³n: rama feat/spec-035-error-404 + baseline",
+                      "dependencies":  [
+
+                                       ],
+                      "description":  "Crear rama feat/spec-035-error-404 en qr-app (desde main). Baseline: tsc/lint/jest verdes antes de tocar cÃ³digo. Sin dependencias nuevas. Test que valida: suite existente verde.",
+                      "id":  "1",
+                      "priority":  "high",
+                      "status":  "done",
+                      "subtasks":  [
+
+                                   ],
+                      "tag":  "spec-035"
+                  },
+                  {
+                      "content":  "[SPEC-035] Componente decorativo QRPlaceholder (SVG del hero)",
+                      "dependencies":  [
+                                           "1"
+                                       ],
+                      "description":  "Crear src/components/NotFound/QRPlaceholder.tsx: SVG vectorial del QR mockup extraÃ­do de la propuesta Stitch (mÃ³dulos + 3 esquinas con acento #00C49F), aria-hidden, tamaÃ±o responsive (w-28 h-28). Test que valida: QRPlaceholder.spec.tsx (renderiza svg, aria-hidden, no rompe sin props).",
+                      "id":  "2",
+                      "priority":  "high",
+                      "status":  "done",
+                      "subtasks":  [
+
+                                   ],
+                      "tag":  "spec-035"
+                  },
+                  {
+                      "content":  "[SPEC-035] Reescribir not-found.tsx: Header + hero + CTAs",
+                      "dependencies":  [
+                                           "2"
+                                       ],
+                      "description":  "En src/app/not-found.tsx (server): \u003cHeader /\u003e + \u003cmain id=\"contenido\"\u003e centrado con glows ambientales + badge \u0027Error 404 Â· Enlace no encontrado\u0027 + \u0027404\u0027 tipogrÃ¡fico (gradiente on-surfaceâ†’surface-variant, glow primary-container) + QRPlaceholder + h1/p contextuales + CTAs \u0027Crear cuenta gratis\u0027â†’/registro y \u0027Ir a la pÃ¡gina principal\u0027â†’/ + \u003cFooter /\u003e. Test que valida: not-found.spec.tsx (render Header/Footer, texto clave, hrefs correctos).",
+                      "id":  "3",
+                      "priority":  "high",
+                      "status":  "done",
+                      "subtasks":  [
+
+                                   ],
+                      "tag":  "spec-035"
+                  },
+                  {
+                      "content":  "[SPEC-035] Grilla bento \u0027Destinos recomendados\u0027 + bloque soporte QR impreso",
+                      "dependencies":  [
+                                           "3"
+                                       ],
+                      "description":  "AÃ±adir al not-found.tsx: secciÃ³n \u0027Destinos recomendados\u0027 (grid responsive) con 4 tarjetas /registro /precios /servicios /faq (icono surface-container-high, tÃ­tulo, desc, chevron hover) + bloque soporte \u0027Â¿Crees que esto es un error de un cÃ³digo QR impreso?\u0027 con mailto contacto@portaqr.cl + CTA \u0027Hablar con soporte\u0027â†’/contacto. Constantes DESTINATIONS/SUPPORT_EMAIL en el mismo archivo o routes.const. Test que valida: not-found.spec.tsx extiende cobertura de los 4 hrefs + mailto + /contacto.",
+                      "id":  "4",
+                      "priority":  "high",
+                      "status":  "done",
+                      "subtasks":  [
+
+                                   ],
+                      "tag":  "spec-035"
+                  },
+                  {
+                      "content":  "[SPEC-035] E2E 404: contenido + CTA + ruta destino 200",
+                      "dependencies":  [
+                                           "4"
+                                       ],
+                      "description":  "En e2e-tests-portaqr rama feat/spec-035-error-404: tests/errors/spec-035-not-found.spec.ts â€” navegar a URL inexistente (/ruta-que-no-existe-xyz) â†’ ver badge/404/Header/Footer; clic \u0027Ir a la pÃ¡gina principal\u0027 â†’ / 200; clic \u0027Crear cuenta gratis\u0027 â†’ /registro 200. Test que valida: suite Playwright spec-035 verde.",
+                      "id":  "5",
+                      "priority":  "high",
+                      "status":  "done",
+                      "subtasks":  [
+
+                                   ],
+                      "tag":  "spec-035"
+                  },
+                  {
+                      "content":  "[SPEC-035] QA final: tsc/lint/jest/build + E2E + SPEC a implementado",
+                      "dependencies":  [
+                                           "5"
+                                       ],
+                      "description":  "ValidaciÃ³n completa qr-app (tsc --noEmit, lint, jest, build) + E2E. Verificar CA-01..06. Actualizar SPEC-035 estado a implementado. Test que valida: todo verde + SPEC actualizada.",
+                      "id":  "6",
+                      "priority":  "high",
+                      "status":  "done",
+                      "subtasks":  [
+
+                                   ],
+                      "tag":  "spec-035"
+                  }
+              ]
+}

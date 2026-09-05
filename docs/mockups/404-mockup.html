@@ -1,0 +1,213 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pagina no encontrada | Porta QR (Mockup SPEC-035)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --background:#061521;
+  --foreground:#eef6fb;
+  --card:#0d212f;
+  --secondary:#1a2d3c;
+  --muted-fg:#8fa1ad;
+  --border:rgba(255,255,255,.10);
+  --brand:#00cab5;
+  --brand-fg:#020e1a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--background);color:var(--foreground);display:flex;flex-direction:column;min-height:100vh}
+.mat{width:1.25rem;height:1.25rem;flex-shrink:0}
+.skip{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.skip:focus{position:fixed;left:1rem;top:1rem;z-index:60;width:auto;height:auto;padding:.5rem 1rem;border-radius:.5rem;background:var(--brand);color:var(--brand-fg);font-weight:600;overflow:visible}
+.header{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--background);border-bottom:1px solid transparent;transition:background-color .3s,border-color .3s}
+.header.scrolled{background:rgba(6,21,33,.85);border-color:var(--border);backdrop-filter:blur(12px)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:4rem;max-width:80rem;margin:0 auto;padding:0 1rem}
+@media(min-width:1024px){.header-inner{padding:0 2rem}}
+.logo img{height:2rem;width:auto;display:block}
+.nav{display:none;align-items:center;gap:4px}
+@media(min-width:1024px){.nav{display:flex}}
+.nav a{display:inline-flex;align-items:center;gap:8px;border-radius:.5rem;padding:.5rem .75rem;font-size:.875rem;font-weight:500;color:var(--muted-fg);text-decoration:none}
+.nav a:hover{background:rgba(26,45,60,.6);color:var(--foreground)}
+.auth{display:none;align-items:center;gap:8px}
+@media(min-width:640px){.auth{display:flex}}
+.auth a{display:inline-flex;align-items:center;gap:8px;border-radius:.5rem;font-size:.875rem;text-decoration:none}
+.auth .login{padding:.5rem .875rem;font-weight:600;color:var(--foreground)}
+.auth .login:hover{background:rgba(26,45,60,.6)}
+.auth .cta{padding:.5rem 1rem;font-weight:600;background:var(--brand);color:var(--brand-fg)}
+.auth .cta:hover{transform:translateY(-2px)}
+.menu-btn{display:inline-flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:.5rem;border:1px solid var(--border);background:rgba(26,45,60,.6);color:var(--foreground);cursor:pointer}
+@media(min-width:1024px){.menu-btn{display:none}}
+.mmenu{display:none;border-top:1px solid var(--border);background:rgba(27,32,48,.95)}
+.mmenu.open{display:block}
+.mmenu nav{display:flex;flex-direction:column;gap:4px;max-width:80rem;margin:0 auto;padding:.75rem 1rem}
+.mmenu a{border-radius:.5rem;padding:.65rem .75rem;font-size:1rem;color:var(--muted-fg);text-decoration:none}
+.mmenu a:hover{background:rgba(26,45,60,.6);color:var(--foreground)}
+main{flex:1;display:flex;flex-direction:column;align-items:center;padding:5.5rem 1rem 3rem;position:relative}
+.glow-wrap{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.glow{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none}
+.glow-a{top:12%;left:50%;transform:translateX(-50%);width:360px;height:360px;background:rgba(0,202,181,.12)}
+.glow-b{top:55%;right:12%;width:300px;height:300px;background:rgba(60,71,91,.25)}
+.content{position:relative;width:100%;max-width:1240px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:9999px;background:rgba(0,202,181,.12);border:1px solid rgba(0,202,181,.3);color:var(--brand);font-size:12px;font-weight:600;margin-bottom:20px}
+.badge .dot{width:8px;height:8px;border-radius:50%;background:var(--brand);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.hero{display:flex;flex-direction:column;align-items:center;gap:24px;margin:12px 0 20px}
+@media(min-width:768px){.hero{flex-direction:row;gap:48px}}
+.hero-404{position:relative;line-height:1}
+.hero-404 .num{font-size:96px;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(to bottom,var(--foreground),#4a5568);-webkit-background-clip:text;background-clip:text;color:transparent}
+@media(min-width:768px){.hero-404 .num{font-size:140px}}
+.hero-404 .num-glow{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:100px;font-weight:800;color:var(--brand);filter:blur(5px);opacity:.22;pointer-events:none}
+@media(min-width:768px){.hero-404 .num-glow{font-size:144px}}
+.qr-card{padding:16px;border-radius:16px;background:var(--card);border:1px solid rgba(255,255,255,.1)}
+.qr-card:hover{border-color:rgba(0,202,181,.5)}
+.qr-inner{background:#fff;padding:14px;border-radius:12px;display:flex;justify-content:center}
+.qr-cap{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:8px;font-size:12px;color:var(--muted-fg)}
+.qr-cap svg{width:16px;height:16px;color:var(--brand)}
+h1{font-size:28px;font-weight:700;max-width:640px;margin:8px 0 6px}
+@media(min-width:768px){h1{font-size:38px}}
+.sub{font-size:16px;color:var(--muted-fg);max-width:600px;margin-bottom:24px}
+.ctas{display:flex;flex-direction:column;gap:12px;width:100%;max-width:420px;margin-bottom:48px}
+@media(min-width:640px){.ctas{flex-direction:row;justify-content:center;max-width:none}}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 24px;border-radius:.5rem;background:var(--brand);color:var(--brand-fg);font-weight:700;text-decoration:none;width:100%}
+@media(min-width:640px){.btn-primary{width:auto}}
+.btn-primary:hover{transform:translateY(-2px)}
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 24px;border-radius:.5rem;border:1px solid rgba(255,255,255,.14);color:var(--foreground);font-weight:600;text-decoration:none;width:100%}
+@media(min-width:640px){.btn-ghost{width:auto}}
+.btn-ghost:hover{background:var(--card);border-color:var(--brand)}
+.destinations{width:100%;text-align:left}
+.dest-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.dest-head h2{font-size:20px}
+.dest-head span{font-size:12px;color:var(--muted-fg)}
+.grid{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card{display:flex;flex-direction:column;justify-content:space-between;padding:16px;border-radius:12px;background:var(--card);border:1px solid rgba(255,255,255,.08);text-decoration:none;color:inherit}
+.card:hover{transform:translateY(-2px);border-color:rgba(0,202,181,.5)}
+.card-ic{width:40px;height:40px;border-radius:8px;background:var(--secondary);color:var(--brand);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.card h3{font-size:14px;margin-bottom:4px}
+.card p{font-size:14px;color:var(--muted-fg)}
+.card-cta{margin-top:16px;color:var(--brand);font-size:12px;font-weight:600}
+.support{margin-top:48px;padding:16px;border-radius:12px;background:rgba(13,33,47,.6);border:1px solid rgba(255,255,255,.1);max-width:640px;width:100%;display:flex;flex-direction:column;gap:12px}
+@media(min-width:640px){.support{flex-direction:row;align-items:center;justify-content:space-between;text-align:left}}
+.support-left{display:flex;gap:12px;align-items:center}
+.support-ic{width:36px;height:36px;border-radius:50%;background:rgba(26,45,60,.7);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.support p{font-size:14px}
+.support small{display:block;color:var(--muted-fg)}
+.support a.mail{color:var(--brand);text-decoration:none}
+.btn-support{white-space:nowrap;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);color:var(--foreground);font-size:12px;font-weight:600;text-decoration:none}
+.footer{border-top:1px solid var(--border);background:rgba(26,45,60,.2);margin-top:auto}
+.foot-inner{max-width:80rem;margin:0 auto;padding:3.5rem 1rem}
+@media(min-width:1024px){.foot-inner{padding:3.5rem 2rem}}
+.foot-grid{display:grid;grid-template-columns:1fr;gap:2.5rem;padding-bottom:2.5rem}
+@media(min-width:1024px){.foot-grid{grid-template-columns:1.4fr repeat(4,1fr)}}
+.foot-brand p{font-size:14px;color:var(--muted-fg);max-width:300px;margin:1rem 0 1.25rem}
+.socials{display:flex;gap:8px;margin-top:12px}
+.social{width:36px;height:36px;border-radius:8px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--muted-fg);text-decoration:none}
+.social:hover{color:var(--brand);border-color:rgba(0,202,181,.5)}
+.foot-col h4{font-size:14px;margin-bottom:12px}
+.foot-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.foot-col a{color:var(--muted-fg);text-decoration:none;font-size:14px}
+.foot-col a:hover{color:var(--foreground)}
+.foot-bottom{border-top:1px solid var(--border);padding-top:1.5rem;display:flex;flex-direction:column;gap:12px;align-items:center;font-size:14px;color:var(--muted-fg)}
+@media(min-width:640px){.foot-bottom{flex-direction:row;justify-content:space-between}}
+</style>
+</head>
+<body>
+<a href="#contenido" class="skip">Saltar al contenido</a>
+<header class="header" id="siteHeader">
+<div class="header-inner">
+<a href="/" aria-label="Ir a la pagina de inicio" class="logo"><img src="./Logo_PortaQR_Horizontal_blanco.svg" alt="Porta QR"></a>
+<nav class="nav" aria-label="Principal">
+<a href="/"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>Inicio</a>
+<a href="/servicios"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87l.22.127c.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992 0 .085 0 .17 0 .255 0 .378.139.75.432.99l1.004.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124l-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87l-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992 0-.085 0-.17 0-.255 0-.378-.139-.75-.432-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124l.22-.128c.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Servicios</a>
+<a href="/precios"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>Precios</a>
+<a href="/blog"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 5V19H5V5H19ZM19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM14 17H7V15H14V17ZM17 13H7V11H17V13ZM17 9H7V7H17V9Z"/></svg>Blog</a>
+<a href="/contacto"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>Contacto</a>
+</nav>
+<div style="display:flex;align-items:center;gap:8px">
+<div class="auth">
+<a class="login" href="/login"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>Iniciar Sesion</a>
+<a class="cta" href="/signup"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM3 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 019.374 21c-2.331 0-4.512-.645-6.374-1.766z"/></svg>Crear Cuenta</a>
+</div>
+<button class="menu-btn" id="menuBtn" aria-label="Abrir menu principal" aria-expanded="false">
+<svg class="mat" id="iconMenu" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+<svg class="mat" id="iconClose" style="display:none" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+</button>
+</div>
+</div>
+<div class="mmenu" id="mmenu"><nav>
+<a href="/">Inicio</a><a href="/servicios">Servicios</a><a href="/precios">Precios</a><a href="/blog">Blog</a><a href="/contacto">Contacto</a>
+</nav></div>
+</header>
+<main id="contenido">
+<div class="glow-wrap" aria-hidden="true"><div class="glow glow-a"></div>
+<div class="glow glow-b"></div></div>
+<div class="content">
+<div class="badge"><span class="dot"></span><span>Error 404 - Pagina no encontrada</span></div>
+<div class="hero">
+<div class="hero-404"><span class="num-glow">404</span><span class="num">404</span></div>
+<div class="qr-card" aria-hidden="true">
+<div class="qr-inner">
+<svg height="176" width="176" viewBox="0 0 25 25" role="img"><path fill="#FFFFFF" d="M0,0 h25v25H0z" shape-rendering="crispEdges"></path><path fill="#000000" d="M0 0h7v1H0zM8 0h1v1H8zM11 0h1v1H11zM13 0h1v1H13zM15 0h2v1H15zM18,0 h7v1H18zM0 1h1v1H0zM6 1h1v1H6zM13 1h2v1H13zM16 1h1v1H16zM18 1h1v1H18zM24,1 h1v1H24zM0 2h1v1H0zM2 2h3v1H2zM6 2h1v1H6zM10 2h1v1H10zM12 2h1v1H12zM14 2h3v1H14zM18 2h1v1H18zM20 2h3v1H20zM24,2 h1v1H24zM0 3h1v1H0zM2 3h3v1H2zM6 3h1v1H6zM8 3h1v1H8zM10 3h2v1H10zM13 3h4v1H13zM18 3h1v1H18zM20 3h3v1H20zM24,3 h1v1H24zM0 4h1v1H0zM2 4h3v1H2zM6 4h1v1H6zM8 4h3v1H8zM12 4h2v1H12zM15 4h2v1H15zM18 4h1v1H18zM20 4h3v1H20zM24,4 h1v1H24zM0 5h1v1H0zM6 5h1v1H6zM8 5h1v1H8zM10 5h1v1H10zM14 5h1v1H14zM18 5h1v1H18zM24,5 h1v1H24zM0 6h7v1H0zM8 6h1v1H8zM10 6h1v1H10zM12 6h1v1H12zM14 6h1v1H14zM16 6h1v1H16zM18,6 h7v1H18zM8 7h5v1H8zM15 7h1v1H15zM0 8h1v1H0zM4 8h1v1H4zM6 8h3v1H6zM11 8h2v1H11zM14 8h1v1H14zM16 8h6v1H16zM24,8 h1v1H24zM0 9h4v1H0zM8 9h1v1H8zM10 9h1v1H10zM14 9h4v1H14zM20 9h2v1H20zM23 9h1v1H23zM2 10h1v1H2zM5 10h2v1H5zM10 10h7v1H10zM19 10h4v1H19zM0 11h2v1H0zM3 11h1v1H3zM7 11h1v1H7zM10 11h2v1H10zM16 11h1v1H16zM18 11h2v1H18zM22 11h2v1H22zM0 12h1v1H0zM2 12h1v1H2zM5 12h3v1H5zM11 12h1v1H11zM16 12h3v1H16zM21,12 h4v1H21zM0 13h1v1H0zM2 13h4v1H2zM7 13h1v1H7zM9 13h2v1H9zM12 13h6v1H12zM20 13h1v1H20zM23 13h1v1H23zM3 14h2v1H3zM6 14h1v1H6zM9 14h1v1H9zM11 14h3v1H11zM15 14h1v1H15zM19 14h4v1H19zM2 15h4v1H2zM8 15h1v1H8zM11 15h1v1H11zM14 15h1v1H14zM18 15h3v1H18zM22 15h2v1H22zM0 16h2v1H0zM5 16h6v1H5zM12 16h1v1H12zM15 16h8v1H15zM8 17h1v1H8zM10 17h1v1H10zM14 17h1v1H14zM16 17h1v1H16zM20 17h1v1H20zM0 18h7v1H0zM8 18h2v1H8zM14 18h1v1H14zM16 18h1v1H16zM18 18h1v1H18zM20 18h1v1H20zM0 19h1v1H0zM6 19h1v1H6zM12 19h1v1H12zM16 19h1v1H16zM20,19 h5v1H20zM0 20h1v1H0zM2 20h3v1H2zM6 20h1v1H6zM8 20h2v1H8zM11 20h1v1H11zM13 20h2v1H13zM16,20 h9v1H16zM0 21h1v1H0zM2 21h3v1H2zM6 21h1v1H6zM10 21h1v1H10zM12 21h1v1H12zM14 21h1v1H14zM18 21h2v1H18zM22,21 h3v1H22zM0 22h1v1H0zM2 22h3v1H2zM6 22h1v1H6zM11 22h8v1H11zM21 22h1v1H21zM23 22h1v1H23zM0 23h1v1H0zM6 23h1v1H6zM10 23h2v1H10zM13 23h1v1H13zM18 23h6v1H18zM0 24h7v1H0zM8 24h2v1H8zM12 24h2v1H12zM15 24h1v1H15zM22,24 h3v1H22z" shape-rendering="crispEdges"></path></svg>
+</div>
+<div class="qr-cap"><svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/></svg>Escanea con tu movil</div>
+</div>
+</div>
+<h1>Pagina no encontrada</h1>
+<p class="sub">Lo sentimos, el enlace que buscabas pudo haber cambiado de destino o ya no existe. Si estabas creando tu cuenta, estas a un clic de comenzar gratis.</p>
+<div class="ctas">
+<a class="btn-primary" href="/signup">Crear cuenta gratis</a>
+<a class="btn-ghost" href="/">Ir a la pagina principal</a>
+</div>
+<div class="destinations">
+<div class="dest-head"><h2>Destinos recomendados</h2><span>Accesos rapidos verificados</span></div>
+<div class="grid">
+<a class="card" href="/signup"><div><div class="card-ic"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM3 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 019.374 21c-2.331 0-4.512-.645-6.374-1.766z"/></svg></div><h3>Crear Cuenta</h3><p>Registrate gratis y crea tu primer QR dinamico en menos de dos minutos.</p></div><div class="card-cta">Comenzar ahora</div></a>
+<a class="card" href="/precios"><div><div class="card-ic"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/></svg></div><h3>Planes y Precios</h3><p>Suscripciones anuales desde $25.000 por ano para negocios y profesionales.</p></div><div class="card-cta">Ver tarifas</div></a>
+<a class="card" href="/servicios"><div><div class="card-ic"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87l.22.127c.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124l-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87l-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124l.22-.128c.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div><h3>Servicios y Funciones</h3><p>QR dinamicos, WiFi, WhatsApp, menus digitales y analiticas en tiempo real.</p></div><div class="card-cta">Explorar catalogo</div></a>
+<a class="card" href="/faq"><div><div class="card-ic"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"/></svg></div><h3>Preguntas Frecuentes</h3><p>Dudas sobre edicion de codigos impresos, formatos vectoriales y soporte.</p></div><div class="card-cta">Centro de ayuda</div></a>
+</div>
+</div>
+<div class="support">
+<div class="support-left">
+<div class="support-ic"><svg class="mat" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg></div>
+<div><p>Es un error de un codigo QR impreso?<small>Escribenos a <a class="mail" href="mailto:contacto@portaqr.cl">contacto@portaqr.cl</a></small></p></div>
+</div>
+<a class="btn-support" href="/contacto">Hablar con soporte</a>
+</div>
+</div>
+</main>
+<footer class="footer">
+<div class="foot-inner">
+<div class="foot-grid">
+<div class="foot-brand">
+<a class="logo" href="/" aria-label="Porta QR inicio"><img src="./Logo_PortaQR_Horizontal_blanco.svg" alt="Porta QR Logo" width="128" height="32"></a>
+<p>Genera, gestiona y analiza codigos QR dinamicos para potenciar tu marca y tus campanas de marketing.</p>
+<span style="font-size:14px;color:var(--muted-fg)">Siguenos en:</span>
+<div class="socials">
+<a class="social" href="https://www.facebook.com/portaqrcl" aria-label="Facebook"><svg class="mat" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.847 0-5.192 1.721-5.192 4.615v3.385z"/></svg></a>
+<a class="social" href="https://www.instagram.com/portaqrcl" aria-label="Instagram"><svg class="mat" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0 10.162a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+<a class="social" href="https://youtube.com/@portaqrcl" aria-label="YouTube"><svg class="mat" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+</div>
+</div>
+<div class="foot-col"><h4>Empresa</h4><ul><li><a href="/contacto">Contacto</a></li><li><a href="/blog">Blog</a></li></ul></div>
+<div class="foot-col"><h4>Productos</h4><ul><li><a href="/servicios">Servicios</a></li><li><a href="/precios">Precios</a></li></ul></div>
+<div class="foot-col"><h4>Soporte</h4><ul><li><a href="/faq">Preguntas frecuentes</a></li></ul></div>
+<div class="foot-col"><h4>Legal</h4><ul><li><a href="/privacidad">Politica de privacidad</a></li><li><a href="/terminos">Terminos de servicio</a></li><li><a href="/cookies">Politica de cookies</a></li><li><a href="/eliminacion-de-datos">Eliminacion de datos</a></li></ul></div>
+</div>
+<div class="foot-bottom"><p>Â© 2026 Porta QR. Todos los derechos reservados.</p><p>Hecho en Chile Â· Te conecta</p></div>
+</div>
+</footer>
+<script>
+var header=document.getElementById('siteHeader');
+function onScroll(){header.classList.toggle('scrolled',window.scrollY>12)}
+window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+var btn=document.getElementById('menuBtn'),menu=document.getElementById('mmenu'),im=document.getElementById('iconMenu'),ic=document.getElementById('iconClose');
+btn.addEventListener('click',function(){var open=menu.classList.toggle('open');btn.setAttribute('aria-expanded',open);im.style.display=open?'none':'';ic.style.display=open?'':'none';document.body.style.overflow=open?'hidden':'';});
+</script>
+</body>
+</html>
